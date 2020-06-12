@@ -1,0 +1,38 @@
+#!/usr/bin/env ruby
+
+require 'uri'
+
+require 'aurora'
+
+uri = URI.parse(ARGV[0])
+
+args = if uri.scheme == "telnet" || uri.scheme == "rfc2217"
+  require 'net/telnet/rfc2217'
+  [Net::Telnet::RFC2217.new('Host' => uri.host,
+    'Port' => uri.port || 23,
+    'baud' => 19200,
+    'parity' => Net::Telnet::RFC2217::EVEN)]
+else
+  [uri.path, 19200, "parity" => SerialPort::EVEN]
+end
+
+server = ModBus::RTUServer.new(*args)
+server.promiscuous = true
+server.debug = true
+
+server.response_callback = ->(uid, func, res, req) do
+  if func == 65 && res.is_a?(Array) && req
+    register_list = []
+    req.each { |params| register_list.concat(Range.new(params[:addr], params[:addr] + params[:quant], true).to_a) }
+    unless register_list.length == res.length
+      puts "wrong number of results"
+      next
+    end
+    result = register_list.zip(res).to_h
+    Aurora.print_registers(result)
+  end
+end
+
+require 'byebug'
+server.send(:serve, args.first)
+loop {}
