@@ -2,38 +2,73 @@ module Aurora
   module ModBus
     module Server
       def parse_request(func, req)
-        return super unless func == 65
-        # 1 function register, a multiple of two words
-        return unless (req.length - 1) % 4 == 0
-        params = []
-        req[1..-1].unpack("n*").each_slice(2) do |(addr, quant)|
-          params << { addr: addr, quant: quant }
+        case func
+        when 65
+          # 1 function register, a multiple of two words
+          return unless (req.length - 1) % 4 == 0
+          params = []
+          req[1..-1].unpack("n*").each_slice(2) do |(addr, quant)|
+            params << { addr: addr, quant: quant }
+          end
+          params
+        when 66
+          return unless (req.length - 1) % 2 == 0
+          req[1..-1].unpack("n*")
+        when 67
+          # 1 function register, a multiple of two words
+          return unless (req.length - 1) % 4 == 0
+          params = []
+          req[1..-1].unpack("n*").each_slice(2) do |(addr, val)|
+            params << { addr: addr, val: val }
+          end
+          params
+        when 68
+          return unless req.length == 5
+          { noidea1: req[1,2].unpack("n"), noidea2: req[3,2].unpack("n") }
+        else
+          super
         end
-        params
       end
 
       def parse_response(func, res)
-        func = 3 if func == 65
+        return {} if func == 67 && res.length == 1
+        return { noidea: res[-1].ord } if func == 68 && res.length == 2
+        func = 3 if func == 65 || func == 66
         super
       end
 
       def process_func(func, slave, req, params)
-        return super unless func == 65
-        
-        pdu = ""
-        params.each do |param|
-          if (err = validate_read_func(param, slave.holding_registers))
-            return (func | 0x80).chr + err.chr
-          end
+        case func
+        when 65
+          pdu = ""
+          params.each do |param|
+            if (err = validate_read_func(param, slave.holding_registers))
+              return (func | 0x80).chr + err.chr
+            end
 
-          pdu += slave.holding_registers[param[:addr],param[:quant]].pack('n*')
+            pdu += slave.holding_registers[param[:addr],param[:quant]].pack('n*')
+          end
+          pdu.unshift(pdu.length.chr)
+          pdu.unshift(func)
+          pdu
+        when 66
+          pdu = params.map { |addr| slave.holding_registers[addr] }.pack('n*')
+          pdu.unshift(pdu.length.chr)
+          pdu.unshift(func)
+          pdu
+        when 67
+          slave.holding_registers[param[:addr]] = param[:val]
+          pdu = req[0,2]
+        else
+          super
         end
-        pdu.unshift(pdu.length.chr)
-        pdu.unshift(func)
-        pdu
       end
     end
   end
 end
 
-ModBus::Server::Funcs << 65
+# 65 => read multiple discontiguous register ranges (command is a list of pairs of addr and quant)
+# 66 => read multiple discontiguous registers (command is a list of addrs)
+# 67 => write multiple discontiguous registers (command is a list of pairs of addr and value; response has no content)
+# 68 => ?? request has 4 bytes, response has 1 byte that seems to be 0 (for success?)
+ModBus::Server::Funcs.concat([65, 66, 67, 68])

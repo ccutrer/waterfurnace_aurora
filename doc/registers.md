@@ -23,8 +23,6 @@ still need to confirm from wfsays.c:
 			/* 02 Stage2 - Y2 */
 			/* 01 Stage1 -Y1 */
 112 (Setup Line Voltage)
-321 (VS Pump Min)
-322 (VS Pump Max)
 401 (DHW Set Point)
 1109 (Heating LL)
 1112 (Leaving Air)
