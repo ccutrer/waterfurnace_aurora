@@ -22,8 +22,6 @@ still need to confirm from wfsays.c:
 			/* 04 EHEAT? - W? */
 			/* 02 Stage2 - Y2 */
 			/* 01 Stage1 -Y1 */
-112 (Setup Line Voltage)
-401 (DHW Set Point)
 1109 (Heating LL)
 1112 (Leaving Air)
 1113 (Suction Temp)

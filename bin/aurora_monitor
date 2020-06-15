@@ -19,7 +19,24 @@ end
 
 server = ModBus::RTUServer.new(*args)
 server.promiscuous = true
-server.debug = true
+#server.debug = true
+
+server.request_callback = ->(uid, func, req) do
+  if func == 68
+    puts "===== no idea to #{uid}: #{req.inspect}"
+  elsif func == 67
+    puts "===== write discontiguous registers to #{uid}:"
+    registers = req.map { |p| [p[:addr], p[:val]] }.to_h
+    Aurora.print_registers(registers)
+  elsif func == 16
+    puts "===== write multiple registers to #{uid}:"
+    registers = Range.new(req[:addr], req[:addr] + req[:quant] - 1).zip(req[:val]).to_h
+    Aurora.print_registers(registers)
+  elsif [65, 66].include?(func)
+  else
+    puts "**** new func #{func}"
+  end
+end
 
 server.response_callback = ->(uid, func, res, req) do
   if func == 65 && res.is_a?(Array) && req
@@ -29,6 +46,7 @@ server.response_callback = ->(uid, func, res, req) do
       puts "wrong number of results"
       next
     end
+    puts "===== read multiple register ranges from #{uid}"
     result = register_list.zip(res).to_h
     Aurora.print_registers(result)
   elsif func == 66 && res.is_a?(Array) && req
@@ -36,8 +54,12 @@ server.response_callback = ->(uid, func, res, req) do
       puts "wrong number of results"
       next
     end
+    puts "===== read discontiguous registers from #{uid}"
     registers = req.zip(res).to_h
     Aurora.print_registers(registers)
+  elsif [16, 67, 68].include?(func)
+  else
+    puts "**** new func #{func}"
   end
 end
 
