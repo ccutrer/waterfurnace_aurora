@@ -22,28 +22,161 @@ module Aurora
     end.join.sub(/[ \0]+$/, '')
   end
 
-  SYSTEM_OUTPUTS = {
-    0x40 => "RV?",
-    0x20 => "EH2?",
-    0x10 => "EH1?",
-    0x02 => "CC2?",
-    0x01 => "CC1?"
+  FAULTS = {
+    1 => "Input Flt Limit",
+    2 => "High Pressure",
+    3 => "Low Pressure",
+    4 => "FP2",
+    5 => "FP1",
+    7 => "Condensate Limit",
+    8 => "Over/Under Voltage",
+    9 => "AirF/RPM",
+    10 => "CompMon",
+    11 => "FP1/2 Snr Limit",
+    12 => "RefPerfrm Limit",
+    13 => "NCrtAxbSr Limit",
+    14 => "CrtAxbSnr Limit",
+    15 => "HW Limit",
+    16 => "VSPumpFlt Limit",
+    17 => "CommTStat Limit",
+    18 => "NCritComm Limit",
+    19 => "Crit Comm Limit",
+    21 => "Low Loop Pressure",
+    22 => "ComEcmErr Limit",
+    23 => "HAGenAlrm1 Limit",
+    24 => "HAGenAlrm2 Limit",
+    25 => "AxbEevErr Limit",
+    41 => "High Drive Temp Limit",
+    42 => "High Discharge Temp Limit",
+    43 => "Low Suction Pressure Limit",
+    44 => "Low Con Pressure Limit",
+    45 => "High Con Pressure Limit",
+    46 => "Out Power Limit",
+    47 => "EevIDComm Limit",
+    48 => "EevODComm Limit",
+    49 => "CabTmpSnr Limit",
+    51 => "Discharge Temp Sensor Limit",
+    52 => "Suction Presure Sensor Limit",
+    53 => "Con Pressure Sensor Limit",
+    54 => "Low Supply Voltage Limit",
+    55 => "OutEnvelp Limit",
+    56 => "Suction Pressure Sensor Limit",
+    57 => "Drive Over/Under Voltage Limit",
+    58 => "High Drive Temp Limit",
+    59 => "Internal Drive Error Limit",
+    61 => "MultSafm",
+    71 => "ChrgLoss",
+    72 => "Suction Temp Sensor Limit",
+    73 => "Leaving Air Temp Sensor Limit",
+    74 => "Maximum Operating Pressure Limit",
+    75 => "Charge Loss",
+    76 => "Suction Temperatur Sensor Limit",
+    77 => "Leaving Air Temperature Sensor Limit",
+    78 => "Maximum Operating Pressure Limit",
   }
 
-  STATUS = {
-    0x20 => "DH?",
-    0x10 => "Fan?",
-    0x08 => "Cool/Heat?",
-    0x04 => "EHeat?",
-    0x02 => "Stage 2?",
-    0x01 => "Stage 1?"
+  AR_SETTINGS = {
+    0 => "Cycle with Compressor",
+    1 => "Cycle with Thermostat Humidification Call",
+    2 => "Slow Opening Water Valve",
+    3 => "Cycle with Blower"
+  }
+
+  def dipswitch_settings(v)
+    return :manual if v == 0x7fff
+    {
+      fp1: v & 0x01 == 0x01 ? "30ºF" : "15ºF",
+      fp2: v & 0x02 == 0x02 ? "30ºF" : "15ºF",
+      rv: v & 0x04 == 0x04 ? "O" : "B",
+      ar: AR_SETTINGS[(v >> 3) & 0x7)
+      cc: v & 0x20 == 0x20 ? "Single Stage" : "Dual Stage",
+      lo: v & 0x40 == 0x40 ? "Continouous" : "Pulse",
+      dh_rh: v & 0x80 == 0x80 ? "Dehumdifier On" : "Reheat On",
+    }
+  end
+
+  SYSTEM_OUTPUTS = {
+    0x01 => "CC",
+    0x02 => "CC2",
+    0x04 => "O/RV",
+    0x08 => "Blower",
+    0x10 => "EH1",
+    0x20 => "EH2",
+    0x200 => "Accessory",
+    0x400 => "Lockout",
+    0x800 => "Alarm/Reheat",
+  }
+
+  SYSTEM_INPUTS = {
+    0x01 => "Y1",
+    0x02 => "Y2",
+    0x04 => "W",
+    0x08 => "O",
+    0x10 => "G",
+    0x20 => "Dehumidifer",
+    0x40 => "Emergency Shutdown",
+    0x200 => "Load Shed",
+  }
+
+  def status(v)
+    result = {
+      lps: v & 0x80 == 0x80 ? :closed : :open,
+      hps: v & 0x100 == 0x100 ? :closed : :open,
+    }
+    result[:load_shed] = true if v & 0x0200 == 0x0200
+    result[:emergency_shutdown] = true if v & 0x0040 == 0x0040
+    leftover = v & ~0x03c0
+    result[:unknown] = "0x%04x" % leftover unless leftover == 0
+    result
+  end
+
+  VS_DRIVE_DERATE = {
+    0x01 => "Drive Over Temp",
+    0x04 => "Low Suction Pressure",
+    0x10 => "Low Discharge Pressure",
+    0x20 => "High Discharge Pressure",
+    0x40 => "Output Power Limit",
+  }
+
+  VS_SAFE_MODE = {
+    0x01 => "EEV Indoor Failed",
+    0x02 => "EEV Outdoor Failed",
+    0x04 => "Invalid Ambient Temp",
+  }
+
+  VS_ALARM1 = {
+    0x8000 => "Internal Error",
+  }
+
+  VS_ALARM2 = {
+    0x0001 => "Multi Safe Modes",
+    0x0002 => "Out of Envelope",
+    0x0004 => "Over Current",
+    0x0008 => "Over Voltage",
+    0x0010 => "Drive Over Temp",
+    0x0020 => "Under Voltage",
+    0x0040 => "High Discharge Temp",
+    0x0080 => "Invalid Discharge Temp",
+    0x0100 => "OEM Communications Timeout",
+    0x0200 => "MOC Safety",
+    0x0400 => "DC Under Voltage",
+    0x0800 => "Invalid Suction Pressure",
+    0x1000 => "Invalid Discharge Pressure",
+    0x2000 => "Low Discharge Pressure",
+  }
+
+  VS_EEV2 = {
+    0x0010 => "Invalid Suction Temperature",
+    0x0020 => "Invalid Leaving Air Temperature",
+    0x0040 => "Invalid Suction Pressure",
+    
   }
 
   AXB_INPUTS = {
   }
 
   AXB_OUTPUTS = {
-    0x10 => "Accessor 2",
+    0x10 => "Accessory 2",
     0x02 => "Loop Pump",
     0x01 => "DHW"
   }
@@ -145,6 +278,7 @@ module Aurora
 
   REGISTER_CONVERTERS = {
     TO_HUNDREDTHS => [2, 3, 807, 813, 816, 817, 819, 820, 825, 828],
+    method(:dipswitch_settings) => [4, 33],
     TO_TENTHS => [19, 20, 401, 567, 740, 900, 1105, 1106, 1107, 1108, 1110, 1111, 1114, 1117, 1134, 1136,
       21203, 21204,
       21212, 21213,
@@ -155,11 +289,17 @@ module Aurora
       31003,
       31007, 31010, 31013, 31016, 31019, 31022],
     TO_LAST_LOCKOUT => [26],
-    ->(v) { from_bitmask(v, SYSTEM_OUTPUTS) } => [30],
-    ->(v) { from_bitmask(v, STATUS) } => [31],
+    ->(v) { from_bitmask(v, SYSTEM_OUTPUTS) } => [27, 30],
+    ->(v) { from_bitmask(v, SYSTEM_INPUTS) } => [28],
+    method(:status) => [31],
     ->(registers, idx) { to_string(registers, idx, 4) } => [88],
     ->(registers, idx) { to_string(registers, idx, 12) } => [92],
     ->(registers, idx) { to_string(registers, idx, 5) } => [105],
+    ->(v) { from_bitmask(v, VS_DRIVE_DERATE) } => [214],
+    ->(v) { from_bitmask(v, VS_SAFE_MODE) } => [216],
+    ->(v) { from_bitmask(v, VS_ALARM1) } => [217],
+    ->(v) { from_bitmask(v, VS_ALARM2) } => [218],
+    ->(v) { from_bitmask(v, VS_EEV2) } => [280],
     NEGATABLE => [346, 1146],
     ->(v) { from_bitmask(v, AXB_INPUTS) } => [1103],
     ->(v) { from_bitmask(v, AXB_OUTPUTS) } => [1104],
@@ -179,7 +319,7 @@ module Aurora
   }
 
   REGISTER_FORMATS = {
-    "%ds" => [6, 15],
+    "%ds" => [1, 6, 9, 15, 84, 85],
     "%dV" => [16, 112],
     "%0.1fºF" => [19, 20, 401, 567, 740, 900, 1110, 1111, 1114, 1134, 1136,
       21203, 21204,
@@ -191,7 +331,7 @@ module Aurora
       31003,
       31007, 31010, 31013, 31016, 31019, 31022],
     "E%d" => [25, 26],
-    "%d%%" => [321, 322, 346, 741],
+    "%d%%" => [282, 321, 322, 346, 565, 741],
     "%0.1fA" => [1105, 1106, 1107, 1108],
     "%0.1fgpm" => [1117],
     "%dW" => [1147, 1149, 1151, 1153, 1165],
@@ -229,22 +369,40 @@ module Aurora
   WRITEABLE = [112, 340, 341, 342, 346, 347]
 
   REGISTER_NAMES = {
+    1 => "Random Start Delay",
     2 => "ABC Program Version",
     3 => "IZ2 Version?",
-    6 => "Comp ASC Delay",
+    4 => "DIP Switch Override",
+    6 => "Compressor Anti-Short Cycle Delay",
     8 => "Unit Type?",
+    9 => "Compressor Minimum Run Time",
     15 => "Blower Off Delay",
     16 => "Line Voltage",
     19 => "FP1",
     20 => "FP2",
+    21 => "Condensate", # >= 270 normal, otherwise fault
     25 => "Last Fault Number",
     26 => "Last Lockout",
+    27 => "System Outputs (At Last Lockout)",
+    28 => "System Inputs (At Last Lockout)",
     30 => "System Outputs",
     31 => "Status",
+    33 => "DIP Switch Status",
+    50 => "ECM Speed Low (== 5)",
+    51 => "ECM Speed Med (== 5)",
+    52 => "ECM Speed High (== 5)",
+    54 => "ECM Speed Actual",
+    84 => "Slow Opening Water Valve Delay",
+    85 => "Test Mode Timer",
     88 => "ABC Program",
     92 => "Model Number",
     105 => "Serial Number",
     112 => "Setup Line Voltage",
+    201 => "Discharge Pressure", # I can't figure out how this number is represented; 
+    203 => "Suction Pressure",
+    205 => "Discharge Temperature",
+    207 => "Loop Entering Water Temperature",
+    209 => "Compressor Ambient Temperature",
     211 => "VS Drive Details (General 1)",
     212 => "VS Drive Details (General 2)",
     213 => "VS Drive Details (Derate 1)",
@@ -254,6 +412,10 @@ module Aurora
     217 => "VS Drive Details (Alarm 1)",
     218 => "VS Drive Details (Alarm 2)",
     280 => "EEV2 Ctl",
+    281 => "EEV Superheat", # ?? data format
+    282 => "EEV Open %",
+    283 => "Suction Temperature", ## ?? data format
+    284 => "Saturated Suction Temperature", ## ?? data format
     321 => "VS Pump Min",
     322 => "VS Pump Max",
     340 => "Blower Only Speed",
@@ -262,8 +424,12 @@ module Aurora
     344 => "ECM Speed",
     346 => "Cooling Airflow Adjustment",
     347 => "Aux Heat ECM Speed",
+    362 => "Active Dehumidify", # any value is true 
     401 => "DHW Setpoint",
+    414 => "On Peak/SmartGrid 2", # 0x0001 only
     483 => "Number of IZ2 Zones",
+    564 => "IZ2 Compressor Speed Desired",
+    565 => "IZ2 Blower % Desired",
     567 => "Entering Air",
     740 => "Entering Air",
     741 => "Relative Humidity",
@@ -282,12 +448,13 @@ module Aurora
     1106 => "Aux Amps",
     1107 => "Compressor 1 Amps",
     1108 => "Compressor 2 Amps",
+    1109 => "Heating Liquid Line",
     1110 => "Leaving Water",
     1111 => "Entering Water",
     1114 => "DHW Temp",
     1117 => "Waterflow",
-    1134 => "Sat Cond",
-    1136 => "SubCooling",
+    1134 => "Saturated Discharge Temperature",
+    1135 => "SubCooling",
     1147 => "Compressor Watts",
     1149 => "Blower Watts",
     1151 => "Aux Watts",
@@ -323,7 +490,7 @@ module Aurora
       name ||= "???"
   
       value = value_proc.arity == 2 ? value_proc.call(registers, k) : value_proc.call(v)
-      value = sprintf(format, value)
+      value = sprintf(format, value) if value
   
       puts "#{name} (#{k}): #{value}"
     end

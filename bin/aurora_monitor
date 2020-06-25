@@ -19,7 +19,7 @@ end
 
 server = ModBus::RTUServer.new(*args)
 server.promiscuous = true
-#server.debug = true
+server.debug = true
 
 server.request_callback = ->(uid, func, req) do
   if func == 68
@@ -32,14 +32,22 @@ server.request_callback = ->(uid, func, req) do
     puts "===== write multiple registers to #{uid}:"
     registers = Range.new(req[:addr], req[:addr] + req[:quant] - 1).zip(req[:val]).to_h
     Aurora.print_registers(registers)
-  elsif [65, 66].include?(func)
+  elsif [3, 65, 66].include?(func)
   else
     puts "**** new func #{func}"
   end
 end
 
 server.response_callback = ->(uid, func, res, req) do
-  if func == 65 && res.is_a?(Array) && req
+  if func == 3 && res.is_a?(Array) && req
+    unless req[:quant] == res.length
+      puts "wrong number of results"
+      next
+    end
+    puts "===== read registers from #{uid}"
+    registers = Range.new(req[:addr], req[:addr] + req[:quant], true).to_a.zip(res).to_h
+    Aurora.print_registers(registers)
+  elsif func == 65 && res.is_a?(Array) && req
     register_list = []
     req.each { |params| register_list.concat(Range.new(params[:addr], params[:addr] + params[:quant], true).to_a) }
     unless register_list.length == res.length

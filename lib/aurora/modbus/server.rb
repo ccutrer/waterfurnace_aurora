@@ -48,13 +48,11 @@ module Aurora
 
             pdu += slave.holding_registers[param[:addr],param[:quant]].pack('n*')
           end
-          pdu.unshift(pdu.length.chr)
-          pdu.unshift(func)
+          pdu = func.chr + pdu.length.chr + pdu
           pdu
         when 66
           pdu = params.map { |addr| slave.holding_registers[addr] }.pack('n*')
-          pdu.unshift(pdu.length.chr)
-          pdu.unshift(func)
+          pdu = func.chr + pdu.length.chr + pdu
           pdu
         when 67
           slave.holding_registers[param[:addr]] = param[:val]

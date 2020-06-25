@@ -18,6 +18,7 @@ GEM
   specs:
     byebug (9.1.0)
     digest-crc (0.4.1)
+    gserver (0.0.1)
     mqtt (0.5.0)
     net-telnet (0.2.0)
     net-telnet-rfc2217 (0.0.5)
@@ -30,6 +31,7 @@ PLATFORMS
 
 DEPENDENCIES
   byebug (~> 9.0)
+  gserver (~> 0.0.1)
   rake (~> 13.0)
   rmodbus!
   waterfurnace_aurora!

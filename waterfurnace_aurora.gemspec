@@ -20,4 +20,5 @@ Gem::Specification.new do |s|
 
   s.add_development_dependency 'byebug', "~> 9.0"
   s.add_development_dependency 'rake', "~> 13.0"
+  s.add_development_dependency 'gserver', "~> 0.0.1"
 end
