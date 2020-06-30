@@ -2,6 +2,7 @@
 
 require 'uri'
 require 'aurora'
+require 'yaml'
 
 uri = URI.parse(ARGV[0])
 
@@ -27,108 +28,9 @@ slave255 = server2.with_slave(255)
 
 r = slave1.holding_registers = slave2.holding_registers = slave255.holding_registers = Array.new(31473, 0)
 
-def assign_string(r, idx, str, length, padding = ' ')
-  str = str[0...length * 2].ljust(length * 2, padding)
-  r[idx, length] = str.unpack("n*")
-end
-
 # prepopulate some data
-r[2] = 301
-r[3] = 206
-r[6] = 240
-r[10] = 120
-r[15] = 30
-r[16] = 225
-r[17] = 400
-r[19] = 708
-r[25] = 15
-r[30] = 0x004d
-r[31] = 0x0199
-r[33] = 246
-r[42] = 0xffff
-r[54] = 4
-r[87] = 0xe410
-assign_string(r, 88, "ABCVSP", 4)
-assign_string(r, 92, "ModelNumber", 12)
-assign_string(r, 105, "Serial", 5)
-r[112] = 244
-r[194] = 3
-r[195] = 3
-r[197] = 0x7fff
-r[198] = 1800
-r[201] = 0x418a
-r[202] = 0x3d6b
-r[203] = 0x4107
-r[204] = 0x19bc
-r[205] = 0x4236
-r[206] = 0x1d28
-r[207] = 0x41a3
-r[208] = 0x942c
-r[209] = 0x41d6
-r[210] = 0x621b
-r[281] = 77
-r[282] = 66
-r[283] = 94
-r[284] = 16
-r[285] = 66
-r[321] = 40
-r[322] = 100
-r[323] = 0x7fff
-r[340] = 1
-r[341] = 9
-r[346] = 0xfff1
-r[347] = 11
-r[400] = 1
-r[401] = 140
-r[402] = 500
-r[403] = 2
-r[405] = 1
-r[406] = 2
-r[412] = 2
-r[413] = 3
-r[480] = 3
-r[481] = 200
-r[483] = 6
-r[564] = 3
-r[565] = 3
-r[567] = 712
-r[800] = 3
-r[803] = 3
-r[805] = 0xffff
-r[806] = 1
-r[807] = 200
-r[809] = 3
-r[812] = 1
-r[813] = 206
-r[815] = 1
-r[816] = 114
-r[817] = 117
-r[818] = 1
-r[819] = 114
-r[820] = 117
-r[824] = 1
-r[825] = 140
-r[827] = 2
-r[828] = 102
-r[1105] = 15
-r[1106] = 10
-r[1107] = 20
-r[1108] = 22
-r[1110] = 738
-r[1111] = 688
-r[1112] = 0xd8f1
-r[1113] = 0xd8f1
-r[1114] = 794
-r[1117] = 133
-r[1134] = 804
-r[1135] = 0xfe7e
-r[1136] = 0xff8f
-r[1147] = 1314
-r[1149] = 333
-r[1151] = 10
-r[1153] = 5002
-r[1157] = 33250
-r[1165] = 194
+registers = YAML.load(File.read(File.expand_path('../registers.yml', __FILE__)))
+registers.each { |(k, v)| r[k] = v }
 
 server1.request_callback = ->(uid, func, req) do
   if func == 68
