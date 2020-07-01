@@ -450,8 +450,8 @@ module Aurora
   def read_all_registers(modbus_slave)
     result = []
     REGISTER_RANGES.each do |range|
+      # read at most 100 at a time
       range.each_slice(100) do |keys|
-        puts "#{keys.first}..#{keys.last}"
         result.concat(modbus_slave.holding_registers[keys.first..keys.last])
       end
     end
@@ -568,6 +568,17 @@ module Aurora
     merge(faults(601..699)).
     merge(zone_registers)
 
+
+  def transform_registers(registers)
+    registers.each do |(k, v)|
+      value_proc = REGISTER_CONVERTERS.find { |(_, z)| z.include?(k) }&.first
+      next unless value_proc
+
+      value = value_proc.arity == 2 ? value_proc.call(registers, k) : value_proc.call(v)
+      registers[k] = value
+    end
+    registers
+  end
 
   def print_registers(registers)
     registers.each do |(k, v)|
