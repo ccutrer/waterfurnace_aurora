@@ -6,7 +6,7 @@ module Aurora
       :target_fan_mode,
       :current_fan_mode,
       :fan_intermittent_on,
-      :fan_intermitten_off,
+      :fan_intermittent_off,
       :priority,
       :size, :normalized_size,
       :ambient_temperature,
@@ -32,11 +32,57 @@ module Aurora
       @current_fan_mode = status[:damper] == :open
 
       @target_fan_mode = config1[:fan]
-      @fan_intermittent_on = config1[:fan_on]
-      @fan_intermitten_off = config1[:fan_off]
+      @fan_intermittent_on = config1[:on_time]
+      @fan_intermittent_off = config1[:off_time]
       @priority = config2[:zone_priority]
       @size = config2[:zone_size]
       @normalized_size = config2[:normalized_size]
+    end
+
+    def target_mode=(value)
+      value = Aurora::HEATING_MODE.invert[value]
+      return unless value
+      @abc.modbus_slave.holding_registers[21202 + (zone_number - 1) * 9] = value
+      @target_mode = Aurora::HEATING_MODE[@abc.modbus_slave.holding_registers[21202 + (zone_number - 1) * 9]]
+    end
+
+    def target_fan_mode=(value)
+      value = Aurora::FAN_MODE.invert[value]
+      return unless value
+      @abc.modbus_slave.holding_registers[21205 + (zone_number - 1) * 9] = value
+      registers = @abc.modbus_slave.read_multiple_holding_registers(31008 + (zone_number - 1) * 3)
+      Aurora.transform_registers(registers)
+      @target_fan_mode = registers.first.last[:fan]
+    end
+
+    def fan_intermittent_on=(value)
+      return unless value >= 0 && value <= 25 && value % 5 == 0
+      @abc.modbus_slave.holding_registers[21206 + (zone_number - 1) * 9] = value
+      registers = @abc.modbus_slave.read_multiple_holding_registers(31008 + (zone_number - 1) * 3)
+      Aurora.transform_registers(registers)
+      @fan_intermittent_on = registers.first.last[:on_time]
+    end
+
+    def fan_intermittent_off=(value)
+      return unless value >= 0 && value <= 40 && value % 5 == 0
+      @abc.modbus_slave.holding_registers[21207 + (zone_number - 1) * 9] = value
+      registers = @abc.modbus_slave.read_multiple_holding_registers(31008 + (zone_number - 1) * 3)
+      Aurora.transform_registers(registers)
+      @fan_intermittent_on = registers.first.last[:off_time]
+    end
+
+    def heating_target_temperature=(value)
+      return unless value >= 40 && value <= 90
+      value = (value * 10).to_i
+      @abc.modbus_slave.holding_registers[21203 + (zone_number - 1) * 9] = value
+      @heating_target_temperature = @abc.modbus_slave.holding_registers[21203 + (zone_number - 1) * 9].to_f / 10
+    end
+
+    def cooling_target_temperature=(value)
+      return unless value >= 54 && value <= 99
+      value = (value * 10).to_i
+      @abc.modbus_slave.holding_registers[21204 + (zone_number - 1) * 9] = value
+      @cooling_target_temperature = @abc.modbus_slave.holding_registers[21204 + (zone_number - 1) * 9].to_f / 10
     end
 
     def inspect

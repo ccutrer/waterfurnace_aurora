@@ -1,6 +1,39 @@
 module Aurora
   extend self
 
+  def normalize_ranges(ranges)
+    registers = ranges.map { |r| Array(r) }.flatten.sort.uniq
+    result = []
+    totals = []
+    run_start = nil
+    count = 0
+    registers.each_with_index do |r, i|
+      run_start ||= r
+      if i + 1 == registers.length || r + 1 != registers[i + 1]
+        if r == run_start
+          result << r
+          if (count += 1) == 100
+            totals << result
+            result = []
+            count = 0
+          end
+        else
+          range = run_start..r
+          if count + range.count > 100
+            totals << result
+            result = []
+            count = 0
+          end
+          count += range.count
+          result << range
+        end
+        run_start = nil
+      end
+    end
+    totals << result unless result.empty?
+    totals
+  end
+
   TO_HUNDREDTHS = ->(v) { v.to_f / 100 }
   TO_TENTHS = ->(v) { v.to_f / 10 }
   TO_LAST_LOCKOUT = ->(v) { v & 0x8000 == 0x8000 ? v & 0x7fff : nil }
@@ -13,10 +46,11 @@ module Aurora
       v &= ~bit
     end
     result << "0x%04x" % v if v != 0
-    result.join(", ")
+    result
   end
 
   def to_string(registers, idx, length)
+    puts "converting #{idx} of length #{length}"
     (idx...(idx + length)).map do |i|
       (registers[i] >> 8).chr + (registers[i] & 0xff).chr
     end.join.sub(/[ \0]+$/, '')
@@ -96,15 +130,15 @@ module Aurora
   end
 
   SYSTEM_OUTPUTS = {
-    0x01 => "CC",
-    0x02 => "CC2",
-    0x04 => "O/RV",
-    0x08 => "Blower",
-    0x10 => "EH1",
-    0x20 => "EH2",
-    0x200 => "Accessory",
-    0x400 => "Lockout",
-    0x800 => "Alarm/Reheat",
+    0x01 => :cc, # compressor stage 1
+    0x02 => :cc2, # compressor stage 2
+    0x04 => :rv, # reversing valve (cool instead of heat)
+    0x08 => :blower,
+    0x10 => :eh1,
+    0x20 => :eh2,
+    0x200 => :accessory,
+    0x400 => :lockout,
+    0x800 => :alarm,
   }
 
   SYSTEM_INPUTS = {
@@ -240,8 +274,8 @@ module Aurora
     end
     result = {
       fan: fan,
-      on_time: ((v >> 17) & 0x7) * 5,
-      off_time: (((v >> 24) & 0x7) + 1) * 5
+      on_time: ((v >> 9) & 0x7) * 5,
+      off_time: (((v >> 12) & 0x7) + 1) * 5
     }
     leftover = v & ~0x7f80
     result[:unknown] = "0x%04x" % leftover unless leftover == 0
@@ -304,6 +338,8 @@ module Aurora
     ->(v) { from_bitmask(v, AXB_INPUTS) } => [1103],
     ->(v) { from_bitmask(v, AXB_OUTPUTS) } => [1104],
     ->(v) { TO_TENTHS.call(NEGATABLE.call(v)) } => [1136],
+    ->(v) { HEATING_MODE[v] } => [21202, 21211, 21220, 21229, 21238, 21247],
+    ->(v) { FAN_MODE[v] } => [21205, 21214, 21223, 21232, 21241, 21250],
     ->(v) { from_bitmask(v, HUMIDIFIER_SETTINGS) } => [31109],
     ->(v) { { humidification_target: v >> 8, dehumidification_target: v & 0xff } } => [31110],
     method(:iz2_demand) => [31005],
@@ -325,7 +361,7 @@ module Aurora
       21203, 21204,
       21212, 21213,
       21221, 21222,
-      21230, 22131,
+      21230, 21231,
       21239, 21240,
       21248, 21249,
       31003,
@@ -343,7 +379,7 @@ module Aurora
   end
 
   def faults(range)
-    range.map { |i| [i, "E#{i}"] }.to_h
+    range.map { |i| [i, "E#{i % 100}"] }.to_h
   end
 
   def zone_registers
@@ -352,13 +388,13 @@ module Aurora
       base2 = 31007 + (i - 1) * 3
       base3 = 31200 + (i - 1) * 3
       {
-        base1 => "Zone #{i} Heating Mode", # write
-        (base1 + 1) => "Zone #{i} Heating Setpoint",
-        (base1 + 2) => "Zone #{i} Cooling Setpoint",
-        (base1 + 3) => "Zone #{i} Fan Mode", # write
-        (base1 + 4) => "Zone #{i} Intermittent Fan On Time", # write
-        (base1 + 5) => "Zone #{i} Intermittent Fan Off Time", # write
-        base2 => "Zone #{i} Temperature",
+        base1 => "Zone #{i} Heating Mode",
+        (base1 + 1) => "Zone #{i} Heating Setpoint (write)",
+        (base1 + 2) => "Zone #{i} Cooling Setpoint (write)",
+        (base1 + 3) => "Zone #{i} Fan Mode (write)",
+        (base1 + 4) => "Zone #{i} Intermittent Fan On Time (write)",
+        (base1 + 5) => "Zone #{i} Intermittent Fan Off Time (write)",
+        base2 => "Zone #{i} Ambient Temperature",
         (base2 + 1) => "Zone #{i} Configuration 1",
         (base2 + 2) => "Zone #{i} Status",
         base3 => "Zone #{i} Configuration 2",
@@ -566,8 +602,13 @@ module Aurora
     merge(ignore(93..104)).
     merge(ignore(106..109)).
     merge(faults(601..699)).
-    merge(zone_registers)
-
+    merge(zone_registers).
+    merge(ignore(31401..31412)).
+    merge(ignore(31414..31420)).
+    merge(ignore(31422..31433)).
+    merge(ignore(31435..31446)).
+    merge(ignore(31447..31459)).
+    merge(ignore(31461..31472))
 
   def transform_registers(registers)
     registers.each do |(k, v)|
@@ -581,6 +622,7 @@ module Aurora
   end
 
   def print_registers(registers)
+    result = []
     registers.each do |(k, v)|
       # ignored
       next if REGISTER_NAMES.key?(k) && REGISTER_NAMES[k].nil?
@@ -591,9 +633,11 @@ module Aurora
       name ||= "???"
   
       value = value_proc.arity == 2 ? value_proc.call(registers, k) : value_proc.call(v)
+      value = value.join(", ") if value.is_a?(Array)
       value = sprintf(format, value) if value
   
-      puts "#{name} (#{k}): #{value}"
+      result << "#{name} (#{k}): #{value}"
     end
+    result.join("\n")
   end
 end
