@@ -39,9 +39,15 @@ class MQTTBridge
             @abc.refresh
             publish_attribute("abc/compressor-speed", @abc.compressor_speed)
             publish_attribute("abc/current-mode", @abc.current_mode)
+            publish_attribute("abc/dhw-water-temperature", @abc.dhw_water_temperature)
+            publish_attribute("abc/entering-air-temperature", @abc.entering_air_temperature)
+            publish_attribute("abc/entering-water-temperature", @abc.entering_water_temperature)
             publish_attribute("abc/fan-speed", @abc.fan_speed)
+            publish_attribute("abc/leaving-air-temperature", @abc.leaving_air_temperature)
+            publish_attribute("abc/leaving-water-temperature", @abc.leaving_water_temperature)
             publish_attribute("abc/outdoor-temperature", @abc.outdoor_temperature)
             publish_attribute("abc/relative-humidity", @abc.relative_humidity)
+            publish_attribute("abc/waterflow", @abc.waterflow)
 
             @abc.iz2_zones.each do |z|
               i = z.zone_number
@@ -138,8 +144,7 @@ class MQTTBridge
 
     publish("abc/$name", "Aurora Basic Control")
     publish("abc/$datatype", "ABC")
-    publish("abc/$properties", "compressor-speed,current-mode,fan-speed,outdoor-temperature,relative-humidity")
-#    publish("abc/$properties", "compressor-speed,current-mode,dhw-water-temperature,entering-air-temperature,fan-speed,leaving-air-temperature,leaving-water-temperature,outdoor-temperature,relative-humidity,waterflow")
+    publish("abc/$properties", "compressor-speed,current-mode,dhw-water-temperature,entering-air-temperature,entering-water-temperature,fan-speed,leaving-air-temperature,leaving-water-temperature,outdoor-temperature,relative-humidity,waterflow")
 
     publish("abc/compressor-speed/$name", "Compressor Speed")
     publish("abc/compressor-speed/$datatype", "integer")
@@ -149,9 +154,29 @@ class MQTTBridge
     publish("abc/current-mode/$datatype", "enum")
     publish("abc/current-mode/$format", "standby,blower,h1,h2,c1,c2,eh1,eh2")
 
+    publish("abc/dhw-water-temperature/$name", "DHW Water Temperature")
+    publish("abc/dhw-water-temperature/$datatype", "float")
+    publish("abc/dhw-water-temperature/$unit", "ºF")
+
+    publish("abc/entering-air-temperature/$name", "Entering Air Temperature")
+    publish("abc/entering-air-temperature/$datatype", "float")
+    publish("abc/entering-air-temperature/$unit", "ºF")
+
+    publish("abc/entering-water-temperature/$name", "Entering Water Temperature")
+    publish("abc/entering-water-temperature/$datatype", "float")
+    publish("abc/entering-water-temperature/$unit", "ºF")
+
     publish("abc/fan-speed/$name", "Fan Speed")
     publish("abc/fan-speed/$datatype", "integer")
     publish("abc/fan-speed/$format", "0:11")
+
+    publish("abc/leaving-air-temperature/$name", "Leaving Air Temperature")
+    publish("abc/leaving-air-temperature/$datatype", "float")
+    publish("abc/leaving-air-temperature/$unit", "ºF")
+
+    publish("abc/leaving-water-temperature/$name", "Leaving Water Temperature")
+    publish("abc/leaving-water-temperature/$datatype", "float")
+    publish("abc/leaving-water-temperature/$unit", "ºF")
 
     publish("abc/outdoor-temperature/$name", "Outdoor Temperature")
     publish("abc/outdoor-temperature/$datatype", "float")
@@ -161,6 +186,10 @@ class MQTTBridge
     publish("abc/relative-humidity/$datatype", "integer")
     publish("abc/relative-humidity/$unit", "%")
     publish("abc/relative-humidity/$format", "0:100")
+
+    publish("abc/waterflow/$name", "Waterflow")
+    publish("abc/waterflow/$datatype", "float")
+    publish("abc/waterflow/$unit", "gpm")
 
     (1..@abc.iz2_zones.length).each do |i|
       nodes << "zone#{i}"
