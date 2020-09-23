@@ -26,7 +26,7 @@ class MQTTBridge
     @base_topic = "homie/aurora"
     @abc = abc
     @mqtt = MQTT::Client.new(mqtt_uri)
-    @mqtt.set_will("#{@base_topic}/$state", "lost", true)
+    @mqtt.set_will("#{@base_topic}/$state", "lost", true, 1)
     @mqtt.connect
     @attributes = {}
     @mutex = Mutex.new
@@ -106,7 +106,7 @@ class MQTTBridge
               registers.merge!(@abc.modbus_slave.read_multiple_holding_registers(*query))
             end
             result = Aurora.print_registers(registers)
-            @mqtt.publish("#{@base_topic}/$modbus/response", result, false)
+            @mqtt.publish("#{@base_topic}/$modbus/response", result, false, 1)
           when %r{\$modbus/(\d+)$}
             register = $1.to_i
             value = case value
@@ -125,7 +125,7 @@ class MQTTBridge
   end
 
   def publish(topic, value)
-    @mqtt.publish("#{@base_topic}/#{topic}", value, true)
+    @mqtt.publish("#{@base_topic}/#{topic}", value, true, 1)
   end
 
   def publish_attribute(attr, value)
