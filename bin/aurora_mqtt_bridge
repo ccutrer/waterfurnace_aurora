@@ -48,6 +48,8 @@ class MQTTBridge
             publish_attribute("abc/outdoor-temperature", @abc.outdoor_temperature)
             publish_attribute("abc/relative-humidity", @abc.relative_humidity)
             publish_attribute("abc/waterflow", @abc.waterflow)
+            publish_attribute("abc/fp1", @abc.fp1)
+            publish_attribute("abc/fp2", @abc.fp2)
 
             @abc.iz2_zones.each do |z|
               i = z.zone_number
@@ -144,7 +146,7 @@ class MQTTBridge
 
     publish("abc/$name", "Aurora Basic Control")
     publish("abc/$datatype", "ABC")
-    publish("abc/$properties", "compressor-speed,current-mode,dhw-water-temperature,entering-air-temperature,entering-water-temperature,fan-speed,leaving-air-temperature,leaving-water-temperature,outdoor-temperature,relative-humidity,waterflow")
+    publish("abc/$properties", "compressor-speed,current-mode,dhw-water-temperature,entering-air-temperature,entering-water-temperature,fan-speed,leaving-air-temperature,leaving-water-temperature,outdoor-temperature,relative-humidity,waterflow,fp1,fp2")
 
     publish("abc/compressor-speed/$name", "Compressor Speed")
     publish("abc/compressor-speed/$datatype", "integer")
@@ -152,7 +154,7 @@ class MQTTBridge
 
     publish("abc/current-mode/$name", "Current Heating/Cooling Mode")
     publish("abc/current-mode/$datatype", "enum")
-    publish("abc/current-mode/$format", "standby,blower,h1,h2,c1,c2,eh1,eh2")
+    publish("abc/current-mode/$format", "lockout,standby,blower,h1,h2,c1,c2,eh1,eh2")
 
     publish("abc/dhw-water-temperature/$name", "DHW Water Temperature")
     publish("abc/dhw-water-temperature/$datatype", "float")
@@ -190,6 +192,14 @@ class MQTTBridge
     publish("abc/waterflow/$name", "Waterflow")
     publish("abc/waterflow/$datatype", "float")
     publish("abc/waterflow/$unit", "gpm")
+
+    publish("abc/fp1/$name", "FP1 Sensor")
+    publish("abc/fp1/$datatype", "float")
+    publish("abc/fp1/$unit", "ºF")
+
+    publish("abc/fp2/$name", "FP1 Sensor")
+    publish("abc/fp2/$datatype", "float")
+    publish("abc/fp2/$unit", "ºF")
 
     (1..@abc.iz2_zones.length).each do |i|
       nodes << "zone#{i}"

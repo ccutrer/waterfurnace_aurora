@@ -12,7 +12,9 @@ module Aurora
       :dhw_water_temperature,
       :waterflow,
       :compressor_speed,
-      :outdoor_temperature
+      :outdoor_temperature,
+      :fp1,
+      :fp2
 
     def initialize(modbus_slave)
       @modbus_slave = modbus_slave
@@ -23,7 +25,7 @@ module Aurora
     end
 
     def refresh
-      registers_to_read = [30, 344, 740..741, 900, 1110..1111, 1114, 1117, 3027, 31003]
+      registers_to_read = [19..20, 30, 344, 740..741, 900, 1110..1111, 1114, 1117, 3027, 31003]
       # IZ2 zones
       iz2_zones.each_with_index do |_z, i|
         base1 = 21203 + i * 9
@@ -47,9 +49,14 @@ module Aurora
       @waterflow                  = registers[1117]
       @compressor_speed           = registers[3027]
       @outdoor_temperature        = registers[31003]
+      @fp1                        = registers[19]
+      @fp2                        = registers[20]
+      @locked_out                 = registers[1117]
 
       outputs = registers[30]
-      if outputs.include?(:cc2)
+      if outputs.include?(:lockout)
+        @current_mode = :lockout
+      elsif outputs.include?(:cc2)
         @current_mode = outputs.include?(:rv) ? :c2 : :h2
       elsif outputs.include?(:cc)
         @current_mode = outputs.include?(:rv) ? :c1 : :h1
