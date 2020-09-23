@@ -491,7 +491,15 @@ module Aurora
         result.concat(modbus_slave.holding_registers[keys.first..keys.last])
       end
     end
-    REGISTER_RANGES.map(&:to_a).flatten.zip(result)
+    REGISTER_RANGES.map(&:to_a).flatten.zip(result).to_h
+  end
+
+  def diff_registers(r1, r2)
+    diff = {}
+    r1.each_key do |k|
+      diff[k] = [r1[k], r2[k]] if r1[k] != r2[k]
+    end
+    diff
   end
 
   REGISTER_NAMES = {

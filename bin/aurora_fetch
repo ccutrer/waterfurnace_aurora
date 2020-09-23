@@ -1,7 +1,8 @@
 #!/usr/bin/env ruby
 
-require 'uri'
 require 'aurora'
+require 'rubyserial'
+require 'uri'
 
 uri = URI.parse(ARGV[0])
 
@@ -12,7 +13,7 @@ args = if uri.scheme == "telnet" || uri.scheme == "rfc2217"
     'baud' => 19200,
     'parity' => Net::Telnet::RFC2217::EVEN)]
 else
-  [uri.path, 19200, parity: SerialPort::EVEN]
+  [Serial.new(uri.path, baud: 19200, parity: :even)]
 end
 
 client = ModBus::RTUClient.new(*args)
