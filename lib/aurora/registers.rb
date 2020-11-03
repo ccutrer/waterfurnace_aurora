@@ -275,15 +275,34 @@ module Aurora
     result = {
       fan: fan,
       on_time: ((v >> 9) & 0x7) * 5,
-      off_time: (((v >> 12) & 0x7) + 1) * 5
+      off_time: (((v >> 12) & 0x7) + 1) * 5,
+      cooling_target_temperature: ((v & 0x7e) >> 1) + 36,
+      heating_target_temperature_carry: v & 01
     }
-    leftover = v & ~0x7f80
+    leftover = v & ~0x7fff
+    result[:unknown] = "0x%04x" % leftover unless leftover == 0
+    result
+  end
+
+  def zone_configuration2(registers, k)
+    prior_v = registers[k - 1] if registers.key?(k - 1)
+    v = registers[k]
+    result = {
+      call: CALLS[(v >> 1) & 0x7],
+      mode: HEATING_MODE[(v >> 8) & 0x03],
+      damper: v & 0x10 == 0x10 ? :open : :closed
+    }
+    if prior_v
+      carry = prior_v.is_a?(Hash) ? prior_v[:heating_target_temperature_carry] : v & 0x01
+      result[:heating_target_temperature] = ((carry << 5) | ((v & 0xf800) >> 11)) + 36
+    end
+    leftover = v & ~0xfb1e
     result[:unknown] = "0x%04x" % leftover unless leftover == 0
     result
   end
 
   # hi order byte is normalized zone size
-  def zone_configuration2(v)
+  def zone_configuration3(v)
     size = (v >> 3 ) & 0x3
     result = {
       zone_priority: (v & 0x20) == 0x20 ? :economy : :comfort,
@@ -295,25 +314,13 @@ module Aurora
     result
   end
 
-  def zone_status(v)
-    result = {
-      call: CALLS[(v >> 1) & 0x7],
-      mode: HEATING_MODE[(v >> 8) & 0x03],
-      damper: v & 0x10 == 0x10 ? :open : :closed,
-    }
-    leftover = v & ~0x031e
-    result[:unknown] = "0x%04x" % leftover unless leftover == 0
-    result
-  end
-
-
   # intermittent on time allowed: 0, 5, 10, 15, 20
   # intermittent off time allowed: 5, 10, 15, 20, 25, 30, 35, 40
 
   REGISTER_CONVERTERS = {
     TO_HUNDREDTHS => [2, 3, 807, 813, 816, 817, 819, 820, 825, 828],
     method(:dipswitch_settings) => [4, 33],
-    TO_TENTHS => [19, 20, 401, 567, 740, 900, 1105, 1106, 1107, 1108, 1110, 1111, 1114, 1117, 1134, 1136,
+    TO_TENTHS => [19, 20, 401, 567, 740, 745, 746, 900, 1105, 1106, 1107, 1108, 1110, 1111, 1114, 1117, 1134, 1136,
       21203, 21204,
       21212, 21213,
       21221, 21222,
@@ -344,8 +351,8 @@ module Aurora
     ->(v) { { humidification_target: v >> 8, dehumidification_target: v & 0xff } } => [31110],
     method(:iz2_demand) => [31005],
     method(:zone_configuration1) => [31008, 31011, 31014, 31017, 31020, 31023],
-    method(:zone_configuration2) => [31200, 31203, 31206, 31209, 31212, 31215],
-    method(:zone_status) => [31009, 31012, 31015, 31018, 31021, 31024],
+    method(:zone_configuration2) => [31009, 31012, 31015, 31018, 31021, 31024],
+    method(:zone_configuration3) => [31200, 31203, 31206, 31209, 31212, 31215],
     ->(registers, idx) { to_string(registers, idx, 13) } => [31400],
     ->(registers, idx) { to_string(registers, idx, 8) } => [31413],
     ->(registers, idx) { to_string(registers, idx, 13) } => [31421],
@@ -357,7 +364,7 @@ module Aurora
   REGISTER_FORMATS = {
     "%ds" => [1, 6, 9, 15, 84, 85],
     "%dV" => [16, 112],
-    "%0.1fºF" => [19, 20, 401, 567, 740, 900, 1110, 1111, 1114, 1134, 1136,
+    "%0.1fºF" => [19, 20, 401, 567, 740, 745, 746, 900, 1110, 1111, 1114, 1134, 1136,
       21203, 21204,
       21212, 21213,
       21221, 21222,
@@ -396,8 +403,8 @@ module Aurora
         (base1 + 5) => "Zone #{i} Intermittent Fan Off Time (write)",
         base2 => "Zone #{i} Ambient Temperature",
         (base2 + 1) => "Zone #{i} Configuration 1",
-        (base2 + 2) => "Zone #{i} Status",
-        base3 => "Zone #{i} Configuration 2",
+        (base2 + 2) => "Zone #{i} Configuration 2",
+        base3 => "Zone #{i} Configuration 3",
       }
     end.inject({}, &:merge)
   end
@@ -567,6 +574,8 @@ module Aurora
     567 => "Entering Air",
     740 => "Entering Air",
     741 => "Relative Humidity",
+    745 => "Heating Set Point",
+    746 => "Cooling Set Point",
     807 => "AXB Version",
     813 => "IZ2 Version?",
     816 => "AOC Version 1?",

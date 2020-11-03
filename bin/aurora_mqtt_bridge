@@ -2,7 +2,7 @@
 
 require 'aurora'
 require 'mqtt'
-require 'rubyserial'
+require 'ccutrer-serialport'
 require 'uri'
 
 uri = URI.parse(ARGV[0])
@@ -15,7 +15,7 @@ args = if uri.scheme == "telnet" || uri.scheme == "rfc2217"
     'baud' => 19200,
     'parity' => Net::Telnet::RFC2217::EVEN)]
 else
-  [Serial.new(uri.path, baud: 19200, parity: :even)]
+  [CCutrer::SerialPort.new(uri.path, baud: 19200, parity: :even)]
 end
 
 slave = ModBus::RTUClient.new(*args).with_slave(1)
@@ -264,14 +264,14 @@ class MQTTBridge
       publish("zone#{i}/ambient-temperature/$unit", "ºF")
 
       publish("zone#{i}/heating-target-temperature/$name", "Heating Target Temperature")
-      publish("zone#{i}/heating-target-temperature/$datatype", "float")
+      publish("zone#{i}/heating-target-temperature/$datatype", "integer")
       publish("zone#{i}/heating-target-temperature/$unit", "ºF")
       publish("zone#{i}/heating-target-temperature/$format", "40:90")
       publish("zone#{i}/heating-target-temperature/$settable", "true")
       subscribe("zone#{i}/heating-target-temperature/set")
 
       publish("zone#{i}/cooling-target-temperature/$name", "Cooling Target Temperature")
-      publish("zone#{i}/cooling-target-temperature/$datatype", "float")
+      publish("zone#{i}/cooling-target-temperature/$datatype", "integer")
       publish("zone#{i}/cooling-target-temperature/$unit", "ºF")
       publish("zone#{i}/cooling-target-temperature/$format", "54:99")
       publish("zone#{i}/cooling-target-temperature/$settable", "true")

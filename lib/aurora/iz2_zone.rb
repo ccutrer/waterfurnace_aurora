@@ -20,23 +20,23 @@ module Aurora
 
     def refresh(registers)
       @ambient_temperature = registers[31007 + (zone_number - 1) * 3]
-      @heating_target_temperature = registers[21203 + (zone_number - 1) * 9]
-      @cooling_target_temperature = registers[21204 + (zone_number - 1) * 9]
 
       config1 = registers[31008 + (zone_number - 1) * 3]
-      status = registers[31009 + (zone_number - 1) * 3]
-      config2 = registers[31200 + (zone_number - 1) * 3]
-
-      @target_mode = status[:mode]
-      @current_mode = status[:call]
-      @current_fan_mode = status[:damper] == :open
+      config2 = registers[31009 + (zone_number - 1) * 3]
+      config3 = registers[31200 + (zone_number - 1) * 3]
 
       @target_fan_mode = config1[:fan]
       @fan_intermittent_on = config1[:on_time]
       @fan_intermittent_off = config1[:off_time]
-      @priority = config2[:zone_priority]
-      @size = config2[:zone_size]
-      @normalized_size = config2[:normalized_size]
+      @cooling_target_temperature = config1[:cooling_target_temperature]
+      @heating_target_temperature = config2[:heating_target_temperature]
+      @target_mode = config2[:mode]
+      @current_mode = config2[:call]
+      @current_fan_mode = config2[:damper] == :open
+
+      @priority = config3[:zone_priority]
+      @size = config3[:zone_size]
+      @normalized_size = config3[:normalized_size]
     end
 
     def target_mode=(value)
@@ -75,14 +75,21 @@ module Aurora
       return unless value >= 40 && value <= 90
       value = (value * 10).to_i
       @abc.modbus_slave.holding_registers[21203 + (zone_number - 1) * 9] = value
-      @heating_target_temperature = @abc.modbus_slave.holding_registers[21203 + (zone_number - 1) * 9].to_f / 10
+
+      base = 31008 + (zone_number - 1) * 3
+      registers = @abc.modbus_slave.read_multiple_holding_registers(base..(base + 1))
+      Aurora.transform_registers(registers)
+      registers[base + 1][:heating_target_temperature]
     end
 
     def cooling_target_temperature=(value)
       return unless value >= 54 && value <= 99
       value = (value * 10).to_i
       @abc.modbus_slave.holding_registers[21204 + (zone_number - 1) * 9] = value
-      @cooling_target_temperature = @abc.modbus_slave.holding_registers[21204 + (zone_number - 1) * 9].to_f / 10
+
+      registers = @abc.modbus_slave.read_multiple_holding_registers(31008 + (zone_number - 1) * 3)
+      Aurora.transform_registers(registers)
+      registers.first.last[:cooling_target_temperature]
     end
 
     def inspect

@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'aurora'
-require 'rubyserial'
+require 'ccutrer-serialport'
 require 'uri'
 require 'yaml'
 
@@ -14,7 +14,7 @@ args = if uri.scheme == "telnet" || uri.scheme == "rfc2217"
     'baud' => 19200,
     'parity' => Net::Telnet::RFC2217::EVEN)]
 else
-  [Serial.new(uri.path, baud: 19200, parity: :even)]
+  [CCutrer::SerialPort.new(uri.path, baud: 19200, parity: :even)]
 end
 
 port = ARGV[1]&.to_i || 502
