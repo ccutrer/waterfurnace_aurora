@@ -1,0 +1,15 @@
+AllCops:
+  TargetRubyVersion: 2.6
+  NewCops: enable
+
+Metrics:
+  Enabled: false
+# ModBus's master/slave terminology isn't changing
+Naming/InclusiveLanguage:
+  Enabled: false
+Style/Documentation:
+  Enabled: false
+Style/RescueStandardError:
+  Enabled: false
+Style/StringLiterals:
+  EnforcedStyle: double_quotes

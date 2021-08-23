@@ -12,8 +12,9 @@ Gem::Specification.new do |s|
   s.summary = "Library for communication with WaterFurnace Aurora control systems"
   s.license = "MIT"
 
-  s.executables = ["aurora_mqtt_bridge"]
-  s.files = Dir["{bin,lib}/**/*"]
+  s.bindir = "exe"
+  s.executables = Dir["exe/*"].map { |f| File.basename(f) } - ["registers.yml"]
+  s.files = Dir["{exe,lib}/**/*"]
 
   s.required_ruby_version = ">= 2.6"
 
