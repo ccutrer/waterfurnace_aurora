@@ -88,7 +88,7 @@ port, and then connect your computer to the AID pass-through port on the AWL.
 
 Serial ports over the network are also supported. Just give a URI like
 tcp://192.168.1.10:2000/ instead of a local device. Be sure to set up your
-server (like ser2net) to use 4800 baud, ODD. You can also use RFC2217 serial
+server (like ser2net) to use 19200 baud, EVEN. You can also use RFC2217 serial
 ports (allowing the serial connection parameters to be set automatically) with
 a URI like telnet://192.168.1.10:2217/.
 
