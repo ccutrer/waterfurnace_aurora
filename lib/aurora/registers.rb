@@ -1,5 +1,7 @@
+# frozen_string_literal: true
+
 module Aurora
-  extend self
+  module_function
 
   def normalize_ranges(ranges)
     registers = ranges.map { |r| Array(r) }.flatten.sort.uniq
@@ -9,26 +11,26 @@ module Aurora
     count = 0
     registers.each_with_index do |r, i|
       run_start ||= r
-      if i + 1 == registers.length || r + 1 != registers[i + 1]
-        if r == run_start
-          result << r
-          if (count += 1) == 100
-            totals << result
-            result = []
-            count = 0
-          end
-        else
-          range = run_start..r
-          if count + range.count > 100
-            totals << result
-            result = []
-            count = 0
-          end
-          count += range.count
-          result << range
+      next unless i + 1 == registers.length || r + 1 != registers[i + 1]
+
+      if r == run_start
+        result << r
+        if (count += 1) == 100
+          totals << result
+          result = []
+          count = 0
         end
-        run_start = nil
+      else
+        range = run_start..r
+        if count + range.count > 100
+          totals << result
+          result = []
+          count = 0
+        end
+        count += range.count
+        result << range
       end
+      run_start = nil
     end
     totals << result unless result.empty?
     totals
@@ -39,13 +41,13 @@ module Aurora
   TO_LAST_LOCKOUT = ->(v) { v & 0x8000 == 0x8000 ? v & 0x7fff : nil }
   NEGATABLE = ->(v) { v & 0x8000 == 0x8000 ? v - 0x10000 : v }
 
-  def from_bitmask(v, flags)
+  def from_bitmask(value, flags)
     result = []
     flags.each do |(bit, flag)|
-      result << flag if v & bit == bit
-      v &= ~bit
+      result << flag if value & bit == bit
+      value &= ~bit
     end
-    result << "0x%04x" % v if v != 0
+    result << format("0x%04x", value) unless value.zero?
     result
   end
 
@@ -53,7 +55,7 @@ module Aurora
     puts "converting #{idx} of length #{length}"
     (idx...(idx + length)).map do |i|
       (registers[i] >> 8).chr + (registers[i] & 0xff).chr
-    end.join.sub(/[ \0]+$/, '')
+    end.join.sub(/[ \0]+$/, "")
   end
 
   FAULTS = {
@@ -106,26 +108,27 @@ module Aurora
     75 => "Charge Loss",
     76 => "Suction Temperatur Sensor Limit",
     77 => "Leaving Air Temperature Sensor Limit",
-    78 => "Maximum Operating Pressure Limit",
-  }
+    78 => "Maximum Operating Pressure Limit"
+  }.freeze
 
   AR_SETTINGS = {
     0 => "Cycle with Compressor",
     1 => "Cycle with Thermostat Humidification Call",
     2 => "Slow Opening Water Valve",
     3 => "Cycle with Blower"
-  }
+  }.freeze
 
-  def dipswitch_settings(v)
-    return :manual if v == 0x7fff
+  def dipswitch_settings(value)
+    return :manual if value == 0x7fff
+
     {
-      fp1: v & 0x01 == 0x01 ? "30ºF" : "15ºF",
-      fp2: v & 0x02 == 0x02 ? "30ºF" : "15ºF",
-      rv: v & 0x04 == 0x04 ? "O" : "B",
-      ar: AR_SETTINGS[(v >> 3) & 0x7],
-      cc: v & 0x20 == 0x20 ? "Single Stage" : "Dual Stage",
-      lo: v & 0x40 == 0x40 ? "Continouous" : "Pulse",
-      dh_rh: v & 0x80 == 0x80 ? "Dehumdifier On" : "Reheat On",
+      fp1: value & 0x01 == 0x01 ? "30ºF" : "15ºF",
+      fp2: value & 0x02 == 0x02 ? "30ºF" : "15ºF",
+      rv: value & 0x04 == 0x04 ? "O" : "B",
+      ar: AR_SETTINGS[(value >> 3) & 0x7],
+      cc: value & 0x20 == 0x20 ? "Single Stage" : "Dual Stage",
+      lo: value & 0x40 == 0x40 ? "Continouous" : "Pulse",
+      dh_rh: value & 0x80 == 0x80 ? "Dehumdifier On" : "Reheat On"
     }
   end
 
@@ -138,8 +141,8 @@ module Aurora
     0x20 => :eh2,
     0x200 => :accessory,
     0x400 => :lockout,
-    0x800 => :alarm,
-  }
+    0x800 => :alarm
+  }.freeze
 
   SYSTEM_INPUTS = {
     0x01 => "Y1",
@@ -149,18 +152,18 @@ module Aurora
     0x10 => "G",
     0x20 => "Dehumidifer",
     0x40 => "Emergency Shutdown",
-    0x200 => "Load Shed",
-  }
+    0x200 => "Load Shed"
+  }.freeze
 
-  def status(v)
+  def status(value)
     result = {
-      lps: v & 0x80 == 0x80 ? :closed : :open,
-      hps: v & 0x100 == 0x100 ? :closed : :open,
+      lps: value & 0x80 == 0x80 ? :closed : :open,
+      hps: value & 0x100 == 0x100 ? :closed : :open
     }
-    result[:load_shed] = true if v & 0x0200 == 0x0200
-    result[:emergency_shutdown] = true if v & 0x0040 == 0x0040
-    leftover = v & ~0x03c0
-    result[:unknown] = "0x%04x" % leftover unless leftover == 0
+    result[:load_shed] = true if value & 0x0200 == 0x0200
+    result[:emergency_shutdown] = true if value & 0x0040 == 0x0040
+    leftover = value & ~0x03c0
+    result[:unknown] = format("0x%04x", leftover) unless leftover.zero?
     result
   end
 
@@ -169,18 +172,18 @@ module Aurora
     0x04 => "Low Suction Pressure",
     0x10 => "Low Discharge Pressure",
     0x20 => "High Discharge Pressure",
-    0x40 => "Output Power Limit",
-  }
+    0x40 => "Output Power Limit"
+  }.freeze
 
   VS_SAFE_MODE = {
     0x01 => "EEV Indoor Failed",
     0x02 => "EEV Outdoor Failed",
-    0x04 => "Invalid Ambient Temp",
-  }
+    0x04 => "Invalid Ambient Temp"
+  }.freeze
 
   VS_ALARM1 = {
-    0x8000 => "Internal Error",
-  }
+    0x8000 => "Internal Error"
+  }.freeze
 
   VS_ALARM2 = {
     0x0001 => "Multi Safe Modes",
@@ -196,24 +199,24 @@ module Aurora
     0x0400 => "DC Under Voltage",
     0x0800 => "Invalid Suction Pressure",
     0x1000 => "Invalid Discharge Pressure",
-    0x2000 => "Low Discharge Pressure",
-  }
+    0x2000 => "Low Discharge Pressure"
+  }.freeze
 
   VS_EEV2 = {
     0x0010 => "Invalid Suction Temperature",
     0x0020 => "Invalid Leaving Air Temperature",
-    0x0040 => "Invalid Suction Pressure",
-    
-  }
+    0x0040 => "Invalid Suction Pressure"
+
+  }.freeze
 
   AXB_INPUTS = {
-  }
+  }.freeze
 
   AXB_OUTPUTS = {
     0x10 => "Accessory 2",
     0x02 => "Loop Pump",
     0x01 => "DHW"
-  }
+  }.freeze
 
   HEATING_MODE = {
     0 => :off,
@@ -221,30 +224,30 @@ module Aurora
     2 => :cool,
     3 => :heat,
     4 => :eheat
-  }
+  }.freeze
 
   FAN_MODE = {
     0 => :auto,
     1 => :continuous,
     2 => :intermittent
-  }
+  }.freeze
 
   HUMIDIFIER_SETTINGS = {
     0x4000 => :auto_dehumidification,
-    0x8000 => :auto_humidification,
-  }
+    0x8000 => :auto_humidification
+  }.freeze
 
   INVERSE_HUMIDIFIER_SETTINGS = {
     0x4000 => :manual_dehumidification,
-    0x8000 => :manual_humidification,
-  }
+    0x8000 => :manual_humidification
+  }.freeze
 
   ZONE_SIZES = {
     0 => 0,
     1 => 25,
     2 => 45,
-    3 => 70,
-  }
+    3 => 70
+  }.freeze
 
   CALLS = {
     0x0 => :standby,
@@ -254,39 +257,39 @@ module Aurora
     0x4 => :h3,
     0x5 => :c1,
     0x6 => :c2,
-    0x7 => :unknown7,
-  }
+    0x7 => :unknown7
+  }.freeze
 
-  def iz2_demand(v)
+  def iz2_demand(value)
     {
-      fan_demand: v >> 8,
-      unit_demand: v & 0xff,
+      fan_demand: value >> 8,
+      unit_demand: value & 0xff
     }
   end
 
-  def zone_configuration1(v)
-    fan = if v & 0x80 == 0x80
-      :continuous
-    elsif v & 0x100 == 0x100
-      :intermittent
-    else
-      :auto
-    end
+  def zone_configuration1(value)
+    fan = if value & 0x80 == 0x80
+            :continuous
+          elsif value & 0x100 == 0x100
+            :intermittent
+          else
+            :auto
+          end
     result = {
       fan: fan,
-      on_time: ((v >> 9) & 0x7) * 5,
-      off_time: (((v >> 12) & 0x7) + 1) * 5,
-      cooling_target_temperature: ((v & 0x7e) >> 1) + 36,
-      heating_target_temperature_carry: v & 01
+      on_time: ((value >> 9) & 0x7) * 5,
+      off_time: (((value >> 12) & 0x7) + 1) * 5,
+      cooling_target_temperature: ((value & 0x7e) >> 1) + 36,
+      heating_target_temperature_carry: value & 0o1
     }
-    leftover = v & ~0x7fff
-    result[:unknown] = "0x%04x" % leftover unless leftover == 0
+    leftover = value & ~0x7fff
+    result[:unknown] = format("0x%04x", leftover) unless leftover.zero?
     result
   end
 
-  def zone_configuration2(registers, k)
-    prior_v = registers[k - 1] if registers.key?(k - 1)
-    v = registers[k]
+  def zone_configuration2(registers, key)
+    prior_v = registers[key - 1] if registers.key?(key - 1)
+    v = registers[key]
     result = {
       call: CALLS[(v >> 1) & 0x7],
       mode: HEATING_MODE[(v >> 8) & 0x03],
@@ -297,20 +300,20 @@ module Aurora
       result[:heating_target_temperature] = ((carry << 5) | ((v & 0xf800) >> 11)) + 36
     end
     leftover = v & ~0xfb1e
-    result[:unknown] = "0x%04x" % leftover unless leftover == 0
+    result[:unknown] = format("0x%04x", leftover) unless leftover.zero?
     result
   end
 
   # hi order byte is normalized zone size
-  def zone_configuration3(v)
-    size = (v >> 3 ) & 0x3
+  def zone_configuration3(value)
+    size = (value >> 3) & 0x3
     result = {
-      zone_priority: (v & 0x20) == 0x20 ? :economy : :comfort,
+      zone_priority: (value & 0x20) == 0x20 ? :economy : :comfort,
       zone_size: ZONE_SIZES[size],
-      normalized_size: v >> 8,
+      normalized_size: value >> 8
     }
-    leftover = v & ~0xff38
-    result[:unknown] = "0x%04x" % leftover unless leftover == 0
+    leftover = value & ~0xff38
+    result[:unknown] = format("0x%04x", leftover) unless leftover.zero?
     result
   end
 
@@ -321,14 +324,14 @@ module Aurora
     TO_HUNDREDTHS => [2, 3, 807, 813, 816, 817, 819, 820, 825, 828],
     method(:dipswitch_settings) => [4, 33],
     TO_TENTHS => [19, 20, 401, 567, 740, 745, 746, 900, 1105, 1106, 1107, 1108, 1110, 1111, 1114, 1117, 1134, 1136,
-      21203, 21204,
-      21212, 21213,
-      21221, 21222,
-      21230, 22131,
-      21239, 21240,
-      21248, 21249,
-      31003,
-      31007, 31010, 31013, 31016, 31019, 31022],
+                  21_203, 21_204,
+                  21_212, 21_213,
+                  21_221, 21_222,
+                  21_230, 22_131,
+                  21_239, 21_240,
+                  21_248, 21_249,
+                  31_003,
+                  31_007, 31_010, 31_013, 31_016, 31_019, 31_022],
     TO_LAST_LOCKOUT => [26],
     ->(v) { from_bitmask(v, SYSTEM_OUTPUTS) } => [27, 30],
     ->(v) { from_bitmask(v, SYSTEM_INPUTS) } => [28],
@@ -345,41 +348,41 @@ module Aurora
     ->(v) { from_bitmask(v, AXB_INPUTS) } => [1103],
     ->(v) { from_bitmask(v, AXB_OUTPUTS) } => [1104],
     ->(v) { TO_TENTHS.call(NEGATABLE.call(v)) } => [1136],
-    ->(v) { HEATING_MODE[v] } => [21202, 21211, 21220, 21229, 21238, 21247],
-    ->(v) { FAN_MODE[v] } => [21205, 21214, 21223, 21232, 21241, 21250],
-    ->(v) { from_bitmask(v, HUMIDIFIER_SETTINGS) } => [31109],
-    ->(v) { { humidification_target: v >> 8, dehumidification_target: v & 0xff } } => [31110],
-    method(:iz2_demand) => [31005],
-    method(:zone_configuration1) => [31008, 31011, 31014, 31017, 31020, 31023],
-    method(:zone_configuration2) => [31009, 31012, 31015, 31018, 31021, 31024],
-    method(:zone_configuration3) => [31200, 31203, 31206, 31209, 31212, 31215],
-    ->(registers, idx) { to_string(registers, idx, 13) } => [31400],
-    ->(registers, idx) { to_string(registers, idx, 8) } => [31413],
-    ->(registers, idx) { to_string(registers, idx, 13) } => [31421],
-    ->(registers, idx) { to_string(registers, idx, 13) } => [31434],
-    ->(registers, idx) { to_string(registers, idx, 13) } => [31447],
-    ->(registers, idx) { to_string(registers, idx, 13) } => [31460],
-  }
+    ->(v) { HEATING_MODE[v] } => [21_202, 21_211, 21_220, 21_229, 21_238, 21_247],
+    ->(v) { FAN_MODE[v] } => [21_205, 21_214, 21_223, 21_232, 21_241, 21_250],
+    ->(v) { from_bitmask(v, HUMIDIFIER_SETTINGS) } => [31_109],
+    ->(v) { { humidification_target: v >> 8, dehumidification_target: v & 0xff } } => [31_110],
+    method(:iz2_demand) => [31_005],
+    method(:zone_configuration1) => [31_008, 31_011, 31_014, 31_017, 31_020, 31_023],
+    method(:zone_configuration2) => [31_009, 31_012, 31_015, 31_018, 31_021, 31_024],
+    method(:zone_configuration3) => [31_200, 31_203, 31_206, 31_209, 31_212, 31_215],
+    ->(registers, idx) { to_string(registers, idx, 13) } => [31_400],
+    ->(registers, idx) { to_string(registers, idx, 8) } => [31_413],
+    ->(registers, idx) { to_string(registers, idx, 13) } => [31_421],
+    ->(registers, idx) { to_string(registers, idx, 13) } => [31_434],
+    ->(registers, idx) { to_string(registers, idx, 13) } => [31_447],
+    ->(registers, idx) { to_string(registers, idx, 13) } => [31_460]
+  }.freeze
 
   REGISTER_FORMATS = {
     "%ds" => [1, 6, 9, 15, 84, 85],
     "%dV" => [16, 112],
     "%0.1fºF" => [19, 20, 401, 567, 740, 745, 746, 900, 1110, 1111, 1114, 1134, 1136,
-      21203, 21204,
-      21212, 21213,
-      21221, 21222,
-      21230, 21231,
-      21239, 21240,
-      21248, 21249,
-      31003,
-      31007, 31010, 31013, 31016, 31019, 31022],
+                  21_203, 21_204,
+                  21_212, 21_213,
+                  21_221, 21_222,
+                  21_230, 21_231,
+                  21_239, 21_240,
+                  21_248, 21_249,
+                  31_003,
+                  31_007, 31_010, 31_013, 31_016, 31_019, 31_022],
     "E%d" => [25, 26],
     "%d%%" => [282, 321, 322, 346, 565, 741],
     "%0.1fA" => [1105, 1106, 1107, 1108],
     "%0.1fgpm" => [1117],
     "%dW" => [1147, 1149, 1151, 1153, 1165],
-    "%dBtuh" => [1157],
-  }
+    "%dBtuh" => [1157]
+  }.freeze
 
   def ignore(range)
     range.zip(Array.new(range.count)).to_h
@@ -391,9 +394,9 @@ module Aurora
 
   def zone_registers
     (1..6).map do |i|
-      base1 = 21202 + (i - 1) * 9
-      base2 = 31007 + (i - 1) * 3
-      base3 = 31200 + (i - 1) * 3
+      base1 = 21_202 + (i - 1) * 9
+      base2 = 31_007 + (i - 1) * 3
+      base3 = 31_200 + (i - 1) * 3
       {
         base1 => "Zone #{i} Heating Mode",
         (base1 + 1) => "Zone #{i} Heating Setpoint (write)",
@@ -404,12 +407,12 @@ module Aurora
         base2 => "Zone #{i} Ambient Temperature",
         (base2 + 1) => "Zone #{i} Configuration 1",
         (base2 + 2) => "Zone #{i} Configuration 2",
-        base3 => "Zone #{i} Configuration 3",
+        base3 => "Zone #{i} Configuration 3"
       }
     end.inject({}, &:merge)
   end
 
-  WRITEABLE = [112, 340, 341, 342, 346, 347]
+  WRITEABLE = [112, 340, 341, 342, 346, 347].freeze
 
   # these are the valid ranges (i.e. the ABC will return _some_ value)
   # * means 6 sequential ranges of equal size (i.e. must be repeated for each
@@ -453,42 +456,42 @@ module Aurora
     3800..3809,
     3818..3834,
     3900..3914,
-    12000..12019,
-    12098..12099,
-    12100..12119,
-    12200..12239,
-    12300..12319,
-    12400..12569,
-    12600..12639,
-    12700..12799,
-    20000..20099,
-    21100..21136,
-    21200..21265,
-    21400..21472,
-    21500..21589,
-    22100..22162, # *
-    22200..22262, # *
-    22300..22362, # *
-    22400..22462, # *
-    22500..22562, # *
-    22600..22662, # *
-    30000..30099,
-    31000..31034,
-    31100..31129,
-    31200..31229,
-    31300..31329,
-    31400..31472,
-    32100..32162, # *
-    32200..32262, # *
-    32300..32362, # *
-    32400..32462, # *
-    32500..32562, # *
-    32600..32662, # *
-    60050..60053,
-    60100..60109,
-    60200..60200,
-    61000..61009
-  ]
+    12_000..12_019,
+    12_098..12_099,
+    12_100..12_119,
+    12_200..12_239,
+    12_300..12_319,
+    12_400..12_569,
+    12_600..12_639,
+    12_700..12_799,
+    20_000..20_099,
+    21_100..21_136,
+    21_200..21_265,
+    21_400..21_472,
+    21_500..21_589,
+    22_100..22_162, # *
+    22_200..22_262, # *
+    22_300..22_362, # *
+    22_400..22_462, # *
+    22_500..22_562, # *
+    22_600..22_662, # *
+    30_000..30_099,
+    31_000..31_034,
+    31_100..31_129,
+    31_200..31_229,
+    31_300..31_329,
+    31_400..31_472,
+    32_100..32_162, # *
+    32_200..32_262, # *
+    32_300..32_362, # *
+    32_400..32_462, # *
+    32_500..32_562, # *
+    32_600..32_662, # *
+    60_050..60_053,
+    60_100..60_109,
+    60_200..60_200,
+    61_000..61_009
+  ].freeze
 
   def read_all_registers(modbus_slave)
     result = []
@@ -501,10 +504,10 @@ module Aurora
     REGISTER_RANGES.map(&:to_a).flatten.zip(result).to_h
   end
 
-  def diff_registers(r1, r2)
+  def diff_registers(lhs, rhs)
     diff = {}
-    r1.each_key do |k|
-      diff[k] = [r1[k], r2[k]] if r1[k] != r2[k]
+    lhs.each_key do |k|
+      diff[k] = [lhs[k], rhs[k]] if lhs[k] != rhs[k]
     end
     diff
   end
@@ -539,7 +542,7 @@ module Aurora
     92 => "Model Number",
     105 => "Serial Number",
     112 => "Setup Line Voltage",
-    201 => "Discharge Pressure", # I can't figure out how this number is represented; 
+    201 => "Discharge Pressure", # I can't figure out how this number is represented;
     203 => "Suction Pressure",
     205 => "Discharge Temperature",
     207 => "Loop Entering Water Temperature",
@@ -565,7 +568,7 @@ module Aurora
     344 => "ECM Speed",
     346 => "Cooling Airflow Adjustment",
     347 => "Aux Heat ECM Speed",
-    362 => "Active Dehumidify", # any value is true 
+    362 => "Active Dehumidify", # any value is true
     401 => "DHW Setpoint",
     414 => "On Peak/SmartGrid 2", # 0x0001 only
     483 => "Number of IZ2 Zones",
@@ -605,27 +608,27 @@ module Aurora
     1157 => "Ht of Rej",
     1165 => "VS Pump Watts",
     3027 => "Compressor Speed",
-    31003 => "Outdoor Temp",
-    31005 => "IZ2 Demand",
-    31109 => "Humidifier Mode", # write to 21114
-    31110 => "Manual De/Humidification Target", # write to 21115
-    31400 => "Dealer Name",
-    31413 => "Dealer Phone",
-    31421 => "Dealer Address 1",
-    31434 => "Dealer Address 2",
-    31447 => "Dealer Email",
-    31460 => "Dealer Website",
-  }.merge(ignore(89..91)).
-    merge(ignore(93..104)).
-    merge(ignore(106..109)).
-    merge(faults(601..699)).
-    merge(zone_registers).
-    merge(ignore(31401..31412)).
-    merge(ignore(31414..31420)).
-    merge(ignore(31422..31433)).
-    merge(ignore(31435..31446)).
-    merge(ignore(31447..31459)).
-    merge(ignore(31461..31472))
+    31_003 => "Outdoor Temp",
+    31_005 => "IZ2 Demand",
+    31_109 => "Humidifier Mode", # write to 21114
+    31_110 => "Manual De/Humidification Target", # write to 21115
+    31_400 => "Dealer Name",
+    31_413 => "Dealer Phone",
+    31_421 => "Dealer Address 1",
+    31_434 => "Dealer Address 2",
+    31_447 => "Dealer Email",
+    31_460 => "Dealer Website"
+  }.merge(ignore(89..91))
+                   .merge(ignore(93..104))
+                   .merge(ignore(106..109))
+                   .merge(faults(601..699))
+                   .merge(zone_registers)
+                   .merge(ignore(31_401..31_412))
+                   .merge(ignore(31_414..31_420))
+                   .merge(ignore(31_422..31_433))
+                   .merge(ignore(31_435..31_446))
+                   .merge(ignore(31_447..31_459))
+                   .merge(ignore(31_461..31_472))
 
   def transform_registers(registers)
     registers.each do |(k, v)|
@@ -640,19 +643,20 @@ module Aurora
 
   def print_registers(registers)
     result = []
-    registers.each do |(k, v)|
+    registers.each do |(k, value)|
       # ignored
       next if REGISTER_NAMES.key?(k) && REGISTER_NAMES[k].nil?
+
       name = REGISTER_NAMES[k]
       value_proc = REGISTER_CONVERTERS.find { |(_, z)| z.include?(k) }&.first || ->(v) { v }
       format = REGISTER_FORMATS.find { |(_, z)| z.include?(k) }&.first || "%s"
       format = "%1$d (0x%1$04x)" unless name
       name ||= "???"
-  
-      value = value_proc.arity == 2 ? value_proc.call(registers, k) : value_proc.call(v)
+
+      value = value_proc.arity == 2 ? value_proc.call(registers, k) : value_proc.call(value)
       value = value.join(", ") if value.is_a?(Array)
-      value = sprintf(format, value) if value
-  
+      value = format(format, value) if value
+
       result << "#{name} (#{k}): #{value}"
     end
     result.join("\n")

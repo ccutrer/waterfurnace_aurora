@@ -1,7 +1,9 @@
+# frozen_string_literal: true
+
 require_relative "lib/aurora/version"
 
 Gem::Specification.new do |s|
-  s.name = 'waterfurnace_aurora'
+  s.name = "waterfurnace_aurora"
   s.version = Aurora::VERSION
   s.platform = Gem::Platform::RUBY
   s.authors = ["Cody Cutrer"]
@@ -10,15 +12,17 @@ Gem::Specification.new do |s|
   s.summary = "Library for communication with WaterFurnace Aurora control systems"
   s.license = "MIT"
 
-  s.executables = ['aurora_mqtt_bridge']
+  s.executables = ["aurora_mqtt_bridge"]
   s.files = Dir["{bin,lib}/**/*"]
 
-  s.add_dependency 'homie-mqtt', "~> 1.4.1"
-  s.add_dependency 'net-telnet-rfc2217', "~> 0.0.4"
-  s.add_dependency 'ccutrer-serialport', "~> 1.0.0"
-  s.add_dependency 'rmodbus-ccutrer', "~> 2.0"
+  s.required_ruby_version = ">= 2.6"
 
-  s.add_development_dependency 'byebug', "~> 9.0"
-  s.add_development_dependency 'rake', "~> 13.0"
-  s.add_development_dependency 'gserver', "~> 0.0.1"
+  s.add_dependency "ccutrer-serialport", "~> 1.0.0"
+  s.add_dependency "homie-mqtt", "~> 1.4.1"
+  s.add_dependency "net-telnet-rfc2217", "~> 0.0.4"
+  s.add_dependency "rmodbus-ccutrer", "~> 2.0"
+
+  s.add_development_dependency "byebug", "~> 9.0"
+  s.add_development_dependency "gserver", "~> 0.0.1"
+  s.add_development_dependency "rubocop", "~> 1.19"
 end

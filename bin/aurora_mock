@@ -1,21 +1,22 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
-require 'aurora'
-require 'ccutrer-serialport'
-require 'uri'
-require 'yaml'
+require "aurora"
+require "ccutrer-serialport"
+require "uri"
+require "yaml"
 
 uri = URI.parse(ARGV[0])
 
 args = if uri.scheme == "telnet" || uri.scheme == "rfc2217"
-  require 'net/telnet/rfc2217'
-  [Net::Telnet::RFC2217.new('Host' => uri.host,
-    'Port' => uri.port || 23,
-    'baud' => 19200,
-    'parity' => Net::Telnet::RFC2217::EVEN)]
-else
-  [CCutrer::SerialPort.new(uri.path, baud: 19200, parity: :even)]
-end
+         require "net/telnet/rfc2217"
+         [Net::Telnet::RFC2217.new("Host" => uri.host,
+                                   "Port" => uri.port || 23,
+                                   "baud" => 19_200,
+                                   "parity" => Net::Telnet::RFC2217::EVEN)]
+       else
+         [CCutrer::SerialPort.new(uri.path, baud: 19_200, parity: :even)]
+       end
 
 port = ARGV[1]&.to_i || 502
 
@@ -27,13 +28,13 @@ slave2 = server1.with_slave(2)
 server2 = ModBus::TCPServer.new(port)
 slave255 = server2.with_slave(255)
 
-r = slave1.holding_registers = slave2.holding_registers = slave255.holding_registers = Array.new(31473, 0)
+r = slave1.holding_registers = slave2.holding_registers = slave255.holding_registers = Array.new(31_473, 0)
 
 # prepopulate some data
-registers = YAML.load(File.read(File.expand_path('../registers.yml', __FILE__)))
+registers = YAML.safe_load(File.read(File.expand_path("registers.yml", __dir__)))
 registers.each { |(k, v)| r[k] = v }
 
-server1.request_callback = ->(uid, func, req) do
+server1.request_callback = lambda { |uid, func, req|
   if func == 68
     puts "===== no idea to #{uid}: #{req.inspect}"
   elsif func == 67
@@ -45,12 +46,13 @@ server1.request_callback = ->(uid, func, req) do
     registers = Range.new(req[:addr], req[:addr] + req[:quant] - 1).zip(req[:val]).to_h
     puts Aurora.print_registers(registers)
   elsif [3, 65, 66].include?(func)
+    # no output
   else
     puts "**** new func #{func}"
   end
-end
+}
 
-server1.response_callback = ->(uid, func, res, req) do
+server1.response_callback = lambda { |uid, func, res, req|
   if func == 3 && res.is_a?(Array) && req
     unless req[:quant] == res.length
       puts "wrong number of results"
@@ -78,12 +80,13 @@ server1.response_callback = ->(uid, func, res, req) do
     registers = req.zip(res).to_h
     puts Aurora.print_registers(registers)
   elsif [16, 67, 68].include?(func)
+    # no output
   else
     puts "**** new func #{func}"
   end
-end
+}
 
 server2.start
 server1.send(:serve, server1.instance_variable_get(:@sp))
-#server1.start
-loop {}
+# server1.start
+loop { nil }
