@@ -141,7 +141,7 @@ class MQTTBridge
   end
 
   def publish_basic_attributes
-    publish("$homie", "v4.0.0")
+    publish("$homie", "4.0.0")
     publish("$name", "Aurora MQTT Bridge")
     publish("$state", "init")
     nodes = ["abc"]
