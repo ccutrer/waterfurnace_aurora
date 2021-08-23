@@ -13,7 +13,7 @@ Gem::Specification.new do |s|
   s.executables = ['aurora_mqtt_bridge']
   s.files = Dir["{bin,lib}/**/*"]
 
-  s.add_dependency 'mqtt', "~> 0.5.0"
+  s.add_dependency 'homie-mqtt', "~> 1.4.1"
   s.add_dependency 'net-telnet-rfc2217', "~> 0.0.4"
   s.add_dependency 'ccutrer-serialport', "~> 1.0.0"
   s.add_dependency 'rmodbus-ccutrer', "~> 2.0"

@@ -1,12 +1,12 @@
 #!/usr/bin/env ruby
 
 require 'aurora'
-require 'mqtt'
+require 'homie-mqtt'
 require 'ccutrer-serialport'
 require 'uri'
 
 uri = URI.parse(ARGV[0])
-mqtt_uri = URI.parse(ARGV[1])
+mqtt_uri = ARGV[1]
 
 args = if uri.scheme == "telnet" || uri.scheme == "rfc2217"
   require 'net/telnet/rfc2217'
@@ -22,106 +22,87 @@ slave = ModBus::RTUClient.new(*args).with_slave(1)
 abc = Aurora::ABCClient.new(slave)
 
 class MQTTBridge
-  def initialize(abc, mqtt_uri)
-    @base_topic = "homie/aurora"
+  def initialize(abc, homie)
     @abc = abc
-    @mqtt = MQTT::Client.new(mqtt_uri)
-    @mqtt.set_will("#{@base_topic}/$state", "lost", true, 1)
-    @mqtt.connect
-    @attributes = {}
+    @homie = homie
     @mutex = Mutex.new
+
+    @homie.instance_variable_set(:@block, ->(topic, value) do
+      @mutex.synchronize do
+        case topic
+        when /\$modbus$/
+          query = value.split(',').map do |addr|
+            if addr == 'known'
+              Aurora::REGISTER_NAMES.keys
+            elsif addr =~ /^(\d+)\.\.(\d+)$/
+              Regexp.last_match(1).to_i..Regexp.last_match(2).to_i
+            else
+              addr.to_i
+            end
+          end
+          queries = Aurora.normalize_ranges(query)
+          registers = {}
+          queries.each do |query|
+            registers.merge!(@abc.modbus_slave.read_multiple_holding_registers(*query))
+          end
+          result = Aurora.print_registers(registers)
+          @homie.mqtt.publish("#{@home.topic}/$modbus/response", result, retain: false, qos: 1)
+        when %r{\$modbus/(\d+)$}
+          register = Regexp.last_match(1).to_i
+          value = case value
+                  when /\d+/
+                    value.to_i
+                  when /0x(\d+)/
+                    Regexp.last_match(1).to_i(16)
+                  end
+          @abc.modbus_slave.holding_registers[register] = value if value
+        end
+      end
+    rescue StandardError => e
+      puts "failed processing message: #{e}\n#{e.backtrace}"
+    end)
 
     publish_basic_attributes
 
-    abc_thread = Thread.new do
-      loop do
-        begin
-          @mutex.synchronize do
-            @abc.refresh
-            publish_attribute("abc/compressor-speed", @abc.compressor_speed)
-            publish_attribute("abc/current-mode", @abc.current_mode)
-            publish_attribute("abc/dhw-water-temperature", @abc.dhw_water_temperature)
-            publish_attribute("abc/entering-air-temperature", @abc.entering_air_temperature)
-            publish_attribute("abc/entering-water-temperature", @abc.entering_water_temperature)
-            publish_attribute("abc/fan-speed", @abc.fan_speed)
-            publish_attribute("abc/leaving-air-temperature", @abc.leaving_air_temperature)
-            publish_attribute("abc/leaving-water-temperature", @abc.leaving_water_temperature)
-            publish_attribute("abc/outdoor-temperature", @abc.outdoor_temperature)
-            publish_attribute("abc/relative-humidity", @abc.relative_humidity)
-            publish_attribute("abc/waterflow", @abc.waterflow)
-            publish_attribute("abc/fp1", @abc.fp1)
-            publish_attribute("abc/fp2", @abc.fp2)
-
-            @abc.iz2_zones.each do |z|
-              i = z.zone_number
-              publish_attribute("zone#{i}/target-mode", z.target_mode)
-              publish_attribute("zone#{i}/current-mode", z.current_mode)
-              publish_attribute("zone#{i}/target-fan-mode", z.target_fan_mode)
-              publish_attribute("zone#{i}/current-fan-mode", z.current_fan_mode)
-              publish_attribute("zone#{i}/fan-intermittent-on", z.fan_intermittent_on)
-              publish_attribute("zone#{i}/fan-intermittent-off", z.fan_intermittent_off)
-              publish_attribute("zone#{i}/priority", z.priority)
-              publish_attribute("zone#{i}/size", z.size)
-              publish_attribute("zone#{i}/normalized-size", z.normalized_size)
-              publish_attribute("zone#{i}/ambient-temperature", z.ambient_temperature)
-              publish_attribute("zone#{i}/heating-target-temperature", z.heating_target_temperature)
-              publish_attribute("zone#{i}/cooling-target-temperature", z.cooling_target_temperature)
-            end
-          end
-        rescue => e
-          puts "got garbage: #{e}; #{e.backtrace}"
-          exit 1
-        end
-        sleep(5)
-      end
-    end
-
-    @mqtt.get do |topic, value|
-      puts "got #{value.inspect} at #{topic}"
-      zone = topic =~ %r{zone([1-6])/} && @abc.iz2_zones[$1.to_i - 1]
-
+    loop do
       begin
         @mutex.synchronize do
-          case topic
-          when %r{zone([1-6])/target-mode/set$}
-            publish_attribute("zone#{$1}/target-mode", zone.target_mode = value.to_sym)
-          when %r{zone([1-6])/target-fan-mode/set$}
-            publish_attribute("zone#{$1}/target-fan-mode", zone.target_fan_mode = value.to_sym)
-          when %r{zone([1-6])/fan-intermittent-(on|off)/set$}
-            publish_attribute("zone#{$1}/fan-intermittent-#{$2}", zone.send("fan_intermittent_#{$2}=", value.to_i))
-          when %r{zone([1-6])/(heating|cooling)-target-temperature}
-            publish_attribute("zone#{$1}/#{$2}-target-temperature", zone.send("#{$2}_target_temperature=", value.to_f))
-          when /\$modbus$/
-            query = value.split(',').map do |addr|
-              if addr == "known"
-                Aurora::REGISTER_NAMES.keys
-              elsif addr =~ /^(\d+)\.\.(\d+)$/
-                $1.to_i..$2.to_i
-              else
-                addr.to_i
-              end
-            end
-            queries = Aurora.normalize_ranges(query)
-            registers = {}
-            queries.each do |query|
-              registers.merge!(@abc.modbus_slave.read_multiple_holding_registers(*query))
-            end
-            result = Aurora.print_registers(registers)
-            @mqtt.publish("#{@base_topic}/$modbus/response", result, false, 1)
-          when %r{\$modbus/(\d+)$}
-            register = $1.to_i
-            value = case value
-            when /\d+/
-              value.to_i
-            when /0x(\d+)/
-              $1.to_i(16)
-            end
-            @abc.modbus_slave.holding_registers[register] = value if value
+          @abc.refresh
+          @homie_abc["compressor-speed"].value = @abc.compressor_speed
+          @homie_abc["current-mode"].value = @abc.current_mode
+          @homie_abc["dhw-water-temperature"].value = @abc.dhw_water_temperature
+          @homie_abc["entering-air-temperature"].value = @abc.entering_air_temperature
+          @homie_abc["entering-water-temperature"].value = @abc.entering_water_temperature
+          @homie_abc["fan-speed"].value = @abc.fan_speed
+          @homie_abc["leaving-air-temperature"].value = @abc.leaving_air_temperature
+          @homie_abc["leaving-water-temperature"].value = @abc.leaving_water_temperature
+          @homie_abc["outdoor-temperature"].value = @abc.outdoor_temperature
+          @homie_abc["relative-humidity"].value = @abc.relative_humidity
+          @homie_abc["waterflow"].value = @abc.waterflow
+          @homie_abc["fp1"].value = @abc.fp1
+          @homie_abc["fp2"].value = @abc.fp2
+
+          @abc.iz2_zones.each do |z|
+            homie_zone = @homie["zone#{z.zone_number}"]
+            homie_zone["target-mode"].value = z.target_mode
+            homie_zone["current-mode"].value = z.current_mode
+            homie_zone["target-fan-mode"].value = z.target_fan_mode
+            homie_zone["current-fan-mode"].value = z.current_fan_mode
+            homie_zone["fan-intermittent-on"].value = z.fan_intermittent_on
+            homie_zone["fan-intermittent-off"].value = z.fan_intermittent_off
+            homie_zone["priority"].value = z.priority
+            homie_zone["size"].value = z.size
+            homie_zone["normalized-size"].value = z.normalized_size
+            homie_zone["ambient-temperature"].value = z.ambient_temperature
+            homie_zone["heating-target-temperature"].value = z.heating_target_temperature
+            homie_zone["cooling-target-temperature"].value = z.cooling_target_temperature
           end
         end
       rescue => e
-        puts "failed processing message: #{e}\n#{e.backtrace}"
+        puts "got garbage: #{e}; #{e.backtrace}"
+        exit 1
       end
+      sleep(5)
     end
   end
 
@@ -141,149 +122,58 @@ class MQTTBridge
   end
 
   def publish_basic_attributes
-    publish("$homie", "4.0.0")
-    publish("$name", "Aurora MQTT Bridge")
-    publish("$state", "init")
-    nodes = ["abc"]
-
-    publish("abc/$name", "Aurora Basic Control")
-    publish("abc/$datatype", "ABC")
-    publish("abc/$properties", "compressor-speed,current-mode,dhw-water-temperature,entering-air-temperature,entering-water-temperature,fan-speed,leaving-air-temperature,leaving-water-temperature,outdoor-temperature,relative-humidity,waterflow,fp1,fp2")
-
-    publish("abc/compressor-speed/$name", "Compressor Speed")
-    publish("abc/compressor-speed/$datatype", "integer")
-    publish("abc/compressor-speed/$format", "0:12")
-
-    publish("abc/current-mode/$name", "Current Heating/Cooling Mode")
-    publish("abc/current-mode/$datatype", "enum")
-    publish("abc/current-mode/$format", "lockout,standby,blower,h1,h2,c1,c2,eh1,eh2")
-
-    publish("abc/dhw-water-temperature/$name", "DHW Water Temperature")
-    publish("abc/dhw-water-temperature/$datatype", "float")
-    publish("abc/dhw-water-temperature/$unit", "ºF")
-
-    publish("abc/entering-air-temperature/$name", "Entering Air Temperature")
-    publish("abc/entering-air-temperature/$datatype", "float")
-    publish("abc/entering-air-temperature/$unit", "ºF")
-
-    publish("abc/entering-water-temperature/$name", "Entering Water Temperature")
-    publish("abc/entering-water-temperature/$datatype", "float")
-    publish("abc/entering-water-temperature/$unit", "ºF")
-
-    publish("abc/fan-speed/$name", "Fan Speed")
-    publish("abc/fan-speed/$datatype", "integer")
-    publish("abc/fan-speed/$format", "0:11")
-
-    publish("abc/leaving-air-temperature/$name", "Leaving Air Temperature")
-    publish("abc/leaving-air-temperature/$datatype", "float")
-    publish("abc/leaving-air-temperature/$unit", "ºF")
-
-    publish("abc/leaving-water-temperature/$name", "Leaving Water Temperature")
-    publish("abc/leaving-water-temperature/$datatype", "float")
-    publish("abc/leaving-water-temperature/$unit", "ºF")
-
-    publish("abc/outdoor-temperature/$name", "Outdoor Temperature")
-    publish("abc/outdoor-temperature/$datatype", "float")
-    publish("abc/outdoor-temperature/$unit", "ºF")
-
-    publish("abc/relative-humidity/$name", "Relative Humidity")
-    publish("abc/relative-humidity/$datatype", "integer")
-    publish("abc/relative-humidity/$unit", "%")
-    publish("abc/relative-humidity/$format", "0:100")
-
-    publish("abc/waterflow/$name", "Waterflow")
-    publish("abc/waterflow/$datatype", "float")
-    publish("abc/waterflow/$unit", "gpm")
-
-    publish("abc/fp1/$name", "FP1 Sensor")
-    publish("abc/fp1/$datatype", "float")
-    publish("abc/fp1/$unit", "ºF")
-
-    publish("abc/fp2/$name", "FP1 Sensor")
-    publish("abc/fp2/$datatype", "float")
-    publish("abc/fp2/$unit", "ºF")
-
-    (1..@abc.iz2_zones.length).each do |i|
-      nodes << "zone#{i}"
-      publish("zone#{i}/$name", "Zone #{i}")
-      publish("zone#{i}/$datatype", "IntelliZone 2 Zone")
-      publish("zone#{i}/$properties", "target-mode,current-mode,target-fan-mode,current-fan-mode,fan-intermittent-on,fan-intermittent-off,priority,size,normalized-size,ambient-temperature,heating-target-temperature,cooling-target-temperature")
-
-      publish("zone#{i}/target-mode/$name", "Target Heating/Cooling Mode")
-      publish("zone#{i}/target-mode/$datatype", "enum")
-      if i == 1
-        publish("zone#{i}/target-mode/$format", "off,auto,cool,heat,eheat")
-      else
-        publish("zone#{i}/target-mode/$format", "off,auto,cool,heat")
-      end
-      publish("zone#{i}/target-mode/$settable", "true")
-      subscribe("zone#{i}/target-mode/set")
-
-      publish("zone#{i}/current-mode/$name", "Current Heating/Cooling Mode Requested")
-      publish("zone#{i}/current-mode/$datatype", "enum")
-      publish("zone#{i}/current-mode/$format", "standby,h1,h2,h3,c1,c2")
-
-      publish("zone#{i}/target-fan-mode/$name", "Target Fan Mode")
-      publish("zone#{i}/target-fan-mode/$datatype", "enum")
-      publish("zone#{i}/target-fan-mode/$format", "auto,continuous,intermittent")
-      publish("zone#{i}/target-fan-mode/$settable", "true")
-      subscribe("zone#{i}/target-fan-mode/set")
-
-      publish("zone#{i}/current-fan-mode/$name", "Current Fan Status")
-      publish("zone#{i}/current-fan-mode/$datatype", "boolean")
-
-      publish("zone#{i}/fan-intermittent-on/$name", "Fan Intermittent Mode On Duration")
-      publish("zone#{i}/fan-intermittent-on/$datatype", "enum")
-      publish("zone#{i}/fan-intermittent-on/$format", "0,5,10,15,20")
-      publish("zone#{i}/fan-intermittent-on/$unit", "M")
-      publish("zone#{i}/fan-intermittent-on/$settable", "true")
-      subscribe("zone#{i}/fan-intermittent-on/set")
-
-      publish("zone#{i}/fan-intermittent-off/$name", "Fan Intermittent Mode Off Duration")
-      publish("zone#{i}/fan-intermittent-off/$datatype", "enum")
-      publish("zone#{i}/fan-intermittent-off/$format", "0,5,10,15,20,25,30,35,40")
-      publish("zone#{i}/fan-intermittent-off/$unit", "M")
-      publish("zone#{i}/fan-intermittent-off/$settable", "true")
-      subscribe("zone#{i}/fan-intermittent-off/set")
-
-      publish("zone#{i}/priority/$name", "Zone Priority")
-      publish("zone#{i}/priority/$datatype", "enum")
-      publish("zone#{i}/priority/$format", "economy,comfort")
-
-      publish("zone#{i}/size/$name", "Size")
-      publish("zone#{i}/size/$datatype", "enum")
-      publish("zone#{i}/size/$format", "0,25,45,70")
-
-      publish("zone#{i}/normalized-size/$name", "Normalized Size")
-      publish("zone#{i}/normalized-size/$datatype", "integer")
-      publish("zone#{i}/normalized-size/$format", "0:100")
-      publish("zone#{i}/normalized-size/$unit", "%")
-
-      publish("zone#{i}/ambient-temperature/$name", "Ambient Temperature")
-      publish("zone#{i}/ambient-temperature/$datatype", "float")
-      publish("zone#{i}/ambient-temperature/$unit", "ºF")
-
-      publish("zone#{i}/heating-target-temperature/$name", "Heating Target Temperature")
-      publish("zone#{i}/heating-target-temperature/$datatype", "integer")
-      publish("zone#{i}/heating-target-temperature/$unit", "ºF")
-      publish("zone#{i}/heating-target-temperature/$format", "40:90")
-      publish("zone#{i}/heating-target-temperature/$settable", "true")
-      subscribe("zone#{i}/heating-target-temperature/set")
-
-      publish("zone#{i}/cooling-target-temperature/$name", "Cooling Target Temperature")
-      publish("zone#{i}/cooling-target-temperature/$datatype", "integer")
-      publish("zone#{i}/cooling-target-temperature/$unit", "ºF")
-      publish("zone#{i}/cooling-target-temperature/$format", "54:99")
-      publish("zone#{i}/cooling-target-temperature/$settable", "true")
-      subscribe("zone#{i}/cooling-target-temperature/set")
+    @homie_abc = @homie.node("abc", "Aurora Basic Control", "ABC") do |node|
+      node.property("compressor-speed", "Compressor Speed", :integer, @abc.compressor_speed, format: 0..1)
+      node.property("current-mode", "Current Heating/Cooling Mode", :enum, @abc.current_mode, format: %w[lockout standby blower h1 h2 c1 c2 eh1 eh2])
+      node.property("dhw-water-temperature", "DHW Water Temperature", :float, @abc.dhw_water_temperature, unit: "ºF")
+      node.property("entering-air-temperature", "Entering Air Temperature", :float, @abc.entering_air_temperature, unit: "ºF")
+      node.property("entering-water-temperature", "Entering Water Temperature", :float, @abc.entering_water_temperature, unit: "ºF")
+      node.property("fan-speed", "Fan Speed", :integer, @abc.fan_speed, format: 0..11)
+      node.property("leaving-air-temperature", "Leaving Air Temperature", :float, @abc.leaving_air_temperature, unit: "ºF")
+      node.property("leaving-water-temperature", "Leaving Water Temperature", :float, @abc.leaving_water_temperature, unit: "ºF")
+      node.property("outdoor-temperature", "Outdoor Temperature", :float, @abc.outdoor_temperature, unit: "ºF")
+      node.property("relative-humidity", "Relative Humidity", :integer, @abc.relative_humidity, unit: "%", format: 0..100)
+      node.property("waterflow", "Waterflow", :float, unit: "gpm")
+      node.property("fp1", "FP1 Sensor", :float, @abc.fp1, unit: "ºF")
+      node.property("fp2", "FP2 Sensor", :float, @abc.fp2, unit: "ºF")
     end
-    publish("$nodes", nodes.join(','))
+
+    @abc.iz2_zones.each_with_index do |zone|
+      @homie.node("zone#{zone.zone_number}", "Zone #{zone.zone_number}", "IntelliZone 2 Zone") do |node|
+        allowed_modes = %w[off auto cool heat]
+        allowed_modes << "eheat" if zone.zone_number == 1
+        node.property("target-mode", "Target Heating/Cooling Mode", :enum, zone.target_mode, format: allowed_modes) do |value, property|
+          @mutex.synchronize { property.value = zone.target_mode = value.to_sym }
+        end
+        node.property("current-mode", "Current Heating/Cooling Mode Requested", :enum, zone.current_mode, format: %w[standby h1 h2 h3 c1 c2])
+        node.property("target-fan-mode", "Target Fan Mode", :enum,  zone.target_fan_mode, format: %w[auto continuous intermittent]) do |value, property|
+          @mutex.synchronize { property.value = zone.target_fan_mode = value.to_sym }
+        end
+        node.property("current-fan-mode", "Current Fan Status", :boolean, zone.current_fan_mode)
+        node.property("fan-intermittent-on", "Fan Intermittent Mode On Duration", :enum, zone.fan_intermittent_on, unit: "M", format: %w[0 5 10 15 20]) do |value, property|
+          @mutex.synchronize { property.value = zone.fan_intermittent_on = value.to_i }
+        end
+        node.property("fan-intermittent-off", "Fan Intermittent Mode Off Duration", :enum, zone.fan_intermittent_on, unit: "M", format: %w[0 5 10 15 20 25 30 35 40]) do |value, property|
+          @mutex.synchronize { property.value = zone.fan_intermittent_on = value.to_i }
+        end
+        node.property("priority", "Zone Priority", :enum, zone.priority, format: %w[economy comfort])
+        node.property("size", "Size", :enum, zone.size, format: %w[0 25 45 70])
+        node.property("normalized-size", "Normalized Size", :integer, zone.normalized_size, unit: "%", format: 0..100)
+        node.property("ambient-temperature", "Ambient Temperature", :float, zone.ambient_temperature, unit: "ºF")
+        node.property("heating-target-temperature", "Heating Target Temperature", :integer, zone.heating_target_temperature, unit: "ºF", format: 40..90) do |value, property|
+          @mutex.synchronize { property.value = zone.heating_target_temperature = value }
+        end
+        node.property("cooling-target-temperature", "Cooling Target Temperature", :integer, zone.cooling_target_temperature, unit: "ºF", format: 54..99) do |value, property|
+          @mutex.synchronize { property.value = zone.cooling_target_temperature = value }
+        end
+      end
+    end
 
     # direct access to modbus registers for debugging purposes
-    subscribe("$modbus")
-    subscribe("$modbus/+")
-    publish("$state", 'ready')
+    @homie.mqtt.subscribe("#{@homie.topic}/$modbus")
+    @homie.mqtt.subscribe("#{@homie.topic}/$modbus/+")
+    @homie.publish
   end
 end
 
-MQTTBridge.new(abc, mqtt_uri)
+MQTTBridge.new(abc, MQTT::Homie::Device.new("aurora", "Aurora MQTT Bridge", mqtt: mqtt_uri))
