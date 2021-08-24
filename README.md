@@ -32,7 +32,11 @@ helping extending support!
 
 ## Installation
 
-Install ruby. Then:
+Install ruby 2.6 or 2.7. 3.0 has not been tested. If talking directly
+to the serial port, Linux is required. Mac may or may not work. Windows
+probably won't work. If you want to run on Windows, you'll need to run
+a network serial port (like with `ser2net`), and connect remotely from
+the Windows machine. Then:
 
 ```sh
 gem install waterfurnace_aurora
