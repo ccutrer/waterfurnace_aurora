@@ -60,6 +60,8 @@ Ruby installed):
 ```sh
 sudo curl https://github.com/ccutrer/waterfurnace_aurora/raw/main/contrib/aurora_mqtt_bridge.service -L -o /etc/systemd/system/aurora_mqtt_bridge.service
 <modify the file to pass the correct URI to your MQTT server, and path to RS-485 device>
+<If you use MQTT authentication you can use the following format to provide login information mqtt://username:password@mqtt.domain.tld >
+<Make sure to change the "User" and "WorkingDirectory" parameters to fit your environnement>
 sudo systemctl enable aurora_mqtt_bridge
 sudo systemctl start aurora_mqtt_bridge
 ```
