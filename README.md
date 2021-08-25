@@ -30,6 +30,11 @@ such as the current temperature, set point, and requested mode of the
 thermostat. If you own a different unit, I would be glad to have your
 helping extending support!
 
+|Make|Model|Working|
+--- | --- | ---
+|Waterfurnace|7-series|Yes|
+|Geosmart|PremiumV|Yes|
+
 ## Installation
 
 Install ruby 2.6 or 2.7. 3.0 has not been tested. If talking directly
