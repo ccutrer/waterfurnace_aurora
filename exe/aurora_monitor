@@ -74,6 +74,5 @@ server.response_callback = lambda { |uid, func, res, req|
   end
 }
 
-require "byebug"
 server.send(:serve, server.instance_variable_get(:@sp))
 loop { nil }
