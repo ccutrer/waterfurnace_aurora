@@ -30,6 +30,11 @@ such as the current temperature, set point, and requested mode of the
 thermostat. If you own a different unit, I would be glad to have your
 helping extending support!
 
+|Make|Model|Working|
+--- | --- | ---
+|Waterfurnace|7-series|Yes|
+|Geosmart|PremiumV|Yes|
+
 ## Installation
 
 Install ruby 2.6 or 2.7. 3.0 has not been tested. If talking directly
@@ -39,7 +44,12 @@ a network serial port (like with `ser2net`), and connect remotely from
 the Windows machine. Then:
 
 ```sh
-gem install waterfurnace_aurora
+gem install waterfurnace_aurora 
+```
+On Ubuntu 21.04 the following is needed to install the gem:
+
+```sh
+sudo apt install build-essential ruby2.7 ruby-dev
 ```
 
 ## MQTT/Homie Bridge
@@ -55,6 +65,8 @@ Ruby installed):
 ```sh
 sudo curl https://github.com/ccutrer/waterfurnace_aurora/raw/main/contrib/aurora_mqtt_bridge.service -L -o /etc/systemd/system/aurora_mqtt_bridge.service
 <modify the file to pass the correct URI to your MQTT server, and path to RS-485 device>
+<If you use MQTT authentication you can use the following format to provide login information mqtt://username:password@mqtt.domain.tld >
+<Make sure to change the "User" and "WorkingDirectory" parameters to fit your environnement>
 sudo systemctl enable aurora_mqtt_bridge
 sudo systemctl start aurora_mqtt_bridge
 ```
@@ -82,6 +94,16 @@ built, connect to the AID Tool port on the front of your heat pump, and then
 your RS-485 device on your computer.
 
 ![Bus Connection](doc/connection_chart.png)
+
+When using a TIA-568-B terminated cable with a USB RS-485 dongle the connections should be the following:
+
+|Dongle terminal |RJ-45 Pin |Wire color |RS-485|
+--- | --- | --- | --- 
+|TXD+|1 and 3|white-orange and white-green |A+|
+|TXD-|2 and 4|solid orange and solid blue |B-|
+|RXD+|None|None|None|
+|RXD-|None|None|None|
+|GND |None|None|None|
 
 ### Connection with AWL
 
