@@ -39,7 +39,12 @@ a network serial port (like with `ser2net`), and connect remotely from
 the Windows machine. Then:
 
 ```sh
-gem install waterfurnace_aurora
+gem install waterfurnace_aurora 
+```
+On Ubuntu 21.04 the following is needed to install the gem:
+
+```sh
+sudo apt install build-essential ruby2.7 ruby-dev
 ```
 
 ## MQTT/Homie Bridge
@@ -82,6 +87,16 @@ built, connect to the AID Tool port on the front of your heat pump, and then
 your RS-485 device on your computer.
 
 ![Bus Connection](doc/connection_chart.png)
+
+When using a TIA-568-B terminated cable with a USB RS-485 dongle the connections should be the following:
+
+|Dongle terminal |RJ-45 Pin |Wire color |RS-485|
+--- | --- | --- | --- 
+|TXD+|1 and 3|white-orange and white-green |A+|
+|TXD-|2 and 4|solid orange and solid blue |B-|
+|RXD+|None|None|None|
+|RXD-|None|None|None|
+|GND |None|None|None|
 
 ### Connection with AWL
 
