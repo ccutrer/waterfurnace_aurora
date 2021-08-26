@@ -31,12 +31,12 @@ module Aurora
       registers_array = @modbus_slave.holding_registers[105...110]
       registers = registers_array.each_with_index.map { |r, i| [i + 105, r] }.to_h
       @serial_number = Aurora.transform_registers(registers)[105]
-      iz2_zone_count = @modbus_slave.holding_registers[483]
-      # TODO: better detect IZ2/Non-IZ2
-      @zones = if iz2_zone_count > 1
-                 (0...iz2_zone_count).map { |i| IZ2Zone.new(self, i + 1) }
-               else
+
+      @zones = if @modbus_slave.holding_registers[813].zero?
                  [Thermostat.new(self)]
+               else
+                 iz2_zone_count = @modbus_slave.holding_registers[483]
+                 (0...iz2_zone_count).map { |i| IZ2Zone.new(self, i + 1) }
                end
     end
 

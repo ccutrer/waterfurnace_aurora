@@ -563,7 +563,7 @@ module Aurora
     746 => "Cooling Set Point",
     747 => "Ambient Temperature",
     807 => "AXB Version",
-    813 => "IZ2 Version?",
+    813 => "IZ2 Version",
     816 => "AOC Version 1?",
     817 => "AOC Version 2?",
     819 => "MOC Version 1?",
