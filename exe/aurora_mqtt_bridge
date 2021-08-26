@@ -91,8 +91,8 @@ class MQTTBridge
             @homie_abc[property.to_s.tr("_", "-")].value = @abc.public_send(property)
           end
 
-          @abc.zones.each do |z|
-            homie_zone = @homie["zone#{z.zone_number}"]
+          @abc.zones.each_with_index do |z, idx|
+            homie_zone = @homie["zone#{idx + 1}"]
             homie_zone.each do |property|
               property.value = z.public_send(property.id.tr("-", "_"))
             end
@@ -134,11 +134,11 @@ class MQTTBridge
       end
     end
 
-    @abc.zones.each do |zone|
+    @abc.zones.each_with_index do |zone, i|
       type = zone.is_a?(Aurora::IZ2Zone) ? "IntelliZone 2 Zone" : "Thermostat"
-      @homie.node("zone#{zone.zone_number}", "Zone #{zone.zone_number}", type) do |node|
+      @homie.node("zone#{i + 1}", "Zone #{i + 1}", type) do |node|
         allowed_modes = %w[off auto cool heat]
-        allowed_modes << "eheat" if !zone.respond_to?(:zone_number) || zone.zone_number == 1
+        allowed_modes << "eheat" if i.zero?
         node.property("target-mode", "Target Heating/Cooling Mode", :enum, zone.target_mode,
                       format: allowed_modes) do |value, property|
           @mutex.synchronize { property.value = zone.target_mode = value.to_sym }
