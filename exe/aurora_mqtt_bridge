@@ -48,7 +48,7 @@ class MQTTBridge
             registers.merge!(@abc.modbus_slave.read_multiple_holding_registers(*subquery))
           end
           result = Aurora.print_registers(registers)
-          @homie.mqtt.publish("#{@home.topic}/$modbus/response", result, retain: false, qos: 1)
+          @homie.mqtt.publish("#{@homie.topic}/$modbus/response", result, retain: false, qos: 1)
         when %r{\$modbus/(\d+)$}
           register = Regexp.last_match(1).to_i
           value = case value

@@ -19,7 +19,7 @@ Gem::Specification.new do |s|
   s.required_ruby_version = ">= 2.6"
 
   s.add_dependency "ccutrer-serialport", "~> 1.0.0"
-  s.add_dependency "homie-mqtt", "~> 1.4.1"
+  s.add_dependency "homie-mqtt", "~> 1.4.2"
   s.add_dependency "net-telnet-rfc2217", "~> 0.0.4"
   s.add_dependency "rmodbus-ccutrer", "~> 2.0"
 
