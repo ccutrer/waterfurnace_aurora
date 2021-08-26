@@ -183,6 +183,27 @@ class MQTTBridge
       end
     end
 
+    if @abc.thermostat
+      @homie.nodes("thermostat", "Thermostat", "Thermostat") do |node|
+        node.property("target-mode", "Target Heating/Cooling Mode", :enum, @abc.thermostat.target_mode,
+                      format: allowed_modes) do |value, property|
+          @mutex.synchronize { property.value = @abc.thermostat.target_mode = value.to_sym }
+        end
+        node.property("target-fan-mode", "Target Fan Mode", :enum, @abc.thermostat.target_fan_mode,
+                      format: %w[auto continuous intermittent]) do |value, property|
+          @mutex.synchronize { property.value = @abc.thermostat.target_fan_mode = value.to_sym }
+        end
+        node.property("heating-target-temperature", "Heating Target Temperature", :integer,
+                      @abc.thermostat.heating_target_temperature, unit: "ºF", format: 40..90) do |value, property|
+          @mutex.synchronize { property.value = @abc.thermostat.heating_target_temperature = value }
+        end
+        node.property("cooling-target-temperature", "Cooling Target Temperature", :integer,
+                      @abc.thermostat.cooling_target_temperature, unit: "ºF", format: 54..99) do |value, property|
+          @mutex.synchronize { property.value = @abc.thermostat.cooling_target_temperature = value }
+        end
+      end
+    end
+
     # direct access to modbus registers for debugging purposes
     @homie.mqtt.subscribe("#{@homie.topic}/$modbus")
     @homie.mqtt.subscribe("#{@homie.topic}/$modbus/+")
