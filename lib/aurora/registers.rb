@@ -497,7 +497,7 @@ module Aurora
   REGISTER_NAMES = {
     1 => "Random Start Delay",
     2 => "ABC Program Version",
-    3 => "IZ2 Version?",
+    3 => "??? Version?",
     4 => "DIP Switch Override",
     6 => "Compressor Anti-Short Cycle Delay",
     8 => "Unit Type?",

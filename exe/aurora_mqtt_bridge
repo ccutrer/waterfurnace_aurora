@@ -77,25 +77,8 @@ class MQTTBridge
       begin
         @mutex.synchronize do
           @abc.refresh
-          %i[compressor_speed
-             current_mode
-             dhw_water_temperature
-             entering_air_temperature
-             entering_water_temperature
-             fan_speed
-             leaving_air_temperature
-             leaving_water_temperature
-             outdoor_temperature
-             relative_humidity
-             waterflow
-             fp1
-             fp2
-             compressor_watts
-             blower_watts
-             aux_heat_watts
-             loop_pump_watts
-             total_watts].each do |property|
-            @homie_abc[property.to_s.tr("_", "-")].value = @abc.public_send(property)
+          @homie_abc.each do |property|
+            property.value = @abc.public_send(property.id.tr("-", "_"))
           end
 
           @abc.zones.each_with_index do |z, idx|
@@ -138,6 +121,15 @@ class MQTTBridge
         component = "#{component}_watts"
         node.property(component.tr("_", "-"), component.tr("_", " ").titleize, :integer,
                       @abc.public_send(component), unit: "W")
+      end
+
+      node.property("blower-only-ecm-speed", "Blower Only ECM Speed", :integer, @abc.blower_only_ecm_speed,
+                    format: 1..12) do |value, property|
+        @mutex.synchronize { property.value = @abc.blower_only_ecm_speed = value }
+      end
+      node.property("aux-heat-ecm-speed", "Aux Heat ECM Speed", :integer, @abc.aux_heat_ecm_speed,
+                    format: 1..12) do |value, property|
+        @mutex.synchronize { property.value = @abc.aux_heat_ecm_speed = value }
       end
     end
 

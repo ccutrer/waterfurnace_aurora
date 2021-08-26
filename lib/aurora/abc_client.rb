@@ -18,6 +18,8 @@ module Aurora
                 :outdoor_temperature,
                 :fp1,
                 :fp2,
+                :blower_only_ecm_speed,
+                :aux_heat_ecm_speed,
                 :compressor_watts,
                 :blower_watts,
                 :aux_heat_watts,
@@ -41,7 +43,8 @@ module Aurora
     end
 
     def refresh
-      registers_to_read = [19..20, 30, 344, 740..741, 900, 1110..1111, 1114, 1117, 1147..1153, 1165, 3027, 31_003]
+      registers_to_read = [19..20, 30, 340, 344, 347, 740..741, 900, 1110..1111, 1114, 1117, 1147..1153, 1165, 3027,
+                           31_003]
       if zones.first.is_a?(IZ2Zone)
         zones.each_with_index do |_z, i|
           base1 = 21_203 + i * 9
@@ -71,6 +74,8 @@ module Aurora
       @fp1                        = registers[19]
       @fp2                        = registers[20]
       @locked_out                 = registers[1117]
+      @blower_only_ecm_speed      = registers[340]
+      @aux_heat_ecm_speed         = registers[347]
       @compressor_watts           = registers[1147]
       @blower_watts               = registers[1149]
       @aux_heat_watts             = registers[1151]
@@ -97,6 +102,18 @@ module Aurora
       zones.each do |z|
         z.refresh(registers)
       end
+    end
+
+    def blower_only_ecm_speed=(value)
+      return unless (1..12).include?(value)
+
+      @modbus_slave.holding_registers[340] = value
+    end
+
+    def aux_heat_ecm_speed=(value)
+      return unless (1..12).include?(value)
+
+      @modbus_slave.holding_registers[347] = value
     end
 
     def inspect
