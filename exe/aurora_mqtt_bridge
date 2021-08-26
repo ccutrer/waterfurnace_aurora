@@ -29,7 +29,7 @@ class MQTTBridge
     @homie = homie
     @mutex = Mutex.new
 
-    @homie.instance_variable_set(:@block, lambda do |topic, value|
+    @homie.out_of_band_topic_proc = lambda do |topic, value|
       @mutex.synchronize do
         case topic
         when /\$modbus$/
@@ -62,8 +62,8 @@ class MQTTBridge
         end
       end
     rescue StandardError => e
-      puts "failed processing message: #{e}\n#{e.backtrace}"
-    end)
+      logger.error("failed processing message: #{e}\n#{e.backtrace}")
+    end
 
     @abc.refresh
     publish_basic_attributes
@@ -101,7 +101,7 @@ class MQTTBridge
           end
         end
       rescue => e
-        puts "got garbage: #{e}; #{e.backtrace}"
+        logger.error("got garbage: #{e}; #{e.backtrace}")
         exit 1
       end
       sleep(5)
@@ -188,5 +188,13 @@ class MQTTBridge
   end
 end
 
+log_level = ARGV.include?("--debug") ? :debug : :warn
+logger = Logger.new($stdout)
+logger.level = log_level
+slave.logger = logger
+
 device = "aurora-#{abc.serial_number}"
-MQTTBridge.new(abc, MQTT::Homie::Device.new(device, "Aurora MQTT Bridge", mqtt: mqtt_uri))
+homie = MQTT::Homie::Device.new(device, "Aurora MQTT Bridge", mqtt: mqtt_uri)
+homie.logger = logger
+
+MQTTBridge.new(abc, homie)

@@ -17,7 +17,7 @@ module Aurora
       end
 
       def holding_registers
-        WFProxy.new(self, :holding_register)
+        @holding_registers ||= WFProxy.new(self, :holding_register)
       end
     end
 
@@ -33,7 +33,6 @@ module Aurora
       def read_rtu_response(io)
         # Read the slave_id and function code
         msg = read(io, 2)
-        log logging_bytes(msg)
 
         function_code = msg.getbyte(1)
         case function_code

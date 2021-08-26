@@ -3,9 +3,9 @@ PATH
   specs:
     waterfurnace_aurora (0.3.1)
       ccutrer-serialport (~> 1.0.0)
-      homie-mqtt (~> 1.4.2)
+      homie-mqtt (~> 1.4.4)
       net-telnet-rfc2217 (~> 0.0.4)
-      rmodbus-ccutrer (~> 2.0)
+      rmodbus-ccutrer (~> 2.1)
 
 GEM
   remote: https://rubygems.org/
@@ -18,7 +18,7 @@ GEM
       rake (>= 12.0.0, < 14.0.0)
     ffi (1.15.3)
     gserver (0.0.1)
-    homie-mqtt (1.4.2)
+    homie-mqtt (1.4.4)
       mqtt-ccutrer (~> 1.0)
     mqtt-ccutrer (1.0.0)
     net-telnet (0.2.0)
@@ -31,7 +31,7 @@ GEM
     rake (13.0.6)
     regexp_parser (2.1.1)
     rexml (3.2.5)
-    rmodbus-ccutrer (2.0.0)
+    rmodbus-ccutrer (2.1.0)
       digest-crc (~> 0.1)
     rubocop (1.19.1)
       parallel (~> 1.10)
