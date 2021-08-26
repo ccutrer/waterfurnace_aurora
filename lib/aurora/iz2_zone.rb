@@ -39,62 +39,47 @@ module Aurora
     end
 
     def target_mode=(value)
-      value = Aurora::HEATING_MODE.invert[value]
-      return unless value
+      return unless (raw_value = Aurora::HEATING_MODE.invert[value])
 
-      @abc.modbus_slave.holding_registers[21_202 + (zone_number - 1) * 9] = value
-      @target_mode = Aurora::HEATING_MODE[@abc.modbus_slave.holding_registers[21_202 + (zone_number - 1) * 9]]
+      @abc.modbus_slave.holding_registers[21_202 + (zone_number - 1) * 9] = raw_value
+      @target_mode = value
     end
 
     def target_fan_mode=(value)
-      value = Aurora::FAN_MODE.invert[value]
-      return unless value
+      return unless (raw_value = Aurora::FAN_MODE.invert[value])
 
-      @abc.modbus_slave.holding_registers[21_205 + (zone_number - 1) * 9] = value
-      registers = @abc.modbus_slave.read_multiple_holding_registers(31_008 + (zone_number - 1) * 3)
-      Aurora.transform_registers(registers)
-      @target_fan_mode = registers.first.last[:fan]
+      @abc.modbus_slave.holding_registers[21_205 + (zone_number - 1) * 9] = raw_value
+      @target_fan_mode = value
     end
 
     def fan_intermittent_on=(value)
       return unless value >= 0 && value <= 25 && (value % 5).zero?
 
       @abc.modbus_slave.holding_registers[21_206 + (zone_number - 1) * 9] = value
-      registers = @abc.modbus_slave.read_multiple_holding_registers(31_008 + (zone_number - 1) * 3)
-      Aurora.transform_registers(registers)
-      @fan_intermittent_on = registers.first.last[:on_time]
+      @fan_intermittent_on = value
     end
 
     def fan_intermittent_off=(value)
       return unless value >= 0 && value <= 40 && (value % 5).zero?
 
       @abc.modbus_slave.holding_registers[21_207 + (zone_number - 1) * 9] = value
-      registers = @abc.modbus_slave.read_multiple_holding_registers(31_008 + (zone_number - 1) * 3)
-      Aurora.transform_registers(registers)
-      @fan_intermittent_on = registers.first.last[:off_time]
+      @fan_intermittent_off = value
     end
 
     def heating_target_temperature=(value)
       return unless value >= 40 && value <= 90
 
-      value = (value * 10).to_i
-      @abc.modbus_slave.holding_registers[21_203 + (zone_number - 1) * 9] = value
-
-      base = 31_008 + (zone_number - 1) * 3
-      registers = @abc.modbus_slave.read_multiple_holding_registers(base..(base + 1))
-      Aurora.transform_registers(registers)
-      registers[base + 1][:heating_target_temperature]
+      raw_value = (value * 10).to_i
+      @abc.modbus_slave.holding_registers[21_203 + (zone_number - 1) * 9] = raw_value
+      @heating_target_temperature = value
     end
 
     def cooling_target_temperature=(value)
       return unless value >= 54 && value <= 99
 
-      value = (value * 10).to_i
+      raw_value = (value * 10).to_i
       @abc.modbus_slave.holding_registers[21_204 + (zone_number - 1) * 9] = value
-
-      registers = @abc.modbus_slave.read_multiple_holding_registers(31_008 + (zone_number - 1) * 3)
-      Aurora.transform_registers(registers)
-      registers.first.last[:cooling_target_temperature]
+      @cooling_target_temperature = raw_value
     end
   end
 end
