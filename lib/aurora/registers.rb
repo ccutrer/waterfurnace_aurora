@@ -52,7 +52,6 @@ module Aurora
   end
 
   def to_string(registers, idx, length)
-    puts "converting #{idx} of length #{length}"
     (idx...(idx + length)).map do |i|
       (registers[i] >> 8).chr + (registers[i] & 0xff).chr
     end.join.sub(/[ \0]+$/, "")
@@ -495,25 +494,6 @@ module Aurora
     61_000..61_009
   ].freeze
 
-  def read_all_registers(modbus_slave)
-    result = []
-    REGISTER_RANGES.each do |range|
-      # read at most 100 at a time
-      range.each_slice(100) do |keys|
-        result.concat(modbus_slave.holding_registers[keys.first..keys.last])
-      end
-    end
-    REGISTER_RANGES.map(&:to_a).flatten.zip(result).to_h
-  end
-
-  def diff_registers(lhs, rhs)
-    diff = {}
-    lhs.each_key do |k|
-      diff[k] = [lhs[k], rhs[k]] if lhs[k] != rhs[k]
-    end
-    diff
-  end
-
   REGISTER_NAMES = {
     1 => "Random Start Delay",
     2 => "ABC Program Version",
@@ -648,6 +628,25 @@ module Aurora
     registers
   end
 
+  def read_all_registers(modbus_slave)
+    result = []
+    REGISTER_RANGES.each do |range|
+      # read at most 100 at a time
+      range.each_slice(100) do |keys|
+        result.concat(modbus_slave.holding_registers[keys.first..keys.last])
+      end
+    end
+    REGISTER_RANGES.map(&:to_a).flatten.zip(result).to_h
+  end
+
+  def diff_registers(lhs, rhs)
+    diff = {}
+    (lhs.keys | rhs.keys).each do |k|
+      diff[k] = rhs[k] if lhs[k] != rhs[k]
+    end
+    diff
+  end
+
   def print_registers(registers)
     result = []
     registers.each do |(k, value)|
@@ -655,14 +654,16 @@ module Aurora
       next if REGISTER_NAMES.key?(k) && REGISTER_NAMES[k].nil?
 
       name = REGISTER_NAMES[k]
+
       value_proc = REGISTER_CONVERTERS.find { |(_, z)| z.include?(k) }&.first || ->(v) { v }
       format = REGISTER_FORMATS.find { |(_, z)| z.include?(k) }&.first || "%s"
       format = "%1$d (0x%1$04x)" unless name
-      name ||= "???"
 
       value = value_proc.arity == 2 ? value_proc.call(registers, k) : value_proc.call(value)
       value = value.join(", ") if value.is_a?(Array)
       value = format(format, value) if value
+
+      name ||= "???"
 
       result << "#{name} (#{k}): #{value}"
     end
