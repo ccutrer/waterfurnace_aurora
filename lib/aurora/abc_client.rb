@@ -16,7 +16,12 @@ module Aurora
                 :compressor_speed,
                 :outdoor_temperature,
                 :fp1,
-                :fp2
+                :fp2,
+                :compressor_watts,
+                :blower_watts,
+                :aux_heat_watts,
+                :loop_pump_watts,
+                :total_watts
 
     def initialize(modbus_slave)
       @modbus_slave = modbus_slave
@@ -27,7 +32,7 @@ module Aurora
     end
 
     def refresh
-      registers_to_read = [19..20, 30, 344, 740..741, 900, 1110..1111, 1114, 1117, 3027, 31_003]
+      registers_to_read = [19..20, 30, 344, 740..741, 900, 1110..1111, 1114, 1117, 1147..1153, 1165, 3027, 31_003]
       # IZ2 zones
       iz2_zones.each_with_index do |_z, i|
         base1 = 21_203 + i * 9
@@ -54,6 +59,11 @@ module Aurora
       @fp1                        = registers[19]
       @fp2                        = registers[20]
       @locked_out                 = registers[1117]
+      @compressor_watts           = registers[1147]
+      @blower_watts               = registers[1149]
+      @aux_heat_watts             = registers[1151]
+      @loop_pump_watts            = registers[1165]
+      @total_watts                = registers[1153]
 
       outputs = registers[30]
       @current_mode = if outputs.include?(:lockout)

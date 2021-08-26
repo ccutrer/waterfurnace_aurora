@@ -5,6 +5,7 @@ require "aurora"
 require "homie-mqtt"
 require "ccutrer-serialport"
 require "uri"
+require "aurora/core_ext/string"
 
 uri = URI.parse(ARGV[0])
 mqtt_uri = ARGV[1]
@@ -70,34 +71,42 @@ class MQTTBridge
       begin
         @mutex.synchronize do
           @abc.refresh
-          @homie_abc["compressor-speed"].value = @abc.compressor_speed
-          @homie_abc["current-mode"].value = @abc.current_mode
-          @homie_abc["dhw-water-temperature"].value = @abc.dhw_water_temperature
-          @homie_abc["entering-air-temperature"].value = @abc.entering_air_temperature
-          @homie_abc["entering-water-temperature"].value = @abc.entering_water_temperature
-          @homie_abc["fan-speed"].value = @abc.fan_speed
-          @homie_abc["leaving-air-temperature"].value = @abc.leaving_air_temperature
-          @homie_abc["leaving-water-temperature"].value = @abc.leaving_water_temperature
-          @homie_abc["outdoor-temperature"].value = @abc.outdoor_temperature
-          @homie_abc["relative-humidity"].value = @abc.relative_humidity
-          @homie_abc["waterflow"].value = @abc.waterflow
-          @homie_abc["fp1"].value = @abc.fp1
-          @homie_abc["fp2"].value = @abc.fp2
+          %i[compressor_speed
+             current_mode
+             dhw_water_temperature
+             entering_air_temperature
+             fan_speed
+             leaving_air_temperature
+             leaving_water_temperature
+             outdoor_temperature
+             relative_humidity
+             waterflow
+             fp1
+             fp2
+             compressor_watts
+             blower_watts
+             aux_heat_watts
+             loop_pump_watts
+             total_watts].each do |property|
+            @homie_abc[property.to_s.tr("_", "-")].value = @abc.public_send(property)
+          end
 
           @abc.iz2_zones.each do |z|
             homie_zone = @homie["zone#{z.zone_number}"]
-            homie_zone["target-mode"].value = z.target_mode
-            homie_zone["current-mode"].value = z.current_mode
-            homie_zone["target-fan-mode"].value = z.target_fan_mode
-            homie_zone["current-fan-mode"].value = z.current_fan_mode
-            homie_zone["fan-intermittent-on"].value = z.fan_intermittent_on
-            homie_zone["fan-intermittent-off"].value = z.fan_intermittent_off
-            homie_zone["priority"].value = z.priority
-            homie_zone["size"].value = z.size
-            homie_zone["normalized-size"].value = z.normalized_size
-            homie_zone["ambient-temperature"].value = z.ambient_temperature
-            homie_zone["heating-target-temperature"].value = z.heating_target_temperature
-            homie_zone["cooling-target-temperature"].value = z.cooling_target_temperature
+            %i[target_mode
+               current_mode
+               target_fan_mode
+               current_fan_mode
+               fan_intermittent_on
+               fan_intermittent_off
+               priority
+               size
+               normalized_size
+               ambient_temperature
+               heating_target_temperature
+               cooling_target_temperature].each do |property|
+              homie_zone[property.to_s.tr("_", "-")].value = z.public_send(property)
+            end
           end
         end
       rescue => e
@@ -129,6 +138,11 @@ class MQTTBridge
       node.property("waterflow", "Waterflow", :float, unit: "gpm")
       node.property("fp1", "FP1 Sensor", :float, @abc.fp1, unit: "ºF")
       node.property("fp2", "FP2 Sensor", :float, @abc.fp2, unit: "ºF")
+      %i[compressor blower aux_heat loop_pump total].each do |component|
+        component = "#{component}_watts"
+        node.property(component.tr("_", "-"), component.tr("_", " ").titleize, :integer,
+                      @abc.public_send(component), unit: "W")
+      end
     end
 
     @abc.iz2_zones.each do |zone|
