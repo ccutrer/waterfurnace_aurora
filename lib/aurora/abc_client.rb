@@ -3,6 +3,7 @@
 module Aurora
   class ABCClient
     attr_reader :modbus_slave,
+                :serial_number,
                 :zones,
                 :current_mode,
                 :fan_speed,
@@ -27,6 +28,9 @@ module Aurora
       @modbus_slave = modbus_slave
       @modbus_slave.read_retry_timeout = 15
       @modbus_slave.read_retries = 2
+      registers_array = @modbus_slave.holding_registers[105...110]
+      registers = registers_array.each_with_index.map { |r, i| [i + 105, r] }.to_h
+      @serial_number = Aurora.transform_registers(registers)[105]
       iz2_zone_count = @modbus_slave.holding_registers[483]
       # TODO: better detect IZ2/Non-IZ2
       @zones = if iz2_zone_count > 1

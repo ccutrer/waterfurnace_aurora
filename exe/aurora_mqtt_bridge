@@ -186,4 +186,5 @@ class MQTTBridge
   end
 end
 
-MQTTBridge.new(abc, MQTT::Homie::Device.new("aurora", "Aurora MQTT Bridge", mqtt: mqtt_uri))
+device = "aurora-#{abc.serial_number}"
+MQTTBridge.new(abc, MQTT::Homie::Device.new(device, "Aurora MQTT Bridge", mqtt: mqtt_uri))
