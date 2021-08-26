@@ -21,7 +21,7 @@ module Aurora
     def target_mode=(value)
       return unless (raw_value = HEATING_MODE.invert[value])
 
-      @abc.modbus_slave.holding_registers[12_602] = raw_value
+      @abc.modbus_slave.holding_registers[12_606] = raw_value
       @target_mode = value
     end
 

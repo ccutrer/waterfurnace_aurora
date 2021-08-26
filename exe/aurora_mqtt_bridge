@@ -62,7 +62,7 @@ class MQTTBridge
         end
       end
     rescue StandardError => e
-      logger.error("failed processing message: #{e}\n#{e.backtrace}")
+      warn "failed processing message: #{e}\n#{e.backtrace}"
     end
 
     @abc.refresh
@@ -101,7 +101,7 @@ class MQTTBridge
           end
         end
       rescue => e
-        logger.error("got garbage: #{e}; #{e.backtrace}")
+        warn "got garbage: #{e}; #{e.backtrace}"
         exit 1
       end
       sleep(5)

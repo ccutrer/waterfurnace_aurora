@@ -52,7 +52,7 @@ module Aurora
           registers_to_read << base3
         end
       else
-        registers_to_read << 745..747
+        registers_to_read << (745..747)
       end
 
       registers = @modbus_slave.holding_registers[*registers_to_read]
