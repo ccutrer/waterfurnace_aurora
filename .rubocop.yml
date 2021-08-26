@@ -9,6 +9,8 @@ Naming/InclusiveLanguage:
   Enabled: false
 Style/Documentation:
   Enabled: false
+Style/PerlBackrefs:
+  Enabled: false
 Style/RescueStandardError:
   Enabled: false
 Style/StringLiterals:

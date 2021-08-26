@@ -38,7 +38,7 @@ class MQTTBridge
             when "known"
               Aurora::REGISTER_NAMES.keys
             when /^(\d+)\.\.(\d+)$/
-              Regexp.last_match(1).to_i..Regexp.last_match(2).to_i
+              $1.to_i..$2.to_i
             else
               addr.to_i
             end
@@ -51,12 +51,12 @@ class MQTTBridge
           result = Aurora.print_registers(registers)
           @homie.mqtt.publish("#{@homie.topic}/$modbus/response", result, retain: false, qos: 1)
         when %r{\$modbus/(\d+)$}
-          register = Regexp.last_match(1).to_i
+          register = $1.to_i
           value = case value
                   when /\d+/
                     value.to_i
                   when /0x(\d+)/
-                    Regexp.last_match(1).to_i(16)
+                    $1.to_i(16)
                   end
           @abc.modbus_slave.holding_registers[register] = value if value
         end
