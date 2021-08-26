@@ -18,7 +18,7 @@ args = if uri.scheme == "telnet" || uri.scheme == "rfc2217"
        end
 
 client = ModBus::RTUClient.new(*args)
-client.debug = true
+client.logger = Logger.new($stdout, :debug)
 slave = client.with_slave(1)
 
 registers = slave.holding_registers[ARGV[1].to_i]

@@ -3,6 +3,7 @@
 
 require "aurora"
 require "ccutrer-serialport"
+require "logger"
 require "optparse"
 require "socket"
 require "uri"
@@ -47,7 +48,8 @@ args = if uri.scheme == "telnet" || uri.scheme == "rfc2217"
 
 server = ModBus::RTUServer.new(*args)
 server.promiscuous = true
-server.debug = debug_modbus
+server.logger = Logger.new($stdout)
+server.logger.level = :debug if debug_modbus
 
 diff_and_print = lambda do |registers|
   registers = registers.slice(*(registers.keys - SENSOR_REGISTERS)) if ignore_sensors

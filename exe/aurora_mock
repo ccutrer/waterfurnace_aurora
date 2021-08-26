@@ -21,7 +21,7 @@ args = if uri.scheme == "telnet" || uri.scheme == "rfc2217"
 port = ARGV[1]&.to_i || 502
 
 server1 = ModBus::RTUServer.new(*args)
-server1.debug = true
+server1.logger = Logger.new($stdout, :debug)
 # AID Tool queries slave 1, AWL queries slave 2; just use both
 slave1 = server1.with_slave(1)
 slave2 = server1.with_slave(2)
