@@ -45,9 +45,9 @@ module Aurora
     end
 
     def inspect
-      "#<Aurora::Thermostat #{(instance_variables - [:@abc]).map do |iv|
-                                "#{iv}=#{instance_variable_get(iv).inspect}"
-                              end.join(', ')}>"
+      "#<Aurora::#{self.class.name} #{(instance_variables - [:@abc]).map do |iv|
+                                        "#{iv}=#{instance_variable_get(iv).inspect}"
+                                      end.join(', ')}>"
     end
   end
 end

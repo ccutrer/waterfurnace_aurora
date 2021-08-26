@@ -3,8 +3,7 @@
 module Aurora
   class ABCClient
     attr_reader :modbus_slave,
-                :thermostat,
-                :iz2_zones,
+                :zones,
                 :current_mode,
                 :fan_speed,
                 :entering_air_temperature,
@@ -30,24 +29,26 @@ module Aurora
       @modbus_slave.read_retries = 2
       iz2_zone_count = @modbus_slave.holding_registers[483]
       # TODO: better detect IZ2/Non-IZ2
-      if iz2_zone_count > 1
-        @iz2_zones = (0...iz2_zone_count).map { |i| IZ2Zone.new(self, i + 1) }
-      else
-        @iz2_zones = []
-        @thermostat = Thermostat.new(self)
-      end
+      @zones = if iz2_zone_count > 1
+                 (0...iz2_zone_count).map { |i| IZ2Zone.new(self, i + 1) }
+               else
+                 [Thermostat.new(self)]
+               end
     end
 
     def refresh
       registers_to_read = [19..20, 30, 344, 740..741, 900, 1110..1111, 1114, 1117, 1147..1153, 1165, 3027, 31_003]
-      registers_to_read << 745..747 if thermostat
-      iz2_zones.each_with_index do |_z, i|
-        base1 = 21_203 + i * 9
-        base2 = 31_007 + i * 3
-        base3 = 31_200 + i * 3
-        registers_to_read << (base1..(base1 + 1))
-        registers_to_read << (base2..(base2 + 2))
-        registers_to_read << base3
+      if zones.first.is_a?(IZ2Zone)
+        zones.each_with_index do |_z, i|
+          base1 = 21_203 + i * 9
+          base2 = 31_007 + i * 3
+          base3 = 31_200 + i * 3
+          registers_to_read << (base1..(base1 + 1))
+          registers_to_read << (base2..(base2 + 2))
+          registers_to_read << base3
+        end
+      else
+        registers_to_read << 745..747
       end
 
       registers = @modbus_slave.holding_registers[*registers_to_read]
@@ -89,8 +90,7 @@ module Aurora
                         :standby
                       end
 
-      thermostat&.refresh(registers)
-      iz2_zones.each do |z|
+      zones.each do |z|
         z.refresh(registers)
       end
     end

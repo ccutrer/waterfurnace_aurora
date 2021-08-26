@@ -91,21 +91,10 @@ class MQTTBridge
             @homie_abc[property.to_s.tr("_", "-")].value = @abc.public_send(property)
           end
 
-          @abc.iz2_zones.each do |z|
+          @abc.zones.each do |z|
             homie_zone = @homie["zone#{z.zone_number}"]
-            %i[target_mode
-               current_mode
-               target_fan_mode
-               current_fan_mode
-               fan_intermittent_on
-               fan_intermittent_off
-               priority
-               size
-               normalized_size
-               ambient_temperature
-               heating_target_temperature
-               cooling_target_temperature].each do |property|
-              homie_zone[property.to_s.tr("_", "-")].value = z.public_send(property)
+            homie_zone.each do |property|
+              property.value = z.public_send(property.id.tr("-", "_"))
             end
           end
         end
@@ -145,32 +134,39 @@ class MQTTBridge
       end
     end
 
-    @abc.iz2_zones.each do |zone|
-      @homie.node("zone#{zone.zone_number}", "Zone #{zone.zone_number}", "IntelliZone 2 Zone") do |node|
+    @abc.zones.each do |zone|
+      type = zone.is_a?(Aurora::IZ2Zone) ? "IntelliZone 2 Zone" : "Thermostat"
+      @homie.node("zone#{zone.zone_number}", "Zone #{zone.zone_number}", type) do |node|
         allowed_modes = %w[off auto cool heat]
-        allowed_modes << "eheat" if zone.zone_number == 1
+        allowed_modes << "eheat" if !zone.respond_to?(:zone_number) || zone.zone_number == 1
         node.property("target-mode", "Target Heating/Cooling Mode", :enum, zone.target_mode,
                       format: allowed_modes) do |value, property|
           @mutex.synchronize { property.value = zone.target_mode = value.to_sym }
         end
-        node.property("current-mode", "Current Heating/Cooling Mode Requested", :enum, zone.current_mode,
-                      format: %w[standby h1 h2 h3 c1 c2])
-        node.property("target-fan-mode", "Target Fan Mode", :enum,  zone.target_fan_mode,
+        if zone.respond_to?(:current_mode) # TODO: implement for non-IZ2
+          node.property("current-mode", "Current Heating/Cooling Mode Requested", :enum, zone.current_mode,
+                        format: %w[standby h1 h2 h3 c1 c2])
+        end
+        node.property("target-fan-mode", "Target Fan Mode", :enum, zone.target_fan_mode,
                       format: %w[auto continuous intermittent]) do |value, property|
           @mutex.synchronize { property.value = zone.target_fan_mode = value.to_sym }
         end
-        node.property("current-fan-mode", "Current Fan Status", :boolean, zone.current_fan_mode)
-        node.property("fan-intermittent-on", "Fan Intermittent Mode On Duration", :enum, zone.fan_intermittent_on,
-                      unit: "M", format: %w[0 5 10 15 20]) do |value, property|
-          @mutex.synchronize { property.value = zone.fan_intermittent_on = value.to_i }
+        if zone.respond_to?(:current_fan_mode) # TODO: implement for non-IZ2
+          node.property("current-fan-mode", "Current Fan Status", :boolean, zone.current_fan_mode)
+          node.property("fan-intermittent-on", "Fan Intermittent Mode On Duration", :enum, zone.fan_intermittent_on,
+                        unit: "M", format: %w[0 5 10 15 20]) do |value, property|
+            @mutex.synchronize { property.value = zone.fan_intermittent_on = value.to_i }
+          end
+          node.property("fan-intermittent-off", "Fan Intermittent Mode Off Duration", :enum, zone.fan_intermittent_on,
+                        unit: "M", format: %w[0 5 10 15 20 25 30 35 40]) do |value, property|
+            @mutex.synchronize { property.value = zone.fan_intermittent_on = value.to_i }
+          end
         end
-        node.property("fan-intermittent-off", "Fan Intermittent Mode Off Duration", :enum, zone.fan_intermittent_on,
-                      unit: "M", format: %w[0 5 10 15 20 25 30 35 40]) do |value, property|
-          @mutex.synchronize { property.value = zone.fan_intermittent_on = value.to_i }
+        if zone.is_a?(Aurora::IZ2Zone)
+          node.property("priority", "Zone Priority", :enum, zone.priority, format: %w[economy comfort])
+          node.property("size", "Size", :enum, zone.size, format: %w[0 25 45 70])
+          node.property("normalized-size", "Normalized Size", :integer, zone.normalized_size, unit: "%", format: 0..100)
         end
-        node.property("priority", "Zone Priority", :enum, zone.priority, format: %w[economy comfort])
-        node.property("size", "Size", :enum, zone.size, format: %w[0 25 45 70])
-        node.property("normalized-size", "Normalized Size", :integer, zone.normalized_size, unit: "%", format: 0..100)
         node.property("ambient-temperature", "Ambient Temperature", :float, zone.ambient_temperature, unit: "ºF")
         node.property("heating-target-temperature", "Heating Target Temperature", :integer,
                       zone.heating_target_temperature, unit: "ºF", format: 40..90) do |value, property|
@@ -179,28 +175,6 @@ class MQTTBridge
         node.property("cooling-target-temperature", "Cooling Target Temperature", :integer,
                       zone.cooling_target_temperature, unit: "ºF", format: 54..99) do |value, property|
           @mutex.synchronize { property.value = zone.cooling_target_temperature = value }
-        end
-      end
-    end
-
-    if @abc.thermostat
-      @homie.nodes("thermostat", "Thermostat", "Thermostat") do |node|
-        node.property("target-mode", "Target Heating/Cooling Mode", :enum, @abc.thermostat.target_mode,
-                      format: allowed_modes) do |value, property|
-          @mutex.synchronize { property.value = @abc.thermostat.target_mode = value.to_sym }
-        end
-        node.property("target-fan-mode", "Target Fan Mode", :enum, @abc.thermostat.target_fan_mode,
-                      format: %w[auto continuous intermittent]) do |value, property|
-          @mutex.synchronize { property.value = @abc.thermostat.target_fan_mode = value.to_sym }
-        end
-        node.property("ambient-temperature", "Ambient Temperature", :float, @abc.thermostat.ambient_temperature, unit: "ºF")
-        node.property("heating-target-temperature", "Heating Target Temperature", :integer,
-                      @abc.thermostat.heating_target_temperature, unit: "ºF", format: 40..90) do |value, property|
-          @mutex.synchronize { property.value = @abc.thermostat.heating_target_temperature = value }
-        end
-        node.property("cooling-target-temperature", "Cooling Target Temperature", :integer,
-                      @abc.thermostat.cooling_target_temperature, unit: "ºF", format: 54..99) do |value, property|
-          @mutex.synchronize { property.value = @abc.thermostat.cooling_target_temperature = value }
         end
       end
     end

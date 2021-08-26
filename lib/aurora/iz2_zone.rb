@@ -1,22 +1,19 @@
 # frozen_string_literal: true
 
+require "aurora/thermostat"
+
 module Aurora
-  class IZ2Zone
+  class IZ2Zone < Thermostat
     attr_reader :zone_number,
-                :target_mode,
                 :current_mode,
-                :target_fan_mode,
                 :current_fan_mode,
                 :fan_intermittent_on,
                 :fan_intermittent_off,
                 :priority,
-                :size, :normalized_size,
-                :ambient_temperature,
-                :cooling_target_temperature,
-                :heating_target_temperature
+                :size, :normalized_size
 
     def initialize(abc, zone_number)
-      @abc = abc
+      super(abc)
       @zone_number = zone_number
     end
 
@@ -98,12 +95,6 @@ module Aurora
       registers = @abc.modbus_slave.read_multiple_holding_registers(31_008 + (zone_number - 1) * 3)
       Aurora.transform_registers(registers)
       registers.first.last[:cooling_target_temperature]
-    end
-
-    def inspect
-      "#<Aurora::IZ2Zone #{(instance_variables - [:@abc]).map do |iv|
-                             "#{iv}=#{instance_variable_get(iv).inspect}"
-                           end.join(', ')}>"
     end
   end
 end
