@@ -65,6 +65,7 @@ class MQTTBridge
       puts "failed processing message: #{e}\n#{e.backtrace}"
     end)
 
+    @abc.refresh
     publish_basic_attributes
 
     loop do
@@ -75,6 +76,7 @@ class MQTTBridge
              current_mode
              dhw_water_temperature
              entering_air_temperature
+             entering_water_temperature
              fan_speed
              leaving_air_temperature
              leaving_water_temperature
