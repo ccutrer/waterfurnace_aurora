@@ -648,7 +648,7 @@ module Aurora
   end
 
   def print_registers(registers)
-    result = []
+    result = [] unless block_given?
     registers.each do |(k, value)|
       # ignored
       next if REGISTER_NAMES.key?(k) && REGISTER_NAMES[k].nil?
@@ -665,8 +665,13 @@ module Aurora
 
       name ||= "???"
 
-      result << "#{name} (#{k}): #{value}"
+      full_value = "#{name} (#{k}): #{value}"
+      if block_given?
+        yield(k, full_value)
+      else
+        result << full_value
+      end
     end
-    result.join("\n")
+    result.join("\n") unless block_given?
   end
 end

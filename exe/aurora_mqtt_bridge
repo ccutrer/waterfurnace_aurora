@@ -37,7 +37,7 @@ class MQTTBridge
             case addr
             when "known"
               Aurora::REGISTER_NAMES.keys
-            when /^(\d+)\.\.(\d+)$/
+            when /^(\d+)(?:\.\.|-)(\d+)$/
               $1.to_i..$2.to_i
             else
               addr.to_i
@@ -48,9 +48,10 @@ class MQTTBridge
           queries.each do |subquery|
             registers.merge!(@abc.modbus_slave.read_multiple_holding_registers(*subquery))
           end
-          result = Aurora.print_registers(registers)
-          @homie.mqtt.publish("#{@homie.topic}/$modbus/response", result, retain: false, qos: 1)
-        when %r{\$modbus/(\d+)$}
+          Aurora.print_registers(registers) do |register, v|
+            @homie.mqtt.publish("#{@homie.topic}/$modbus/#{register}", v, retain: false, qos: 1)
+          end
+        when %r{\$modbus/(\d+)/set$}
           register = $1.to_i
           value = case value
                   when /\d+/
@@ -59,6 +60,10 @@ class MQTTBridge
                     $1.to_i(16)
                   end
           @abc.modbus_slave.holding_registers[register] = value if value
+          registers = { register => @abc.modbus_slave.holding_registers[register] }
+          Aurora.print_registers(registers) do |r, v|
+            @homie.mqtt.publish("#{@homie.topic}/$modbus/#{r}", v, retain: false, qos: 1)
+          end
         end
       end
     rescue StandardError => e
@@ -183,7 +188,7 @@ class MQTTBridge
 
     # direct access to modbus registers for debugging purposes
     @homie.mqtt.subscribe("#{@homie.topic}/$modbus")
-    @homie.mqtt.subscribe("#{@homie.topic}/$modbus/+")
+    @homie.mqtt.subscribe("#{@homie.topic}/$modbus/+/set")
     @homie.publish
   end
 end
