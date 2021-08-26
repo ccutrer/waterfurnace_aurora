@@ -76,6 +76,29 @@ plethora of other diagnostic information, will be published to MQTT regularly.
 Several properties such as set point and current mode can also be written
 back to the ABC via MQTT.
 
+### ModBus Pass Through
+
+The MQTT bridge has pass through support for direct querying and writing of the
+ModBus registers, to assist with debugging. If you send a register, or list of
+registers, to the `$modbus` topic, it will read those registers and send them
+back. You can also write to a register by addressing `$modbus/:register/set`:
+
+```
+813 => homie/aurora-<serialno>/$modbus
+homie/aurora-<serialno>/$modbus/813 <= IZ2 Version (813): 2.06
+
+745-747 => homie/aurora-<serialno>/$modbus
+homie/aurora-<serialno>/$modbus/745 <= Heating Set Point (745): 68.0ºF
+homie/aurora-<serialno>/$modbus/746 <= Cooling Set Point (746): 73.0ºF
+homie/aurora-<serialno>/$modbus/747 <= Ambient Temperature (747): 73.0ºF
+
+known => homie/aurora-<serialno>/$modbus
+<a whole ton of data sent back!>
+
+3 => homie/aurora-<serialno>/$modbus/340/set
+homie/aurora-<serialno>/$modbus/340 <= Blower Only Speed (340): 3
+```
+
 ## Connecting to the ABC
 
 This gem supports using an RS-485 direct connection. It is possible to directly
