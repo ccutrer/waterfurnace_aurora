@@ -40,7 +40,7 @@ module Aurora
 
     def refresh
       registers_to_read = [19..20, 30, 344, 740..741, 900, 1110..1111, 1114, 1117, 1147..1153, 1165, 3027, 31_003]
-      registers_to_read << 745..746 if thermostat
+      registers_to_read << 745..747 if thermostat
       iz2_zones.each_with_index do |_z, i|
         base1 = 21_203 + i * 9
         base2 = 31_007 + i * 3

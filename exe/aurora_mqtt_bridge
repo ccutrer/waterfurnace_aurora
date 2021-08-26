@@ -193,6 +193,7 @@ class MQTTBridge
                       format: %w[auto continuous intermittent]) do |value, property|
           @mutex.synchronize { property.value = @abc.thermostat.target_fan_mode = value.to_sym }
         end
+        node.property("ambient-temperature", "Ambient Temperature", :float, @abc.thermostat.ambient_temperature, unit: "ºF")
         node.property("heating-target-temperature", "Heating Target Temperature", :integer,
                       @abc.thermostat.heating_target_temperature, unit: "ºF", format: 40..90) do |value, property|
           @mutex.synchronize { property.value = @abc.thermostat.heating_target_temperature = value }
