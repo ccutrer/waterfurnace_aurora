@@ -111,7 +111,9 @@ class MQTTBridge
                     unit: "ºF")
       node.property("leaving-water-temperature", "Leaving Water Temperature", :float, @abc.leaving_water_temperature,
                     unit: "ºF")
-      node.property("outdoor-temperature", "Outdoor Temperature", :float, @abc.outdoor_temperature, unit: "ºF")
+      unless @abc.outdoor_temperature.zero? # TODO: figure out the config if this actually exists
+        node.property("outdoor-temperature", "Outdoor Temperature", :float, @abc.outdoor_temperature, unit: "ºF")
+      end
       node.property("relative-humidity", "Relative Humidity", :integer, @abc.relative_humidity, unit: "%",
                                                                                                 format: 0..100)
       node.property("waterflow", "Waterflow", :float, unit: "gpm")
