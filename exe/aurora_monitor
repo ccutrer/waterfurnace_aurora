@@ -49,7 +49,7 @@ args = if uri.scheme == "telnet" || uri.scheme == "rfc2217"
 server = ModBus::RTUServer.new(*args)
 server.promiscuous = true
 server.logger = Logger.new($stdout)
-server.logger.level = :debug if debug_modbus
+server.logger.level = debug_modbus ? :debug : :warn
 
 diff_and_print = lambda do |registers|
   registers = registers.slice(*(registers.keys - SENSOR_REGISTERS)) if ignore_sensors
