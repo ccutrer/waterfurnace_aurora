@@ -10,7 +10,11 @@ require "aurora/core_ext/string"
 uri = URI.parse(ARGV[0])
 mqtt_uri = ARGV[1]
 
-args = if uri.scheme == "telnet" || uri.scheme == "rfc2217"
+args = case uri.scheme
+       when "tcp"
+         require "socket"
+         [TCPSocket.new(uri.host, uri.port)]
+       when "telnet", "rfc2217"
          require "net/telnet/rfc2217"
          [Net::Telnet::RFC2217.new(uri.host,
                                    port: uri.port || 23,
