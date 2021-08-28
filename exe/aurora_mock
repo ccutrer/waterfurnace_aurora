@@ -10,10 +10,10 @@ uri = URI.parse(ARGV[0])
 
 args = if uri.scheme == "telnet" || uri.scheme == "rfc2217"
          require "net/telnet/rfc2217"
-         [Net::Telnet::RFC2217.new("Host" => uri.host,
-                                   "Port" => uri.port || 23,
-                                   "baud" => 19_200,
-                                   "parity" => Net::Telnet::RFC2217::EVEN)]
+         [Net::Telnet::RFC2217.new(uri.host,
+                                   port: uri.port || 23,
+                                   baud: 19_200,
+                                   parity: :even)]
        else
          [CCutrer::SerialPort.new(uri.path, baud: 19_200, parity: :even)]
        end

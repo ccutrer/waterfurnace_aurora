@@ -4,7 +4,7 @@ PATH
     waterfurnace_aurora (0.3.5)
       ccutrer-serialport (~> 1.0.0)
       homie-mqtt (~> 1.4.4)
-      net-telnet-rfc2217 (~> 0.0.4)
+      net-telnet-rfc2217 (~> 1.0, >= 1.0.1)
       rmodbus-ccutrer (~> 2.1)
 
 GEM
@@ -22,7 +22,7 @@ GEM
       mqtt-ccutrer (~> 1.0)
     mqtt-ccutrer (1.0.0)
     net-telnet (0.2.0)
-    net-telnet-rfc2217 (0.0.5)
+    net-telnet-rfc2217 (1.0.1)
       net-telnet (~> 0.2.0)
     parallel (1.20.1)
     parser (3.0.2.0)
