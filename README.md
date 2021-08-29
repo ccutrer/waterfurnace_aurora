@@ -165,7 +165,37 @@ This tool simply monitors all traffic on the serial bus, and dumps out anything
 it can decipher. This includes raw register values for registers that are not
 recognized. This is used when you are connected between an AID Tool or AWL and
 the ABC. Trigger an action on the AID Tool or the Symphony website, watch the
-dump, and guess what's what!
+dump, and guess what's what! It has several options (see `--help`) tweak its
+output, but the most useful is `-q` which combines several of them to only
+print when registers actually change, and exclude known, frequently updating
+values (like power usage sensors):
+
+```
+$ aurora_monitor /dev/ttyHeatPump -q
+2021-08-27 14:05:15 +0000 ===== read
+Last Fault Number (25): E0
+Last Lockout (26): E19
+System Outputs (At Last Lockout) (27): blower, accessory, 0x0040
+System Inputs (At Last Lockout) (28): Y1, G, 0x0180
+System Outputs (30): rv, blower, accessory, 0x0040
+Status (31): {:lps=>:closed, :hps=>:closed, :unknown=>"0x0018"}
+??? (35): 1 (0x0001)
+??? (73): 682 (0x02aa)
+??? (74): 715 (0x02cb)
+??? (320): 0 (0x0000)
+??? (324): 99 (0x0063)
+ECM Speed (344): 2
+??? (348): 10 (0x000a)
+DHW Setpoint (401): 130.0ºF
+Relative Humidity (741): 51%
+??? (742): 0 (0x0000)
+??? (743): 0 (0x0000)
+??? (744): 24 (0x0018)
+Heating Set Point (745): 74.0ºF
+Cooling Set Point (746): 72.0ºF
+Ambient Temperature (747): 0.0ºF
+...
+```
 
 ### aurora_mock
 
@@ -183,7 +213,7 @@ heat pump itself, or the AWL). It accepts the same syntax as
 [the MQTT ModBus pass through](#modbus-pass-through):
 
 ```
-$ aurora_fetch /dev/ttyFurnace 745-746
+$ aurora_fetch /dev/ttyHeatPump 745-746
 Heating Set Point (745): 68.0ºF
 Cooling Set Point (746): 73.0ºF
 ```
