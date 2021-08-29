@@ -183,7 +183,7 @@ heat pump itself, or the AWL). It accepts the same syntax as
 [the MQTT ModBus pass through](#modbus-pass-through):
 
 ```
-$ aurora_fetch /dev/ttyFurnace 75
+$ aurora_fetch /dev/ttyFurnace 745-746
 Heating Set Point (745): 68.0ºF
 Cooling Set Point (746): 73.0ºF
 ```
