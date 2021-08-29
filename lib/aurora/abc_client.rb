@@ -42,6 +42,25 @@ module Aurora
                end
     end
 
+    def query_registers(query)
+      ranges = query.split(",").map do |addr|
+        case addr
+        when "known"
+          Aurora::REGISTER_NAMES.keys
+        when /^(\d+)(?:\.\.|-)(\d+)$/
+          $1.to_i..$2.to_i
+        else
+          addr.to_i
+        end
+      end
+      queries = Aurora.normalize_ranges(ranges)
+      registers = {}
+      queries.each do |subquery|
+        registers.merge!(@modbus_slave.read_multiple_holding_registers(*subquery))
+      end
+      registers
+    end
+
     def refresh
       registers_to_read = [19..20, 30, 340, 344, 347, 740..741, 900, 1110..1111, 1114, 1117, 1147..1153, 1165, 3027,
                            31_003]

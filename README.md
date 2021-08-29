@@ -174,3 +174,16 @@ tool, and not an AWL, in order to not confuse WaterFurnace's servers with
 potentially bogus data. You modify bin/registers.yml to pre-set the data,
 and then it serves it up when the AID Tool requests it. Change some date, go
 look in the AID tool what changed, to see if you guessed right!
+
+### aurora_fetch
+
+This tool simply queries a specific set of registers, and prints the results.
+This is used when you are connected to the AID Tool port (either of the
+heat pump itself, or the AWL). It accepts the same syntax as
+[the MQTT ModBus pass through](#modbus-pass-through):
+
+```
+$ aurora_fetch /dev/ttyFurnace 75
+Heating Set Point (745): 68.0ºF
+Cooling Set Point (746): 73.0ºF
+```

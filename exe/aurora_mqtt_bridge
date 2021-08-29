@@ -37,21 +37,7 @@ class MQTTBridge
       @mutex.synchronize do
         case topic
         when /\$modbus$/
-          query = value.split(",").map do |addr|
-            case addr
-            when "known"
-              Aurora::REGISTER_NAMES.keys
-            when /^(\d+)(?:\.\.|-)(\d+)$/
-              $1.to_i..$2.to_i
-            else
-              addr.to_i
-            end
-          end
-          queries = Aurora.normalize_ranges(query)
-          registers = {}
-          queries.each do |subquery|
-            registers.merge!(@abc.modbus_slave.read_multiple_holding_registers(*subquery))
-          end
+          registers = @abc.query_registers(value)
           Aurora.print_registers(registers) do |register, v|
             @homie.mqtt.publish("#{@homie.topic}/$modbus/#{register}", v, retain: false, qos: 1)
           end

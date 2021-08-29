@@ -22,9 +22,8 @@ args = case uri.scheme
        end
 
 client = ModBus::RTUClient.new(*args)
-client.logger = Logger.new($stdout, :debug)
 slave = client.with_slave(1)
+abc = Aurora::ABCClient.new(slave)
+registers = abc.query_registers(ARGV[1])
 
-registers = slave.holding_registers[ARGV[1].to_i]
-
-puts registers.inspect
+puts Aurora.print_registers(registers)
