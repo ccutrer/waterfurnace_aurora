@@ -1,9 +1,19 @@
 I've identified all the registers in these AID tool screens, on my system:
 
+ * VS Overview
+ * System faults
+   * VS Drive Details
+   * Last Lockout
+   * Fault History
+ * Diagnostics
+   * VS Manual Operation
+   * VS Service
  * Setup
    * ECM Speed Setup
    * Cooling Airflow Setup
-   * AXB Setup
+   * Home Automation Setup
+   * Update Model Number
+   * Update Serial Number
  * Config Aurora System
  * About Unit
  

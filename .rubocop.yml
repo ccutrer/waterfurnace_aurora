@@ -7,6 +7,8 @@ Metrics:
 # ModBus's master/slave terminology isn't changing
 Naming/InclusiveLanguage:
   Enabled: false
+Style/AsciiComments:
+  Enabled: false
 Style/DocumentDynamicEvalDefinition:
   Enabled: false
 Style/Documentation:

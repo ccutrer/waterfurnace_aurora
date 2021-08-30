@@ -59,6 +59,10 @@ module Aurora
     result
   end
 
+  def to_int32(registers, idx)
+    (registers[idx] << 16) + registers[idx + 1]
+  end
+
   def to_string(registers, idx, length)
     (idx...(idx + length)).map do |i|
       (registers[i] >> 8).chr + (registers[i] & 0xff).chr
@@ -66,57 +70,88 @@ module Aurora
   end
 
   FAULTS = {
-    1 => "Input Flt Limit",
-    2 => "High Pressure",
-    3 => "Low Pressure",
-    4 => "FP2",
-    5 => "FP1",
-    7 => "Condensate Limit",
-    8 => "Over/Under Voltage",
+    # ABC/AXB Basic Faults
+    1 => "Input Error", # Tstat input error. Autoreset upon condition removal.
+    2 => "High Pressure", # HP switch has tripped (>600 psi)
+    3 => "Low Pressure", # Low Pressure Switch has tripped (<40 psi for 30 continous sec.)
+    4 => "Freeze Detect FP2", # Freeze protection sensor has tripped (<15 or 30 degF for 30 continuous sec.)
+    5 => "Freeze Detect FP1", # Freeze protection sensor has tripped (<15 or 30 degF for 30 continuous sec.)
+    7 => "Condensate Overflow", # Condensate switch has shown continuity for 30 continuous sec.
+    8 => "Over/Under Voltage", # Instantaneous Voltage is out of range. **Controls shut down until resolved.
     9 => "AirF/RPM",
-    10 => "CompMon",
-    11 => "FP1/2 Snr Limit",
-    12 => "RefPerfrm Limit",
-    13 => "NCrtAxbSr Limit",
-    14 => "CrtAxbSnr Limit",
-    15 => "HW Limit",
-    16 => "VSPumpFlt Limit",
-    17 => "CommTStat Limit",
-    18 => "NCritComm Limit",
-    19 => "Crit Comm Limit",
-    21 => "Low Loop Pressure",
-    22 => "ComEcmErr Limit",
-    23 => "HAGenAlrm1 Limit",
-    24 => "HAGenAlrm2 Limit",
-    25 => "AxbEevErr Limit",
-    41 => "High Drive Temp Limit",
-    42 => "High Discharge Temp Limit",
-    43 => "Low Suction Pressure Limit",
-    44 => "Low Con Pressure Limit",
-    45 => "High Con Pressure Limit",
-    46 => "Out Power Limit",
-    47 => "EevIDComm Limit",
-    48 => "EevODComm Limit",
-    49 => "CabTmpSnr Limit",
-    51 => "Discharge Temp Sensor Limit",
-    52 => "Suction Presure Sensor Limit",
-    53 => "Con Pressure Sensor Limit",
-    54 => "Low Supply Voltage Limit",
-    55 => "OutEnvelp Limit",
-    56 => "Suction Pressure Sensor Limit",
-    57 => "Drive Over/Under Voltage Limit",
-    58 => "High Drive Temp Limit",
-    59 => "Internal Drive Error Limit",
-    61 => "MultSafm",
-    71 => "ChrgLoss",
-    72 => "Suction Temp Sensor Limit",
-    73 => "Leaving Air Temp Sensor Limit",
-    74 => "Maximum Operating Pressure Limit",
-    75 => "Charge Loss",
-    76 => "Suction Temperatur Sensor Limit",
-    77 => "Leaving Air Temperature Sensor Limit",
-    78 => "Maximum Operating Pressure Limit"
+    10 => "Compressor Monitor", # Open Crkt, Run, Start or welded cont
+    11 => "FP1/2 Sensor Error",
+    12 => "RefPerfrm Error",
+    # Miscellaneous
+    13 => "Non-Critical AXB Sensor Error", # Any Other Sensor Error
+    14 => "Critical AXB Sensor Error", # Sensor Err for EEV or HW
+    15 => "Hot Water Limit", # HW over limit or logic lockout. HW pump deactivated.
+    16 => "VS Pump Error", # Alert is read from PWM feedback.
+    17 => "Communicating Thermostat Error",
+    18 => "Non-Critical Communications Error", # Any non-critical com error
+    19 => "Critical Communications Error", # Any critical com error. Auto reset upon condition removal
+    21 => "Low Loop Pressure", # Loop pressure is below 3 psi for more than 3 minutes
+    22 => "Communicating ECM Error",
+    23 => "HA Alarm 1", # Closed contact input is present on Dig 2 input - Text is configurable.
+    24 => "HA Alarm 2", # Closed contact input is present on Dig 3 input - Text is configurable.
+    25 => "AxbEev Error",
+    # VS Drive
+    41 => "High Drive Temp", # Drive Temp has reached critical High Temp (>239 ̊F/115 ̊C)
+    42 => "High Discharge Temp", # Discharge temperature has reached critical high temp (> 280 ̊F/138 ̊C)
+    43 => "Low Suction Pressure", # Suction Pressure is critically low (< 28 psig)
+    44 => "Low Condensing Pressure", # Condensing pressure is critically low (< 119 psig)
+    45 => "High Condensing Pressure", # Condensing pressure is critically high (> 654 psig)
+    46 => "Output Power Limit", # Supply Voltage is <208V or Max Pwr is reached due to high pressure
+    47 => "EEV ID Comm Error", # Com with EEV is interupted EEV has gone independent mode
+    48 => "EEV OD Comm Error", # Com with EEV is interupted EEV has gone independent mode
+    49 => "Cabinet Temperature Sensor", # Ambient Temperature (Tamb) is <-76 or > 212 F and out of range or invalid
+    51 => "Discharge Temp Sensor", # Discharge Sensor (Sd) is > 280 F or invalid (-76 to 392 F)
+    52 => "Suction Presure Sensor", # Suction Pressure (P0) is invalid (0 to 232 psi)
+    53 => "Condensing Pressure Sensor", # Low condensing pressure (PD) or invalid (0 to 870 psi) Retry 10x.
+    54 => "Low Supply Voltage", # Supply Voltage is <180 V (190V to reset) or powered off/on too quickly (<30 sec.).
+    55 => "Out of Envelope", # Comp Operating out of envelope (P0) more than 90 sec. Retry 10x.
+    56 => "Drive Over Currnet", # Over current tripped by phase loss, earth fault, short circuit, low water flow, low air flow, or major drive fault. # rubocop:disable Layout/LineLength
+    57 => "Drive Over/Under Voltage", # DC Link Voltage to compressor is >450vdc or at minimum voltage (<185vdc).
+    58 => "High Drive Temp", # Drive Temp has reached critical High Temp >239 F
+    59 => "Internal Drive Error", # The MOC has encountered an internal fault or an internal error. Probably fatal.
+    61 => "Multiple Safe Mode", # More than one SafeMode condition is present requiring lockout
+    # EEV2
+    71 => "Loss of Charge", # High superheat and high EEV opening % for a long time will trigger a loss of charge fault
+    72 => "Suction Temperature Sensor", # Suction Temperature Sensor is invalid (-76 to 392 F)
+    73 => "Leaving Air Temperature Sensor", # Leaving Air Temperature Sensor is invalid (-76 to 392 F)
+    74 => "Maximum Operating Pressure", # Suction pressure has exceeded that maximum operating level for 90 sec.
+    99 => "System Reset"
   }.freeze
+
+  SMARTGRID_ACTION = {
+    0 => :none,
+    1 => :unoccupied_set_points,
+    2 => :load_shed,
+    3 => :capacity_limiting,
+    4 => :off_time
+  }.freeze
+
+  HA_ALARM = {
+    0 => :none,
+    1 => :general,
+    2 => :security,
+    3 => :sump,
+    4 => :carbon_monoxide,
+    5 => :dirty_filter
+  }.freeze
+
+  VS_FAULTS = {
+    "Under-Voltage Warning" => (71..77),
+    "RPM Sensor Signal Fault" => (78..82),
+    "Under-Voltage Stop" => (83..87),
+    "Rotor Locked" => (88..92),
+    "Standby" => (93..)
+  }.freeze
+
+  def vs_fault(value)
+    name = VS_FAULTS.find { |(_, range)| range.include?(value) }&.first
+    name ? "#{value} #{name}" : value.to_s
+  end
 
   AR_SETTINGS = {
     0 => "Cycle with Compressor",
@@ -145,12 +180,6 @@ module Aurora
     3 => :removed
   }.freeze
 
-  VS_PUMP_CONTROL = {
-    0x7fff => :off,
-    40 => :min,
-    100 => :max
-  }.freeze
-
   SYSTEM_OUTPUTS = {
     0x01 => :cc, # compressor stage 1
     0x02 => :cc2, # compressor stage 2
@@ -162,6 +191,13 @@ module Aurora
     0x400 => :lockout,
     0x800 => :alarm
   }.freeze
+
+  # 5-speed ECM shows
+  #  Aux if eh1 is on
+  #  High if cc2 is on
+  #  Med if cc1 is on
+  #  Low if blower is on
+  #  Off
 
   SYSTEM_INPUTS = {
     0x01 => "Y1",
@@ -279,11 +315,44 @@ module Aurora
     0x7 => :unknown7
   }.freeze
 
+  def manual_operation(value)
+    return :off if value == 0x7fff
+
+    result = {
+      mode: value & 0x100 == 0x100 ? :cooling : :heating
+    }
+    result[:aux_heat] = true if value & 0x200 == 0x200
+    result[:compressor_speed] = value & 0xf
+    result[:blower_speed] = value & 0xf0
+    result[:blower_speed] = :with_compressor if value & 0xf0 == 0xf0
+    leftover = value & ~0x03ff
+    result[:unknown] = format("0x%04x", leftover) unless leftover.zero?
+    result
+  end
+
+  def vs_manual_control(value)
+    return :off if value == 0x7fff
+
+    value
+  end
+
   def iz2_demand(value)
     {
       fan_demand: value >> 8,
       unit_demand: value & 0xff
     }
+  end
+
+  def iz2_fan_desired(value)
+    case value
+    when 1 then 25
+    when 2 then 40
+    when 3 then 55
+    when 4 then 70
+    when 5 then 85
+    when 6 then 100
+    else value
+    end
   end
 
   def zone_configuration1(value)
@@ -344,6 +413,7 @@ module Aurora
     method(:dipswitch_settings) => [4, 33],
     TO_TENTHS => [19, 20, 401, 419, 501, 502, 567, 740, 745, 746, 747, 900,
                   1105, 1106, 1107, 1108, 1110, 1111, 1114, 1117, 1134, 1136,
+                  3327, 3522,
                   12_619, 12_620,
                   21_203, 21_204,
                   21_212, 21_213,
@@ -357,21 +427,28 @@ module Aurora
     ->(v) { from_bitmask(v, SYSTEM_OUTPUTS) } => [27, 30],
     ->(v) { from_bitmask(v, SYSTEM_INPUTS) } => [28],
     method(:status) => [31],
+    ->(v) { !v.zero? } => [45, 362, 400],
     ->(registers, idx) { to_string(registers, idx, 4) } => [88],
     ->(registers, idx) { to_string(registers, idx, 12) } => [92],
     ->(registers, idx) { to_string(registers, idx, 5) } => [105],
-    ->(v) { from_bitmask(v, VS_DRIVE_DERATE) } => [214],
-    ->(v) { from_bitmask(v, VS_SAFE_MODE) } => [216],
-    ->(v) { from_bitmask(v, VS_ALARM1) } => [217],
-    ->(v) { from_bitmask(v, VS_ALARM2) } => [218],
-    ->(v) { from_bitmask(v, VS_EEV2) } => [280],
-    ->(v) { VS_PUMP_CONTROL[v] } => [323],
+    ->(v) { from_bitmask(v, VS_DRIVE_DERATE) } => [214, 3223],
+    ->(v) { from_bitmask(v, VS_SAFE_MODE) } => [216, 3225],
+    ->(v) { from_bitmask(v, VS_ALARM1) } => [217, 3226],
+    ->(v) { from_bitmask(v, VS_ALARM2) } => [218, 3227],
+    ->(v) { from_bitmask(v, VS_EEV2) } => [280, 3804],
+    method(:vs_manual_control) => [323],
     NEGATABLE => [346, 1146],
-    ->(v) { !v.zero? } => [400],
+    ->(v) { v.zero? ? :closed : :open } => [405, 408, 410],
+    ->(v) { SMARTGRID_ACTION[v] } => [406],
+    ->(v) { HA_ALARM[v] } => [409, 411],
+    method(:iz2_fan_desired) => [565],
+    ->(registers, idx) { to_string(registers, idx, 8) } => [710],
     ->(v) { COMPONENT_STATUS[v] } => [800, 806, 812, 815, 818, 824, 827],
     ->(v) { from_bitmask(v, AXB_INPUTS) } => [1103],
     ->(v) { from_bitmask(v, AXB_OUTPUTS) } => [1104],
     ->(v) { TO_TENTHS.call(NEGATABLE.call(v)) } => [1136],
+    method(:manual_operation) => [3002],
+    method(:to_int32) => [3422, 3424],
     ->(v) { HEATING_MODE[v] } => [12_606, 21_202, 21_211, 21_220, 21_229, 21_238, 21_247],
     ->(v) { FAN_MODE[v] } => [12_621, 21_205, 21_214, 21_223, 21_232, 21_241, 21_250],
     ->(v) { from_bitmask(v, HUMIDIFIER_SETTINGS) } => [31_109],
@@ -390,8 +467,9 @@ module Aurora
 
   REGISTER_FORMATS = {
     "%ds" => [1, 6, 9, 15, 84, 85],
-    "%dV" => [16, 112],
+    "%dV" => [16, 112, 3331, 3424, 3523],
     "%0.1fºF" => [19, 20, 401, 501, 502, 567, 740, 745, 746, 747, 900, 1110, 1111, 1114, 1134, 1136,
+                  3327, 3522,
                   12_619, 12_620,
                   21_203, 21_204,
                   21_212, 21_213,
@@ -402,15 +480,16 @@ module Aurora
                   31_003,
                   31_007, 31_010, 31_013, 31_016, 31_019, 31_022],
     "E%d" => [25, 26],
-    "%d%%" => [282, 321, 322, 346, 565, 741],
+    "%d%%" => [282, 321, 322, 346, 565, 741, 3332, 3524],
     "%0.1f psi" => [419],
     "%0.1fA" => [1105, 1106, 1107, 1108],
     "%0.1fgpm" => [1117],
-    "%dW" => [1147, 1149, 1151, 1153, 1165],
+    "%dW" => [1147, 1149, 1151, 1153, 1165, 3422],
     "%dBtuh" => [1157]
   }.freeze
 
   def ignore(range)
+    range = (range..range) if range.is_a?(Integer)
     range.zip(Array.new(range.count)).to_h
   end
 
@@ -530,19 +609,20 @@ module Aurora
   ].freeze
 
   REGISTER_NAMES = {
+    0 => "Test Mode Flag", # 0x100 for enabled; this might have other flags
     1 => "Random Start Delay",
     2 => "ABC Program Version",
     3 => "??? Version?",
     4 => "DIP Switch Override",
     6 => "Compressor Anti-Short Cycle Delay",
-    8 => "Unit Type?",
+    8 => "ABC Program Revision",
     9 => "Compressor Minimum Run Time",
     15 => "Blower Off Delay",
     16 => "Line Voltage",
     19 => "FP1",
     20 => "FP2",
     21 => "Condensate", # >= 270 normal, otherwise fault
-    25 => "Last Fault Number",
+    25 => "Last Fault Number", # high bit set if locked out
     26 => "Last Lockout",
     27 => "System Outputs (At Last Lockout)",
     28 => "System Inputs (At Last Lockout)",
@@ -550,6 +630,8 @@ module Aurora
     31 => "Status",
     33 => "DIP Switch Status",
     36 => "ABC Board Rev",
+    45 => "Test Mode (write)", # 1 to enable
+    47 => "Clear Fault History", # 0x5555 to clear
     50 => "ECM Speed Low (== 5)",
     51 => "ECM Speed Med (== 5)",
     52 => "ECM Speed High (== 5)",
@@ -580,7 +662,8 @@ module Aurora
     284 => "Saturated Suction Temperature", ## ?? data format
     321 => "VS Pump Min",
     322 => "VS Pump Max",
-    323 => "VS Pump Control",
+    323 => "VS Pump Speed Manual Control",
+    326 => "VS Pump Fault",
     340 => "Blower Only Speed",
     341 => "Lo Compressor ECM Speed",
     342 => "Hi Compressor ECM Speed",
@@ -594,7 +677,14 @@ module Aurora
     400 => "DHW Enabled",
     401 => "DHW Setpoint",
     # 403 => "DHW Status", just a guess, based on AID Tool querying this register while showing DHW settings
-    414 => "On Peak/SmartGrid 2", # 0x0001 only
+    405 => "SmartGrid Trigger",
+    406 => "SmartGrid Action", # 0/1 for 1/2; see 414
+    407 => "Off Time Length",
+    408 => "HA Alarm 1 Trigger",
+    409 => "HA Alarm 1 Action",
+    410 => "HA Alaram 2 Trigger",
+    411 => "HA Alarm 2 Action",
+    414 => "On Peak/SmartGrid", # 0x0001 only
     419 => "Loop Pressure Trip",
     483 => "Number of IZ2 Zones",
     501 => "Set Point", # only read by AID tool? this is _not_ heating/cooling set point
@@ -602,6 +692,7 @@ module Aurora
     564 => "IZ2 Compressor Speed Desired",
     565 => "IZ2 Blower % Desired",
     567 => "Entering Air",
+    710 => "Fault Description",
     740 => "Entering Air",
     741 => "Relative Humidity",
     745 => "Heating Set Point",
@@ -613,6 +704,9 @@ module Aurora
     806 => "AXB Installed",
     807 => "AXB Version",
     808 => "AXB Revision",
+    809 => "AHB Installed",
+    810 => "AHB Version",
+    811 => "AHB Revision",
     812 => "IZ2 Installed",
     813 => "IZ2 Version",
     814 => "IZ2 Revision",
@@ -652,9 +746,27 @@ module Aurora
     12_619 => "Heating Setpoint (write)",
     12_620 => "Cooling Setpoint (write)",
     12_621 => "Fan Mode (write)",
-    3000 => "Compressor Speed?",
-    3001 => "Compressor Speed?",
+    3000 => "Compressor Speed Desired",
+    3001 => "Compressor Speed Actual",
+    3002 => "Manual Operation",
     3027 => "Compressor Speed",
+    3220 => "VS Drive Details (General 1)",
+    3221 => "VS Drive Details (General 2)",
+    3222 => "VS Drive Details (Derate 1)",
+    3223 => "VS Drive Details (Derate 2)",
+    3224 => "VS Drive Details (Safemode 1)",
+    3225 => "VS Drive Details (Safemode 2)",
+    3226 => "VS Drive Details (Alarm 1)",
+    3227 => "VS Drive Details (Alarm 2)",
+    3327 => "VS Drive Temperature",
+    3331 => "VS Drive Line Voltage",
+    3332 => "VS Drive Thermo Power",
+    3422 => "VS Drive Compressor Power",
+    3424 => "VS Drive Supply Voltage",
+    3522 => "VS Drive Inverter Temperature",
+    3523 => "VS Drive UDC Voltage",
+    3524 => "VS Drive Fan Speed",
+    3804 => "VS Drive Details (EEV2 Ctl)",
     3904 => "Leaving Air Temperature?",
     31_003 => "Outdoor Temp",
     31_005 => "IZ2 Demand",
@@ -670,7 +782,10 @@ module Aurora
                    .merge(ignore(93..104))
                    .merge(ignore(106..109))
                    .merge(faults(601..699))
+                   .merge(ignore(711..717))
                    .merge(zone_registers)
+                   .merge(ignore(3423))
+                   .merge(ignore(3425))
                    .merge(ignore(31_401..31_412))
                    .merge(ignore(31_414..31_420))
                    .merge(ignore(31_422..31_433))

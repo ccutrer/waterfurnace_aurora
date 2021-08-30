@@ -66,7 +66,7 @@ module Aurora
     end
 
     def refresh
-      registers_to_read = [19..20, 30, 340, 344, 347, 740..741, 900, 1110..1111, 1114, 1117, 1147..1153, 1165,
+      registers_to_read = [6, 19..20, 25, 30, 340, 344, 347, 362, 740..741, 900, 1110..1111, 1114, 1147..1153, 1165,
                            3027, 31_003]
       if zones.first.is_a?(IZ2Zone)
         zones.each_with_index do |_z, i|
@@ -99,7 +99,10 @@ module Aurora
       @outdoor_temperature        = registers[31_003]
       @fp1                        = registers[19]
       @fp2                        = registers[20]
-      @locked_out                 = registers[1117]
+      @locked_out                 = registers[25] & 0x8000
+      @error                      = registers[25] & 0x7fff
+      @derated                    = (41..46).include?(@error)
+      @safe_mode                  = [47, 48, 49, 72, 74].include?(@error)
       @blower_only_ecm_speed      = registers[340]
       @aux_heat_ecm_speed         = registers[347]
       @compressor_watts           = registers[1147]
@@ -111,16 +114,20 @@ module Aurora
       outputs = registers[30]
       @current_mode = if outputs.include?(:lockout)
                         :lockout
+                      elsif registers[362]
+                        :dehumidify
                       elsif outputs.include?(:cc2)
                         outputs.include?(:rv) ? :c2 : :h2
                       elsif outputs.include?(:cc)
                         outputs.include?(:rv) ? :c1 : :h1
                       elsif outputs.include?(:eh2)
-                        :eh2
+                        outputs.include?(:rv) ? :eh2 : :emergency
                       elsif outputs.include?(:eh1)
-                        :eh1
+                        outputs.include?(:rv) ? :eh1 : :emergency
                       elsif outputs.include?(:blower)
                         :blower
+                      elsif registers[6]
+                        :waiting
                       else
                         :standby
                       end
@@ -171,6 +178,37 @@ module Aurora
 
     def vs_pump_max=(value)
       @modbus_slave.holding_registers[322] = value
+    end
+
+    def clear_fault_history
+      @modbus_slave.holding_registers[47] = 0x5555
+    end
+
+    def manual_operation(mode: :off,
+                         compressor_speed: 0,
+                         blower_speed: :with_compressor,
+                         pump_speed: :with_compressor,
+                         aux_heat: false)
+      raise ArgumentError, "mode must be :off, :heating, or :cooling" unless %i[off heating cooling].include?(mode)
+      raise ArgumentError, "compressor speed must be between 0 and 12" unless (0..12).include?(compressor_speed)
+
+      unless blower_speed == :with_compressor || (0..12).include?(blower_speed)
+        raise ArgumentError,
+              "blower speed must be :with_compressor or between 0 and 12"
+      end
+      unless pump_speed == :with_compressor || (0..100).include?(pump_speed)
+        raise ArgumentError,
+              "pump speed must be :with_compressor or between 0 and 100"
+      end
+
+      value = 0
+      value = 0x7fff if mode == :off
+      value |= 0x100 if mode == :cooling
+      value |= blower_speed == :with_compressor ? 0xf0 : (blower_speed << 4)
+      value |= 0x200 if aux_heat
+
+      @modbus_slave.holding_registers[3002] = value
+      @modbus_slave.holding_registers[323] = pump_speed == :with_compressor ? 0x7fff : pump_speed
     end
 
     # config aurora system
