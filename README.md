@@ -95,6 +95,9 @@ homie/aurora-<serialno>/$modbus/747 <= Ambient Temperature (747): 73.0ºF
 known => homie/aurora-<serialno>/$modbus
 <a whole ton of data sent back!>
 
+valid => homie/aurora-<serialno>/$modbus
+<even more data!>
+
 3 => homie/aurora-<serialno>/$modbus/340/set
 homie/aurora-<serialno>/$modbus/340 <= Blower Only Speed (340): 3
 ```

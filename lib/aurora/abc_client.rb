@@ -49,6 +49,8 @@ module Aurora
         case addr
         when "known"
           Aurora::REGISTER_NAMES.keys
+        when "valid"
+          break Aurora::REGISTER_RANGES
         when /^(\d+)(?:\.\.|-)(\d+)$/
           $1.to_i..$2.to_i
         else
