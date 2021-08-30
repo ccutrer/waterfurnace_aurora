@@ -3,27 +3,72 @@
 
 require "aurora"
 require "ccutrer-serialport"
-require "sinatra"
+require "logger"
+require "optparse"
+require "yaml"
 
-uri = URI.parse(ARGV[0])
+debug_modbus = monitor = mock = false
 
-args = case uri.scheme
-       when "tcp"
-         require "socket"
-         [TCPSocket.new(uri.host, uri.port)]
-       when "telnet", "rfc2217"
-         require "net/telnet/rfc2217"
-         [Net::Telnet::RFC2217.new(uri.host,
-                                   port: uri.port || 23,
-                                   baud: 19_200,
-                                   parity: :even)]
-       else
-         [CCutrer::SerialPort.new(uri.path, baud: 19_200, parity: :even)]
-       end
+options = OptionParser.new do |opts|
+  opts.banner = "Usage: web_aid_tool /path/to/serial/port [options]"
 
-client = ModBus::RTUClient.new(*args)
+  opts.on("--debug-modbus", "Print actual protocol bytes") { debug_modbus = true }
+  opts.on("--mock", "Instead of talking to an actual heat pump, mock it with registers from the given YAML file (instead of a serial port)") { mock = true }
+  opts.on("--monitor", "Print interperted registers as they are requested, like aurora_monitor") { monitor = true }
+  opts.on("-h", "--help", "Prints this help") do
+    puts opts
+    exit
+  end
+end
 
-slave = client.with_slave(1)
+options.parse!
+
+unless ARGV.length == 1
+  puts options
+  exit 1
+end
+
+class MockSlave
+  def initialize(registers)
+    @registers = registers
+  end
+
+  def read_multiple_holding_registers(*queries)
+    result = {}
+    queries.each do |query|
+      Array(query).each do |i|
+        result[i] = @registers[i]
+      end
+    end
+    result
+  end
+end
+
+if mock
+  slave = MockSlave.new(YAML.load_file(ARGV[0]))
+else
+  uri = URI.parse(ARGV[0])
+
+  args = case uri.scheme
+        when "tcp"
+          require "socket"
+          [TCPSocket.new(uri.host, uri.port)]
+        when "telnet", "rfc2217"
+          require "net/telnet/rfc2217"
+          [Net::Telnet::RFC2217.new(uri.host,
+                                    port: uri.port || 23,
+                                    baud: 19_200,
+                                    parity: :even)]
+        else
+          [CCutrer::SerialPort.new(uri.path, baud: 19_200, parity: :even)]
+        end
+
+  client = ModBus::RTUClient.new(*args)
+  client.logger = Logger.new($stdout)
+  client.logger.level = debug_modbus ? :debug : :warn
+
+  slave = client.with_slave(1)
+end
 
 def parse_query_string(query_string)
   query_string.split("&").map { |p| p.split("=") }.to_h
@@ -33,6 +78,9 @@ end
 def encode_result(params)
   params.map { |p| p.join("=") }.join("&")
 end
+
+
+require "sinatra"
 
 set :public_folder, "html"
 
@@ -63,6 +111,7 @@ get "/request.cgi" do
       start...(start + length)
     end
     registers = slave.read_multiple_holding_registers(*queries)
+    puts Aurora.print_registers(registers) if monitor
     result["values"] = registers.values.join(",")
   else
     return ""
