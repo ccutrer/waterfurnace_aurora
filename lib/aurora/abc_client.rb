@@ -141,6 +141,50 @@ module Aurora
       @modbus_slave.holding_registers[347] = value
     end
 
+    def cooling_airflow_adjustment=(value)
+      value = 0x10000 + value if value.negative?
+      @modbus_slave.holding_registers[346] = value
+    end
+
+    def dhw_enabled=(value)
+      @modbus_slave.holding_registers[400] = value ? 1 : 0
+    end
+
+    def dhw_setpoint=(value)
+      @modbus_slave.holding_registers[401] = value
+    end
+
+    def loop_pressure_trip=(value)
+      @modbus_slave.holding_registers[419] = (value * 10).to_i
+    end
+
+    def vs_pump_control=(value)
+      raise ArgumentError unless (value = VS_PUMP_CONTROL.invert[value])
+
+      @modbus_slave.holding_registers[323] = value
+    end
+
+    def vs_pump_min=(value)
+      @modbus_slave.holding_registers[321] = value
+    end
+
+    def vs_pump_max=(value)
+      @modbus_slave.holding_registers[322] = value
+    end
+
+    # config aurora system
+    { tst: 800, axb: 806, iz2: 812, aoc: 815, moc: 818, eev2: 824 }.each do |(component, register)|
+      instance_eval <<-RUBY, __FILE__, __LINE__ + 1
+        def add_#{component}
+          @modbus_slave.holding_registers[#{register}] = 2
+        end
+
+        def remove_#{component}
+          @modbus_slave.holding_registers[#{register}] = 3
+        end
+      RUBY
+    end
+
     def inspect
       "#<Aurora::ABCClient #{(instance_variables - [:@modbus_slave]).map do |iv|
                                "#{iv}=#{instance_variable_get(iv).inspect}"

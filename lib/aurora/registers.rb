@@ -139,6 +139,18 @@ module Aurora
     }
   end
 
+  COMPONENT_STATUS = {
+    1 => :active,
+    2 => :added,
+    3 => :removed
+  }.freeze
+
+  VS_PUMP_CONTROL = {
+    0x7fff => :off,
+    40 => :min,
+    100 => :max
+  }.freeze
+
   SYSTEM_OUTPUTS = {
     0x01 => :cc, # compressor stage 1
     0x02 => :cc2, # compressor stage 2
@@ -328,9 +340,10 @@ module Aurora
   # intermittent off time allowed: 5, 10, 15, 20, 25, 30, 35, 40
 
   REGISTER_CONVERTERS = {
-    TO_HUNDREDTHS => [2, 3, 807, 813, 816, 817, 819, 820, 825, 828],
+    TO_HUNDREDTHS => [2, 3, 801, 807, 813, 816, 817, 819, 820, 825, 828],
     method(:dipswitch_settings) => [4, 33],
-    TO_TENTHS => [19, 20, 401, 567, 740, 745, 746, 747, 900, 1105, 1106, 1107, 1108, 1110, 1111, 1114, 1117, 1134, 1136,
+    TO_TENTHS => [19, 20, 401, 419, 567, 740, 745, 746, 747, 900,
+                  1105, 1106, 1107, 1108, 1110, 1111, 1114, 1117, 1134, 1136,
                   12_619, 12_620,
                   21_203, 21_204,
                   21_212, 21_213,
@@ -352,7 +365,10 @@ module Aurora
     ->(v) { from_bitmask(v, VS_ALARM1) } => [217],
     ->(v) { from_bitmask(v, VS_ALARM2) } => [218],
     ->(v) { from_bitmask(v, VS_EEV2) } => [280],
+    ->(v) { VS_PUMP_CONTROL[v] } => [323],
     NEGATABLE => [346, 1146],
+    ->(v) { !v.zero? } => [400],
+    ->(v) { COMPONENT_STATUS[v] } => [800, 806, 812, 815, 818, 824, 827],
     ->(v) { from_bitmask(v, AXB_INPUTS) } => [1103],
     ->(v) { from_bitmask(v, AXB_OUTPUTS) } => [1104],
     ->(v) { TO_TENTHS.call(NEGATABLE.call(v)) } => [1136],
@@ -387,6 +403,7 @@ module Aurora
                   31_007, 31_010, 31_013, 31_016, 31_019, 31_022],
     "E%d" => [25, 26],
     "%d%%" => [282, 321, 322, 346, 565, 741],
+    "%0.1f psi" => [419],
     "%0.1fA" => [1105, 1106, 1107, 1108],
     "%0.1fgpm" => [1117],
     "%dW" => [1147, 1149, 1151, 1153, 1165],
@@ -532,6 +549,7 @@ module Aurora
     30 => "System Outputs",
     31 => "Status",
     33 => "DIP Switch Status",
+    36 => "ABC Board Rev",
     50 => "ECM Speed Low (== 5)",
     51 => "ECM Speed Med (== 5)",
     52 => "ECM Speed High (== 5)",
@@ -562,6 +580,7 @@ module Aurora
     284 => "Saturated Suction Temperature", ## ?? data format
     321 => "VS Pump Min",
     322 => "VS Pump Max",
+    323 => "VS Pump Control",
     340 => "Blower Only Speed",
     341 => "Lo Compressor ECM Speed",
     342 => "Hi Compressor ECM Speed",
@@ -569,8 +588,14 @@ module Aurora
     346 => "Cooling Airflow Adjustment",
     347 => "Aux Heat ECM Speed",
     362 => "Active Dehumidify", # any value is true
+    460 => "IZ2??",
+    461 => "IZ2??",
+    462 => "IZ2 Status", # 5 when online; 1 when in setup mode
+    400 => "DHW Enabled",
     401 => "DHW Setpoint",
+    # 403 => "DHW Status", just a guess, based on AID Tool querying this register while showing DHW settings
     414 => "On Peak/SmartGrid 2", # 0x0001 only
+    419 => "Loop Pressure Trip",
     483 => "Number of IZ2 Zones",
     564 => "IZ2 Compressor Speed Desired",
     565 => "IZ2 Blower % Desired",
@@ -580,14 +605,27 @@ module Aurora
     745 => "Heating Set Point",
     746 => "Cooling Set Point",
     747 => "Ambient Temperature",
+    800 => "TST Installed",
+    801 => "TST Version",
+    802 => "TST Revision",
+    806 => "AXB Installed",
     807 => "AXB Version",
+    808 => "AXB Revision",
+    812 => "IZ2 Installed",
     813 => "IZ2 Version",
-    816 => "AOC Version 1?",
-    817 => "AOC Version 2?",
-    819 => "MOC Version 1?",
-    820 => "MOC Version 2?",
+    814 => "IZ2 Revision",
+    815 => "AOC Installed",
+    816 => "AOC Version",
+    817 => "AOC Revision",
+    818 => "MOC Installed",
+    819 => "MOC Version",
+    820 => "MOC Revision",
+    824 => "EEV2 Installed",
     825 => "EEV2 Version",
+    826 => "EEV2 Revision",
+    827 => "AWL Installed",
     828 => "AWL Version",
+    829 => "AWL Revision",
     900 => "Leaving Air",
     1103 => "AXB Inputs",
     1104 => "AXB Outputs",
