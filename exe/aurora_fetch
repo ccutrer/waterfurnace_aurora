@@ -6,23 +6,25 @@ require "ccutrer-serialport"
 require "logger"
 require "optparse"
 require "uri"
+require "yaml"
 
-debug_modbus = false
+debug_modbus = yaml = false
 
-opts = OptionParser.new do |opts|
+options = OptionParser.new do |opts|
   opts.banner = "Usage: aurora_fetch /path/to/serial/port REGISTERS [options]"
 
   opts.on("--debug-modbus", "Print actual protocol bytes") { debug_modbus = true }
+  opts.on("-y", "--yaml", "Output raw values as YAML") { yaml = true }
   opts.on("-h", "--help", "Prints this help") do
     puts opts
     exit
   end
 end
 
-opts.parse!
+options.parse!
 
 unless ARGV.length == 2
-  puts opts
+  puts options
   exit 1
 end
 
@@ -50,4 +52,8 @@ slave = client.with_slave(1)
 abc = Aurora::ABCClient.new(slave)
 registers = abc.query_registers(ARGV[1])
 
-puts Aurora.print_registers(registers)
+if yaml
+  puts YAML.dump(registers)
+else
+  puts Aurora.print_registers(registers)
+end

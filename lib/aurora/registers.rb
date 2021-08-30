@@ -3,6 +3,11 @@
 module Aurora
   module_function
 
+  # take an array of ranges, and breaks it up into queryable chunks
+  # the ABC limits to 100 registers per read operation
+  # there also seem to be issues that some ranges can't be read at
+  # the same time as other ranges. possibly correspond to different
+  # components?
   def normalize_ranges(ranges)
     registers = ranges.map { |r| Array(r) }.flatten.sort.uniq
     result = []
@@ -11,7 +16,10 @@ module Aurora
     count = 0
     registers.each_with_index do |r, i|
       run_start ||= r
-      next unless i + 1 == registers.length || r + 1 != registers[i + 1]
+      next unless i + 1 == registers.length ||
+                  r + 1 != registers[i + 1] ||
+                  (r - run_start) == 100 ||
+                  REGISTER_BREAKPOINTS.include?(r + 1)
 
       if r == run_start
         result << r
@@ -23,7 +31,7 @@ module Aurora
       else
         range = run_start..r
         if count + range.count > 100
-          totals << result
+          totals << result unless result.empty?
           result = []
           count = 0
         end
@@ -390,7 +398,11 @@ module Aurora
   end
 
   def faults(range)
-    range.map { |i| [i, "E#{i % 100}"] }.to_h
+    range.map do |i|
+      name = FAULTS[i % 100]
+      name = " (#{name})" if name
+      [i, "E#{i % 100}#{name}"]
+    end.to_h
   end
 
   def zone_registers
@@ -492,6 +504,12 @@ module Aurora
     60_100..60_109,
     60_200..60_200,
     61_000..61_009
+  ].freeze
+
+  # see normalize_ranges
+  REGISTER_BREAKPOINTS = [
+    12_100,
+    12_500
   ].freeze
 
   REGISTER_NAMES = {

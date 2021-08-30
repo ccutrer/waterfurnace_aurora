@@ -5,6 +5,7 @@ module Aurora
     attr_reader :modbus_slave,
                 :serial_number,
                 :zones,
+                :faults,
                 :current_mode,
                 :fan_speed,
                 :entering_air_temperature,
@@ -40,6 +41,7 @@ module Aurora
                  iz2_zone_count = @modbus_slave.holding_registers[483]
                  (0...iz2_zone_count).map { |i| IZ2Zone.new(self, i + 1) }
                end
+      @faults = []
     end
 
     def query_registers(query)
@@ -47,6 +49,8 @@ module Aurora
         case addr
         when "known"
           Aurora::REGISTER_NAMES.keys
+        when "valid"
+          break Aurora::REGISTER_RANGES
         when /^(\d+)(?:\.\.|-)(\d+)$/
           $1.to_i..$2.to_i
         else
@@ -62,8 +66,8 @@ module Aurora
     end
 
     def refresh
-      registers_to_read = [19..20, 30, 340, 344, 347, 740..741, 900, 1110..1111, 1114, 1117, 1147..1153, 1165, 3027,
-                           31_003]
+      registers_to_read = [19..20, 30, 340, 344, 347, 740..741, 900, 1110..1111, 1114, 1117, 1147..1153, 1165,
+                           3027, 31_003]
       if zones.first.is_a?(IZ2Zone)
         zones.each_with_index do |_z, i|
           base1 = 21_203 + i * 9
@@ -76,6 +80,8 @@ module Aurora
       else
         registers_to_read << (745..747)
       end
+
+      @faults = @modbus_slave.holding_registers[601..699]
 
       registers = @modbus_slave.holding_registers[*registers_to_read]
       Aurora.transform_registers(registers)
