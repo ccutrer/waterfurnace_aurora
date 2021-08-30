@@ -390,7 +390,11 @@ module Aurora
   end
 
   def faults(range)
-    range.map { |i| [i, "E#{i % 100}"] }.to_h
+    range.map do |i|
+      name = FAULTS[i % 100]
+      name = " (#{name})" if name
+      [i, "E#{i % 100}#{name}"]
+    end.to_h
   end
 
   def zone_registers

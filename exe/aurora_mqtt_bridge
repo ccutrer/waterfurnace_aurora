@@ -71,6 +71,10 @@ class MQTTBridge
             property.value = @abc.public_send(property.id.tr("-", "_"))
           end
 
+          @abc.faults.each_with_index do |fault_count, i|
+            @faults["e#{i + 1}"].value = fault_count
+          end
+
           @abc.zones.each_with_index do |z, idx|
             homie_zone = @homie["zone#{idx + 1}"]
             homie_zone.each do |property|
@@ -122,6 +126,13 @@ class MQTTBridge
       node.property("aux-heat-ecm-speed", "Aux Heat ECM Speed", :integer, @abc.aux_heat_ecm_speed,
                     format: 1..12) do |value, property|
         @mutex.synchronize { property.value = @abc.aux_heat_ecm_speed = value }
+      end
+    end
+
+    @faults = @homie.node("faults", "Fault History", "ABC") do |node|
+      @abc.faults.each_with_index do |count, i|
+        name = Aurora::FAULTS[i + 1]
+        node.property("e#{i + 1}", name || "E#{i + 1}", :integer, count)
       end
     end
 
