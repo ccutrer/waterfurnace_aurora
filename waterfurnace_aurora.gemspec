@@ -22,8 +22,8 @@ Gem::Specification.new do |s|
   s.add_dependency "homie-mqtt", "~> 1.4.4"
   s.add_dependency "net-telnet-rfc2217", "~> 1.0", ">= 1.0.1"
   s.add_dependency "rmodbus-ccutrer", "~> 2.1"
+  s.add_dependency "sinatra", "~> 2.1"
 
   s.add_development_dependency "byebug", "~> 9.0"
-  s.add_development_dependency "gserver", "~> 0.0.1"
   s.add_development_dependency "rubocop", "~> 1.19"
 end
