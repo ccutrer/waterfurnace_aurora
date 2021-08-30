@@ -77,7 +77,10 @@ server.request_callback = lambda { |uid, func, req|
     puts Aurora.print_registers(registers)
   elsif func == 16
     registers = Range.new(req[:addr], req[:addr] + req[:quant] - 1).zip(req[:val]).to_h
-    next if ignore_awl_heartbeat && registers == { 460 => 102, 461 => 0, 462 => 5 }
+    if ignore_awl_heartbeat && [{ 460 => 102, 461 => 0, 462 => 5 },
+                                { 460 => 102, 461 => 0, 462 => 1 }].include?(registers)
+      next
+    end
 
     puts "#{Time.now} ===== write multiple registers to #{uid}:"
     puts Aurora.print_registers(registers)
