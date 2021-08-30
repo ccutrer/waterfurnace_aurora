@@ -53,35 +53,10 @@ sudo apt install build-essential ruby2.7 ruby-dev
 ```
 
 ### Docker
-A very simple Dockerfile is provided in the ```docker``` folder to build a docker image. This image is meant to run the MQTT bridge by default but can be used to run any of the other tools. Make sure to adjust the ```device``` ```TTY``` and ```MQTT``` settings to fit your configuration.
+A very simple Dockerfile is provided in the ```docker``` folder to build a docker image. This image is meant to run the MQTT bridge by default but can be used to run any of the other tools.
+More details [here](/docker) 
 
-#### To build and run
-```
-docker build -t ccutrer/waterfurnace_aurora https://github.com/ccutrer/waterfurnace_aurora.git\#main:docker
-docker run -d --device=/dev/ttyUSB0 --env TTY=/dev/ttyUSB0 --env MQTT=mqtt://localhost ccutrer/waterfurnace_aurora
-```
-#### To upgrade the build
-```
-docker build -t ccutrer/waterfurnace_aurora https://github.com/ccutrer/waterfurnace_aurora.git\#main:docker --no-cache
-```
 
-#### Example docker-compose
-```
-version: '3.3'
-
-services:
-  waterfurnace_aurora:
-    container_name: waterfurnace_aurora
-    build: 
-      context: https://github.com/ccutrer/waterfurnace_aurora.git#main
-      dockerfile: ./docker/Dockerfile
-    image: ccutrer/waterfurnace_aurora
-    devices:
-      - '/dev/ttyUSB0'
-    environment:
-      - TTY=/dev/ttyUSB0
-      - MQTT=mqtt://localhost
-```
 ## MQTT/Homie Bridge
 
 An MQTT bridge is provided to allow easy integration into other systems. You
