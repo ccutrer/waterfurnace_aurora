@@ -594,7 +594,10 @@ module Aurora
     12_619 => "Heating Setpoint (write)",
     12_620 => "Cooling Setpoint (write)",
     12_621 => "Fan Mode (write)",
+    3000 => "Compressor Speed?",
+    3001 => "Compressor Speed?",
     3027 => "Compressor Speed",
+    3904 => "Leaving Air Temperature?",
     31_003 => "Outdoor Temp",
     31_005 => "IZ2 Demand",
     31_109 => "Humidifier Mode", # write to 21114
