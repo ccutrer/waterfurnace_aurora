@@ -225,3 +225,27 @@ $ aurora_fetch /dev/ttyHeatPump 745-746 --yaml
 745: 680
 746: 730
 ```
+
+### web_aid_tool
+
+This is a reproduction of the web AID tool, as provided on some early AWL
+units. It depends on code from an actual AWL. For copyright reasons, these
+files are not provided. You will need to download them from your AWL, and
+place them into an html directory:
+
+ * indexfd49.html
+ * js/indexc.js
+ * css/index.css
+ * images/aurora.png
+ * images/back.png
+ * images/cfailed.png
+ * images/cgood.png
+ * images/cidle.png
+
+Then run the web AID tool:
+
+```
+$ web_aid_tool /dev/ttyHeatPump
+```
+
+After which you'll be able top open a browser to http://localhost:4567/.
