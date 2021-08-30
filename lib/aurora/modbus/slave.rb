@@ -49,7 +49,7 @@ module Aurora
         when 0x80..0xff
           msg += read(io, 3)
         else
-          raise ModBus::Errors::IllegalFunction, "Illegal function: #{function_code}"
+          raise ::ModBus::Errors::IllegalFunction, "Illegal function: #{function_code}"
         end
         msg
       end
