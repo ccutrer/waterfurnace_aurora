@@ -65,6 +65,8 @@ module Aurora
 
   def to_string(registers, idx, length)
     (idx...(idx + length)).map do |i|
+      raise ArgumentError, "Missing register #{i} for string starting at #{idx}" unless registers[i]
+
       (registers[i] >> 8).chr + (registers[i] & 0xff).chr
     end.join.sub(/[ \0]+$/, "")
   end

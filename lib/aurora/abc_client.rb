@@ -45,11 +45,14 @@ module Aurora
     end
 
     def query_registers(query)
+      implicit = false
       ranges = query.split(",").map do |addr|
         case addr
         when "known"
+          implicit = true
           Aurora::REGISTER_NAMES.keys
         when "valid"
+          implicit = true
           break Aurora::REGISTER_RANGES
         when /^(\d+)(?:\.\.|-)(\d+)$/
           $1.to_i..$2.to_i
@@ -61,6 +64,16 @@ module Aurora
       registers = {}
       queries.each do |subquery|
         registers.merge!(@modbus_slave.read_multiple_holding_registers(*subquery))
+      rescue ::ModBus::Errors::IllegalDataAddress
+        # maybe this unit doesn't respond to all the addresses we want?
+        raise unless implicit
+
+        # try each query individually
+        subquery.each do |subsubquery|
+          registers.merge!(@modbus_slave.read_multiple_holding_registers(subsubquery))
+        rescue ::ModBus::Errors::IllegalDataAddress
+          next
+        end
       end
       registers
     end
