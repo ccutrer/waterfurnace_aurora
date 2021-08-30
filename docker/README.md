@@ -32,5 +32,9 @@ services:
 # To run other commands
 Before running other commands you need to stop any running waterfurnace_aurora container to free up the serial port.
 
-```docker run --device=/dev/ttyUSB0 -it ccutrer/waterfurnace_aurora <othercommand> <parameters>```
-```docker run --device=/dev/ttyUSB0 -it ccutrer/waterfurnace_aurora aurora_fetch --yaml /dev/ttyUSB0 valid ```
+```
+docker run --device=/dev/ttyUSB0 -it ccutrer/waterfurnace_aurora <othercommand> <parameters>
+```
+```
+docker run --device=/dev/ttyUSB0 -it ccutrer/waterfurnace_aurora aurora_fetch --yaml /dev/ttyUSB0 valid
+```
