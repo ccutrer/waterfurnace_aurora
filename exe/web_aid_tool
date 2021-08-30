@@ -42,6 +42,10 @@ class MockSlave
     end
     result
   end
+
+  def write_holding_register(addr, value)
+    @registers[addr] = value
+  end
 end
 
 if mock
@@ -113,6 +117,18 @@ get "/request.cgi" do
     registers = slave.read_multiple_holding_registers(*queries)
     puts Aurora.print_registers(registers) if monitor
     result["values"] = registers.values.join(",")
+  when "putregs"
+    writes = params["regs"].split(";").map do |write|
+      write.split(",").map(&:to_i)
+    end.compact.to_h
+    if monitor
+      puts "WRITING"
+      puts Aurora.print_registers(writes)
+    end
+
+    writes.each do |(addr, value)|
+      slave.write_holding_register(addr, value)
+    end
   else
     return ""
   end
