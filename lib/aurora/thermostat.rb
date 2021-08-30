@@ -13,7 +13,7 @@ module Aurora
     end
 
     def refresh(registers)
-      @ambient_temperature = registers[747]
+      @ambient_temperature = registers[502]
       @heating_target_temperature = registers[746]
       @cooling_target_temperature = registers[745]
     end

@@ -342,7 +342,7 @@ module Aurora
   REGISTER_CONVERTERS = {
     TO_HUNDREDTHS => [2, 3, 801, 807, 813, 816, 817, 819, 820, 825, 828],
     method(:dipswitch_settings) => [4, 33],
-    TO_TENTHS => [19, 20, 401, 419, 567, 740, 745, 746, 747, 900,
+    TO_TENTHS => [19, 20, 401, 419, 501, 502, 567, 740, 745, 746, 747, 900,
                   1105, 1106, 1107, 1108, 1110, 1111, 1114, 1117, 1134, 1136,
                   12_619, 12_620,
                   21_203, 21_204,
@@ -391,7 +391,7 @@ module Aurora
   REGISTER_FORMATS = {
     "%ds" => [1, 6, 9, 15, 84, 85],
     "%dV" => [16, 112],
-    "%0.1fºF" => [19, 20, 401, 567, 740, 745, 746, 747, 900, 1110, 1111, 1114, 1134, 1136,
+    "%0.1fºF" => [19, 20, 401, 501, 502, 567, 740, 745, 746, 747, 900, 1110, 1111, 1114, 1134, 1136,
                   12_619, 12_620,
                   21_203, 21_204,
                   21_212, 21_213,
@@ -597,6 +597,8 @@ module Aurora
     414 => "On Peak/SmartGrid 2", # 0x0001 only
     419 => "Loop Pressure Trip",
     483 => "Number of IZ2 Zones",
+    501 => "Set Point", # only read by AID tool? this is _not_ heating/cooling set point
+    502 => "Ambient Temperature",
     564 => "IZ2 Compressor Speed Desired",
     565 => "IZ2 Blower % Desired",
     567 => "Entering Air",
@@ -604,10 +606,10 @@ module Aurora
     741 => "Relative Humidity",
     745 => "Heating Set Point",
     746 => "Cooling Set Point",
-    747 => "Ambient Temperature",
-    800 => "TST Installed",
-    801 => "TST Version",
-    802 => "TST Revision",
+    747 => "Ambient Temperature", # from communicating thermostat? but set to 0 when mode is off?
+    800 => "Thermostat Installed",
+    801 => "Thermostat Version",
+    802 => "Thermostat Revision",
     806 => "AXB Installed",
     807 => "AXB Version",
     808 => "AXB Revision",

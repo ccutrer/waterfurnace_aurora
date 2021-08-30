@@ -35,11 +35,11 @@ module Aurora
       registers = registers_array.each_with_index.map { |r, i| [i + 105, r] }.to_h
       @serial_number = Aurora.transform_registers(registers)[105]
 
-      @zones = if @modbus_slave.holding_registers[813].zero?
-                 [Thermostat.new(self)]
-               else
+      @zones = if iz2?
                  iz2_zone_count = @modbus_slave.holding_registers[483]
                  (0...iz2_zone_count).map { |i| IZ2Zone.new(self, i + 1) }
+               else
+                 [Thermostat.new(self)]
                end
       @faults = []
     end
@@ -78,7 +78,8 @@ module Aurora
           registers_to_read << base3
         end
       else
-        registers_to_read << (745..747)
+        registers_to_read << 502
+        registers_to_read << (745..746)
       end
 
       @faults = @modbus_slave.holding_registers[601..699]
@@ -173,8 +174,12 @@ module Aurora
     end
 
     # config aurora system
-    { tst: 800, axb: 806, iz2: 812, aoc: 815, moc: 818, eev2: 824 }.each do |(component, register)|
-      instance_eval <<-RUBY, __FILE__, __LINE__ + 1
+    { thermostat: 800, axb: 806, iz2: 812, aoc: 815, moc: 818, eev2: 824 }.each do |(component, register)|
+      class_eval <<-RUBY, __FILE__, __LINE__ + 1
+        def #{component}?
+          @modbus_slave.holding_registers[#{register}] != 3
+        end
+
         def add_#{component}
           @modbus_slave.holding_registers[#{register}] = 2
         end
