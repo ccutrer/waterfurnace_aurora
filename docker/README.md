@@ -8,7 +8,10 @@ docker run -d --device=/dev/ttyUSB0 --env TTY=/dev/ttyUSB0 --env MQTT=mqtt://loc
 ```
 # To upgrade the build
 ```
+# When running only with docker
 docker build -t ccutrer/waterfurnace_aurora https://github.com/ccutrer/waterfurnace_aurora.git\#main:docker --no-cache
+# When using docker-compose
+docker-compose build --no-cache
 ```
 
 # Example docker-compose
