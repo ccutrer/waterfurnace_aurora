@@ -49,6 +49,7 @@ module Aurora
         when 0x80..0xff
           msg += read(io, 3)
         else
+          log "Rx (#{msg.size} bytes): " + logging_bytes(msg)
           raise ::ModBus::Errors::IllegalFunction, "Illegal function: #{function_code}"
         end
         msg

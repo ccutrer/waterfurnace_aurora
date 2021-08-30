@@ -3,7 +3,28 @@
 
 require "aurora"
 require "ccutrer-serialport"
+require "logger"
+require "optparse"
 require "uri"
+
+debug_modbus = false
+
+opts = OptionParser.new do |opts|
+  opts.banner = "Usage: aurora_fetch /path/to/serial/port REGISTERS [options]"
+
+  opts.on("--debug-modbus", "Print actual protocol bytes") { debug_modbus = true }
+  opts.on("-h", "--help", "Prints this help") do
+    puts opts
+    exit
+  end
+end
+
+opts.parse!
+
+unless ARGV.length == 2
+  puts opts
+  exit 1
+end
 
 uri = URI.parse(ARGV[0])
 
@@ -22,6 +43,9 @@ args = case uri.scheme
        end
 
 client = ModBus::RTUClient.new(*args)
+client.logger = Logger.new($stdout)
+client.logger.level = debug_modbus ? :debug : :warn
+
 slave = client.with_slave(1)
 abc = Aurora::ABCClient.new(slave)
 registers = abc.query_registers(ARGV[1])
