@@ -216,4 +216,9 @@ heat pump itself, or the AWL). It accepts the same syntax as
 $ aurora_fetch /dev/ttyHeatPump 745-746
 Heating Set Point (745): 68.0ºF
 Cooling Set Point (746): 73.0ºF
+
+$ aurora_fetch /dev/ttyHeatPump 745-746 --yaml
+---
+745: 680
+746: 730
 ```
