@@ -5,26 +5,61 @@ require "aurora"
 require "homie-mqtt"
 require "ccutrer-serialport"
 require "uri"
+require "optparse"
+require "yaml"
 require "aurora/core_ext/string"
 
-uri = URI.parse(ARGV[0])
+debug_modbus = mock = false
+
+options = OptionParser.new do |opts|
+  opts.banner = "Usage: aurora_mqtt_bridge /path/to/serial/port [options]"
+
+  opts.on("--debug-modbus", "Print actual protocol bytes") { debug_modbus = true }
+  opts.on("--mock",
+          "Instead of talking to an actual heat pump, mock it with registers from the given YAML file (instead of a serial port)") do # rubocop:disable Layout/LineLength
+    mock = true
+  end
+  opts.on("-h", "--help", "Prints this help") do
+    puts opts
+    exit
+  end
+end
+
+options.parse!
+
+unless ARGV.length == 2
+  puts options
+  exit 1
+end
+
 mqtt_uri = ARGV[1]
 
-args = case uri.scheme
-       when "tcp"
-         require "socket"
-         [TCPSocket.new(uri.host, uri.port)]
-       when "telnet", "rfc2217"
-         require "net/telnet/rfc2217"
-         [Net::Telnet::RFC2217.new(uri.host,
-                                   port: uri.port || 23,
-                                   baud: 19_200,
-                                   parity: :even)]
-       else
-         [CCutrer::SerialPort.new(uri.path, baud: 19_200, parity: :even)]
-       end
+if mock
+  slave = Aurora::MockABC.new(YAML.load_file(ARGV[0]))
+else
+  uri = URI.parse(ARGV[0])
 
-slave = ModBus::RTUClient.new(*args).with_slave(1)
+  args = case uri.scheme
+         when "tcp"
+           require "socket"
+           [TCPSocket.new(uri.host, uri.port)]
+         when "telnet", "rfc2217"
+           require "net/telnet/rfc2217"
+           [Net::Telnet::RFC2217.new(uri.host,
+                                     port: uri.port || 23,
+                                     baud: 19_200,
+                                     parity: :even)]
+         else
+           [CCutrer::SerialPort.new(uri.path, baud: 19_200, parity: :even)]
+         end
+
+  client = ModBus::RTUClient.new(*args)
+  client.logger = Logger.new($stdout)
+  client.logger.level = debug_modbus ? :debug : :warn
+
+  slave = client.with_slave(1)
+end
+
 abc = Aurora::ABCClient.new(slave)
 
 class MQTTBridge

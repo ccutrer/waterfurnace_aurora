@@ -4,6 +4,7 @@ require "rmodbus"
 
 require "aurora/abc_client"
 require "aurora/iz2_zone"
+require "aurora/mock_abc"
 require "aurora/thermostat"
 require "aurora/modbus/server"
 require "aurora/modbus/slave"

@@ -17,7 +17,7 @@ options = OptionParser.new do |opts|
           "Instead of talking to an actual heat pump, mock it with registers from the given YAML file (instead of a serial port)") do # rubocop:disable Layout/LineLength
     mock = true
   end
-  opts.on("--monitor", "Print interperted registers as they are requested, like aurora_monitor") { monitor = true }
+  opts.on("--monitor", "Print interpreted registers as they are requested, like aurora_monitor") { monitor = true }
   opts.on("-h", "--help", "Prints this help") do
     puts opts
     exit
@@ -31,28 +31,8 @@ unless ARGV.length == 1
   exit 1
 end
 
-class MockSlave
-  def initialize(registers)
-    @registers = registers
-  end
-
-  def read_multiple_holding_registers(*queries)
-    result = {}
-    queries.each do |query|
-      Array(query).each do |i|
-        result[i] = @registers[i]
-      end
-    end
-    result
-  end
-
-  def write_holding_register(addr, value)
-    @registers[addr] = value
-  end
-end
-
 if mock
-  slave = MockSlave.new(YAML.load_file(ARGV[0]))
+  slave = Aurora::MockABC.new(YAML.load_file(ARGV[0]))
 else
   uri = URI.parse(ARGV[0])
 
