@@ -6,6 +6,7 @@ PATH
       homie-mqtt (~> 1.4.4)
       net-telnet-rfc2217 (~> 1.0, >= 1.0.1)
       rmodbus-ccutrer (~> 2.1)
+      sinatra (~> 2.1)
 
 GEM
   remote: https://rubygems.org/
@@ -17,16 +18,20 @@ GEM
     digest-crc (0.6.4)
       rake (>= 12.0.0, < 14.0.0)
     ffi (1.15.3)
-    gserver (0.0.1)
     homie-mqtt (1.4.4)
       mqtt-ccutrer (~> 1.0)
     mqtt-ccutrer (1.0.0)
+    mustermann (1.1.1)
+      ruby2_keywords (~> 0.0.1)
     net-telnet (0.2.0)
     net-telnet-rfc2217 (1.0.1)
       net-telnet (~> 0.2.0)
     parallel (1.20.1)
     parser (3.0.2.0)
       ast (~> 2.4.1)
+    rack (2.2.3)
+    rack-protection (2.1.0)
+      rack
     rainbow (3.0.0)
     rake (13.0.6)
     regexp_parser (2.1.1)
@@ -45,6 +50,13 @@ GEM
     rubocop-ast (1.10.0)
       parser (>= 3.0.1.1)
     ruby-progressbar (1.11.0)
+    ruby2_keywords (0.0.5)
+    sinatra (2.1.0)
+      mustermann (~> 1.0)
+      rack (~> 2.2)
+      rack-protection (= 2.1.0)
+      tilt (~> 2.0)
+    tilt (2.0.10)
     unicode-display_width (2.0.0)
 
 PLATFORMS
@@ -52,7 +64,6 @@ PLATFORMS
 
 DEPENDENCIES
   byebug (~> 9.0)
-  gserver (~> 0.0.1)
   rubocop (~> 1.19)
   waterfurnace_aurora!
 
