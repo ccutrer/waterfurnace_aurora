@@ -210,18 +210,6 @@ module Aurora
       end
     end
 
-    def blower_only_ecm_speed=(value)
-      return unless (1..12).include?(value)
-
-      @modbus_slave.holding_registers[340] = value
-    end
-
-    def aux_heat_ecm_speed=(value)
-      return unless (1..12).include?(value)
-
-      @modbus_slave.holding_registers[347] = value
-    end
-
     def cooling_airflow_adjustment=(value)
       value = 0x10000 + value if value.negative?
       @modbus_slave.holding_registers[346] = value
@@ -239,20 +227,6 @@ module Aurora
 
     def loop_pressure_trip=(value)
       @modbus_slave.holding_registers[419] = (value * 10).to_i
-    end
-
-    def vs_pump_control=(value)
-      raise ArgumentError unless (value = VS_PUMP_CONTROL.invert[value])
-
-      @modbus_slave.holding_registers[323] = value
-    end
-
-    def vs_pump_min=(value)
-      @modbus_slave.holding_registers[321] = value
-    end
-
-    def vs_pump_max=(value)
-      @modbus_slave.holding_registers[322] = value
     end
 
     def line_voltage=(value)
