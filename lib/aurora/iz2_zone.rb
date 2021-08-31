@@ -78,8 +78,8 @@ module Aurora
       return unless value >= 54 && value <= 99
 
       raw_value = (value * 10).to_i
-      @abc.modbus_slave.holding_registers[21_204 + (zone_number - 1) * 9] = value
-      @cooling_target_temperature = raw_value
+      @abc.modbus_slave.holding_registers[21_204 + (zone_number - 1) * 9] = raw_value
+      @cooling_target_temperature = value
     end
   end
 end
