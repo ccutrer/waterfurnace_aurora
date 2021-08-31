@@ -44,5 +44,6 @@ module Aurora
     def write_holding_register(addr, value)
       @registers[addr] = value
     end
+    alias []= write_holding_register
   end
 end

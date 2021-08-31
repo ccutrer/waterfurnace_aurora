@@ -74,12 +74,19 @@ class MQTTBridge
       begin
         @mutex.synchronize do
           @abc.refresh
-          @homie_abc.each do |property|
-            property.value = @abc.public_send(property.id.tr("-", "_"))
+
+          components = { @homie_abc => @abc,
+                         @blower => @abc.blower,
+                         @pump => @abc.pump }
+          @abc.zones.each_with_index do |z, idx|
+            homie_zone = @homie["zone#{idx + 1}"]
+            components[homie_zone] = z
           end
 
-          @blower.each do |property|
-            property.value = @abc.blower.public_send(property.id.tr("-", "_"))
+          components.each do |(node, object)|
+            node.each do |property|
+              property.value = object.public_send(property.id.tr("-", "_"))
+            end
           end
 
           if @abc.dhw?
@@ -90,13 +97,6 @@ class MQTTBridge
 
           @abc.faults.each_with_index do |fault_count, i|
             @faults["e#{i + 1}"].value = fault_count
-          end
-
-          @abc.zones.each_with_index do |z, idx|
-            homie_zone = @homie["zone#{idx + 1}"]
-            homie_zone.each do |property|
-              property.value = z.public_send(property.id.tr("-", "_"))
-            end
           end
         end
       rescue => e
@@ -126,10 +126,9 @@ class MQTTBridge
       end
       node.property("relative-humidity", "Relative Humidity", :integer, @abc.relative_humidity, unit: "%",
                                                                                                 format: 0..100)
-      node.property("waterflow", "Waterflow", :float, @abc.waterflow, unit: "gpm")
       node.property("fp1", "FP1 Sensor", :float, @abc.fp1, unit: "ºF")
       node.property("fp2", "FP2 Sensor", :float, @abc.fp2, unit: "ºF")
-      %i[compressor aux_heat loop_pump total].each do |component|
+      %i[compressor aux_heat total].each do |component|
         component = "#{component}_watts"
         node.property(component.tr("_", "-"), component.tr("_", " ").titleize, :integer,
                       @abc.public_send(component), unit: "W")
@@ -143,20 +142,44 @@ class MQTTBridge
         node.property("speed", "Current blower speed", :integer, @abc.blower.speed, format: @abc.blower.speed_range)
       end
       node.property("watts", "Energy Usage", :integer, @abc.blower.watts, unit: "W") if @abc.energy_monitoring?
-      if @abc.blower.is_a?(Aurora::Blower::ECM)
-        presets = %w[blower-only aux-heat]
-        presets.concat %w[low-compressor high-compressor] unless @abc.iz2?
-        presets.each do |setting|
-          field = "#{setting.tr('-', '_')}_speed"
-          node.property("#{setting}-speed", "#{setting.tr('-', ' ').titleize} Preset Speed", :integer,
-                        @abc.blower.public_send(field), format: 1..12) do |value, property|
-            @mutex.synchronize { property.value = @abc.blower.public_send("#{field}=", value) }
-          end
+
+      next unless @abc.blower.is_a?(Aurora::Blower::ECM)
+
+      presets = %w[blower-only aux-heat]
+      presets.concat %w[low-compressor high-compressor] unless @abc.iz2?
+      presets.each do |setting|
+        field = "#{setting.tr('-', '_')}_speed"
+        node.property("#{setting}-speed", "#{setting.tr('-', ' ').titleize} Preset Speed", :integer,
+                      @abc.blower.public_send(field), format: 1..12) do |value, property|
+          @mutex.synchronize { property.value = @abc.blower.public_send("#{field}=", value) }
         end
-        if @abc.iz2?
-          node.property("iz2-desired-speed", "IZ2 Desired Speed", :integer, @abc.blower.iz2_desired_speed,
-                        format: 0..100, unit: "%")
-        end
+      end
+      if @abc.iz2?
+        node.property("iz2-desired-speed", "IZ2 Desired Speed", :integer, @abc.blower.iz2_desired_speed,
+                      format: 0..100, unit: "%")
+      end
+    end
+
+    @pump = @homie.node("pump", "Loop Pump", @abc.pump.type) do |node|
+      node.property("waterflow", "Waterflow", :float, @abc.pump.waterflow, unit: "gpm")
+      node.property("watts", "Energy Usage", :integer, @abc.pump.watts, unit: "W") if @abc.energy_monitoring?
+
+      next unless @abc.pump.is_a?(Aurora::Pump::VSPump)
+
+      node.property("speed", "Speed", :integer, @abc.pump.speed, format: 0..100, unit: "%") do |value, property|
+        @mutex.synchronize { property.value = @abc.pump.speed = value }
+      end
+      node.property("manual-control", "If manual control is enabled", :boolean,
+                    @abc.pump.manual_control?) do |value, property|
+        @mutex.synchronize { property.value = @abc.pump.manual_control = value }
+      end
+      node.property("minimum-speed", "Speed pump runs at compressor speed 0", :integer, @abc.pump.minimum_speed,
+                    format: 0..100, unit: "%") do |value, property|
+        @mutex.synchronize { property.value = @abc.pump.minimum_speed = value }
+      end
+      node.property("maximum-speed", "Speed pump runs at compressor speed 12", :integer, @abc.pump.minimum_speed,
+                    format: 0..100, unit: "%") do |value, property|
+        @mutex.synchronize { property.value = @abc.pump.maximum_speed = value }
       end
     end
 

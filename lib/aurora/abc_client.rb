@@ -5,6 +5,7 @@ require "uri"
 
 require "aurora/blower"
 require "aurora/iz2_zone"
+require "aurora/pump"
 require "aurora/thermostat"
 
 module Aurora
@@ -40,6 +41,7 @@ module Aurora
                 :serial_number,
                 :zones,
                 :blower,
+                :pump,
                 :faults,
                 :current_mode,
                 :dhw_enabled,
@@ -50,21 +52,19 @@ module Aurora
                 :leaving_water_temperature,
                 :entering_water_temperature,
                 :dhw_water_temperature,
-                :waterflow,
                 :compressor_speed,
                 :outdoor_temperature,
                 :fp1,
                 :fp2,
                 :compressor_watts,
                 :aux_heat_watts,
-                :loop_pump_watts,
                 :total_watts
 
     def initialize(uri)
       @modbus_slave = self.class.open_modbus_slave(uri)
       @modbus_slave.read_retry_timeout = 15
       @modbus_slave.read_retries = 2
-      raw_registers = @modbus_slave.holding_registers[88..91, 105...110, 404, 412, 1114]
+      raw_registers = @modbus_slave.holding_registers[88..91, 105...110, 404, 412..413, 1114]
       registers = Aurora.transform_registers(raw_registers.dup)
       @program = registers[88]
       @serial_number = registers[105]
@@ -76,6 +76,13 @@ module Aurora
                 when 3 then Blower::FiveSpeed.new(self, registers[404])
                 else; Blower::PSC.new(self, registers[404])
                 end
+      @pump = if (3..5).include?(raw_registers[413])
+                Pump::VSPump.new(self,
+                                 registers[413])
+              else
+                Pump::GenericPump.new(self,
+                                      registers[413])
+              end
 
       @zones = if iz2?
                  iz2_zone_count = @modbus_slave.holding_registers[483]
@@ -121,10 +128,11 @@ module Aurora
     end
 
     def refresh
-      registers_to_read = [6, 19..20, 25, 30, 344, 740..741, 900, 1110..1111, 1114, 1117, 1147..1153, 1165,
+      registers_to_read = [6, 19..20, 25, 30, 344, 740..741, 900, 1110..1111, 1114, 1147..1153, 1165,
                            31_003]
       registers_to_read << (400..401) if dhw?
       registers_to_read.concat(blower.registers_to_read)
+      registers_to_read.concat(pump.registers_to_read)
       registers_to_read.concat([362, 3001]) if vs_drive?
 
       if zones.first.is_a?(IZ2Zone)
@@ -156,7 +164,6 @@ module Aurora
       @leaving_water_temperature  = registers[1110]
       @entering_water_temperature = registers[1111]
       @dhw_water_temperature      = registers[1114]
-      @waterflow                  = registers[1117]
       @compressor_speed = if vs_drive?
                             registers[3001]
                           elsif outputs.include?(:cc2)
@@ -175,7 +182,6 @@ module Aurora
       @safe_mode                  = [47, 48, 49, 72, 74].include?(@error)
       @compressor_watts           = registers[1147]
       @aux_heat_watts             = registers[1151]
-      @loop_pump_watts            = registers[1165]
       @total_watts                = registers[1153]
 
       @current_mode = if outputs.include?(:lockout)
@@ -197,6 +203,7 @@ module Aurora
                       end
 
       blower.refresh(registers)
+      pump.refresh(registers)
 
       zones.each do |z|
         z.refresh(registers)
