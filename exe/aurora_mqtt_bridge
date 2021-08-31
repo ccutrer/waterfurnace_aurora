@@ -127,10 +127,13 @@ class MQTTBridge
 
   def publish_basic_attributes
     @homie_abc = @homie.node("abc", "Aurora Basic Control", "ABC") do |node|
-      node.property("compressor-speed", "Compressor Speed", :integer, @abc.compressor_speed, format: 0..1)
+      node.property("compressor-speed", "Compressor Speed", :integer, @abc.compressor_speed,
+                    format: @abc.vs? ? 0..12 : 0..2)
       node.property("current-mode", "Current Heating/Cooling Mode", :enum, @abc.current_mode,
-                    format: %w[lockout standby blower h1 h2 c1 c2 eh1 eh2])
-      node.property("dhw-water-temperature", "DHW Water Temperature", :float, @abc.dhw_water_temperature, unit: "ºF")
+                    format: %w[lockout standby blower heating cooling eh1 eh2 emergency waiting dehumidify])
+      if @abc.dhw?
+        node.property("dhw-water-temperature", "DHW Water Temperature", :float, @abc.dhw_water_temperature, unit: "ºF")
+      end
       node.property("entering-air-temperature", "Entering Air Temperature", :float, @abc.entering_air_temperature,
                     unit: "ºF")
       node.property("entering-water-temperature", "Entering Water Temperature", :float,

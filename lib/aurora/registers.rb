@@ -202,14 +202,14 @@ module Aurora
   #  Off
 
   SYSTEM_INPUTS = {
-    0x01 => "Y1",
-    0x02 => "Y2",
-    0x04 => "W",
-    0x08 => "O",
-    0x10 => "G",
-    0x20 => "Dehumidifer",
-    0x40 => "Emergency Shutdown",
-    0x200 => "Load Shed"
+    0x01 => :y1,
+    0x02 => :y2,
+    0x04 => :w,
+    0x08 => :o,
+    0x10 => :g,
+    0x20 => :dh_rh,
+    0x40 => :emergency_shutdown,
+    0x200 => :load_shed
   }.freeze
 
   def status(value)
@@ -217,9 +217,10 @@ module Aurora
       lps: value & 0x80 == 0x80 ? :closed : :open,
       hps: value & 0x100 == 0x100 ? :closed : :open
     }
-    result[:load_shed] = true if value & 0x0200 == 0x0200
-    result[:emergency_shutdown] = true if value & 0x0040 == 0x0040
-    leftover = value & ~0x03c0
+    SYSTEM_INPUTS.each do |(i, name)|
+      result[name] = true if value & i == i
+    end
+    leftover = value & ~0x03ff
     result[:unknown] = format("0x%04x", leftover) unless leftover.zero?
     result
   end
@@ -338,6 +339,12 @@ module Aurora
     value
   end
 
+  def thermostat_override(value)
+    return [:off] if value == 0x7fff
+
+    from_bitmask(value, SYSTEM_INPUTS)
+  end
+
   def iz2_demand(value)
     {
       fan_demand: value >> 8,
@@ -429,6 +436,7 @@ module Aurora
     ->(v) { from_bitmask(v, SYSTEM_OUTPUTS) } => [27, 30],
     ->(v) { from_bitmask(v, SYSTEM_INPUTS) } => [28],
     method(:status) => [31],
+    method(:thermostat_override) => [32],
     ->(v) { !v.zero? } => [45, 362, 400],
     ->(registers, idx) { to_string(registers, idx, 4) } => [88],
     ->(registers, idx) { to_string(registers, idx, 12) } => [92],
@@ -630,6 +638,7 @@ module Aurora
     28 => "System Inputs (At Last Lockout)",
     30 => "System Outputs",
     31 => "Status",
+    32 => "Thermostat Input Override",
     33 => "DIP Switch Status",
     36 => "ABC Board Rev",
     45 => "Test Mode (write)", # 1 to enable
