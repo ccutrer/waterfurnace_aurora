@@ -1,16 +1,14 @@
 # frozen_string_literal: true
 
+require "aurora/component"
+
 module Aurora
-  class Thermostat
+  class Thermostat < Component
     attr_reader :target_mode,
                 :target_fan_mode,
                 :ambient_temperature,
                 :cooling_target_temperature,
                 :heating_target_temperature
-
-    def initialize(abc)
-      @abc = abc
-    end
 
     def refresh(registers)
       @ambient_temperature = registers[502]

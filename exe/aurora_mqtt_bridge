@@ -78,6 +78,10 @@ class MQTTBridge
             property.value = @abc.public_send(property.id.tr("-", "_"))
           end
 
+          @blower.each do |property|
+            property.value = @abc.blower.public_send(property.id.tr("-", "_"))
+          end
+
           if @abc.dhw?
             @dhw["enabled"].value = @abc.dhw_enabled
             @dhw["water-temperature"].value = @abc.dhw_water_temperature
@@ -113,7 +117,6 @@ class MQTTBridge
                     unit: "ºF")
       node.property("entering-water-temperature", "Entering Water Temperature", :float,
                     @abc.entering_water_temperature, unit: "ºF")
-      node.property("fan-speed", "Fan Speed", :integer, @abc.fan_speed, format: 0..11)
       node.property("leaving-air-temperature", "Leaving Air Temperature", :float, @abc.leaving_air_temperature,
                     unit: "ºF")
       node.property("leaving-water-temperature", "Leaving Water Temperature", :float, @abc.leaving_water_temperature,
@@ -126,19 +129,32 @@ class MQTTBridge
       node.property("waterflow", "Waterflow", :float, @abc.waterflow, unit: "gpm")
       node.property("fp1", "FP1 Sensor", :float, @abc.fp1, unit: "ºF")
       node.property("fp2", "FP2 Sensor", :float, @abc.fp2, unit: "ºF")
-      %i[compressor blower aux_heat loop_pump total].each do |component|
+      %i[compressor aux_heat loop_pump total].each do |component|
         component = "#{component}_watts"
         node.property(component.tr("_", "-"), component.tr("_", " ").titleize, :integer,
                       @abc.public_send(component), unit: "W")
       end
+    end
 
-      node.property("blower-only-ecm-speed", "Blower Only ECM Speed", :integer, @abc.blower_only_ecm_speed,
-                    format: 1..12) do |value, property|
-        @mutex.synchronize { property.value = @abc.blower_only_ecm_speed = value }
+    @blower = @homie.node("blower", "Blower", @abc.blower.type) do |node|
+      if @abc.blower.respond_to?(:running)
+        node.property("running", "Blower is running", :boolean, @abc.blower.running?)
+      else
+        node.property("speed", "Current blower speed", :integer, @abc.blower.speed, format: @abc.blower.speed_range)
       end
-      node.property("aux-heat-ecm-speed", "Aux Heat ECM Speed", :integer, @abc.aux_heat_ecm_speed,
-                    format: 1..12) do |value, property|
-        @mutex.synchronize { property.value = @abc.aux_heat_ecm_speed = value }
+      node.property("watts", "Energy Usage", :integer, @abc.blower.watts, unit: "W") if @abc.energy_monitoring?
+      if @abc.blower.is_a?(Aurora::Blower::ECM)
+        %w[blower-only low-compressor high-compressor aux-heat].each do |setting|
+          field = "#{setting.tr('-', '_')}_speed"
+          node.property("#{setting}-speed", "#{setting.tr('-', ' ').titleize} Speed", :integer,
+                        @abc.blower.public_send(field), format: 1..12) do |value, property|
+            @mutex.synchronize { property.value = @abc.blower.public_send("#{field}=", value) }
+          end
+        end
+        if @abc.iz2?
+          node.property("iz2-desired-speed", "IZ2 Desired Speed", :integer, @abc.blower.iz2_desired_speed,
+                        format: 0..100, unit: "%")
+        end
       end
     end
 

@@ -3,6 +3,10 @@
 require "yaml"
 require "uri"
 
+require "aurora/blower"
+require "aurora/iz2_zone"
+require "aurora/thermostat"
+
 module Aurora
   class ABCClient
     class << self
@@ -35,9 +39,9 @@ module Aurora
     attr_reader :modbus_slave,
                 :serial_number,
                 :zones,
+                :blower,
                 :faults,
                 :current_mode,
-                :fan_speed,
                 :dhw_enabled,
                 :dhw_setpoint,
                 :entering_air_temperature,
@@ -51,10 +55,7 @@ module Aurora
                 :outdoor_temperature,
                 :fp1,
                 :fp2,
-                :blower_only_ecm_speed,
-                :aux_heat_ecm_speed,
                 :compressor_watts,
-                :blower_watts,
                 :aux_heat_watts,
                 :loop_pump_watts,
                 :total_watts
@@ -63,10 +64,18 @@ module Aurora
       @modbus_slave = self.class.open_modbus_slave(uri)
       @modbus_slave.read_retry_timeout = 15
       @modbus_slave.read_retries = 2
-      registers = Aurora.transform_registers(@modbus_slave.holding_registers[88..91, 105...110, 1114])
+      raw_registers = @modbus_slave.holding_registers[88..91, 105...110, 404, 412, 1114]
+      registers = Aurora.transform_registers(raw_registers.dup)
       @program = registers[88]
       @serial_number = registers[105]
       @dhw_water_temperature = registers[1114]
+      @energy_monitor = raw_registers[412]
+
+      @blower = case raw_registers[404]
+                when 1, 2 then Blower::ECM.new(self, registers[404])
+                when 3 then Blower::FiveSpeed.new(self, registers[404])
+                else; Blower::PSC.new(self, registers[404])
+                end
 
       @zones = if iz2?
                  iz2_zone_count = @modbus_slave.holding_registers[483]
@@ -112,9 +121,10 @@ module Aurora
     end
 
     def refresh
-      registers_to_read = [6, 19..20, 25, 30, 340, 344, 347, 740..741, 900, 1110..1111, 1114, 1117, 1147..1153, 1165,
+      registers_to_read = [6, 19..20, 25, 30, 344, 740..741, 900, 1110..1111, 1114, 1117, 1147..1153, 1165,
                            31_003]
       registers_to_read << (400..401) if dhw?
+      registers_to_read.concat(blower.registers_to_read)
       registers_to_read.concat([362, 3001]) if vs_drive?
 
       if zones.first.is_a?(IZ2Zone)
@@ -138,7 +148,6 @@ module Aurora
 
       outputs = registers[30]
 
-      @fan_speed                  = registers[344]
       @dhw_enabled                = registers[400]
       @dhw_setpoint               = registers[401]
       @entering_air_temperature   = registers[740]
@@ -164,10 +173,7 @@ module Aurora
       @error                      = registers[25] & 0x7fff
       @derated                    = (41..46).include?(@error)
       @safe_mode                  = [47, 48, 49, 72, 74].include?(@error)
-      @blower_only_ecm_speed      = registers[340]
-      @aux_heat_ecm_speed         = registers[347]
       @compressor_watts           = registers[1147]
-      @blower_watts               = registers[1149]
       @aux_heat_watts             = registers[1151]
       @loop_pump_watts            = registers[1165]
       @total_watts                = registers[1153]
@@ -189,6 +195,8 @@ module Aurora
                       else
                         :standby
                       end
+
+      blower.refresh(registers)
 
       zones.each do |z|
         z.refresh(registers)
@@ -277,6 +285,10 @@ module Aurora
       @modbus_slave.holding_registers[323] = pump_speed == :with_compressor ? 0x7fff : pump_speed
     end
 
+    def energy_monitoring?
+      @energy_monitor == 2
+    end
+
     def vs_drive?
       @program == "ABCVSP"
     end
@@ -289,7 +301,8 @@ module Aurora
     { thermostat: 800, axb: 806, iz2: 812, aoc: 815, moc: 818, eev2: 824 }.each do |(component, register)|
       class_eval <<-RUBY, __FILE__, __LINE__ + 1
         def #{component}?
-          @modbus_slave.holding_registers[#{register}] != 3
+          return @#{component} if instance_variable_defined?(:@#{component})
+          @#{component} = @modbus_slave.holding_registers[#{register}] != 3
         end
 
         def add_#{component}

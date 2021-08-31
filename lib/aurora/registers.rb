@@ -234,13 +234,6 @@ module Aurora
     0x800 => :alarm
   }.freeze
 
-  # 5-speed ECM shows
-  #  Aux if eh1 is on
-  #  High if cc2 is on
-  #  Med if cc1 is on
-  #  Low if blower is on
-  #  Off
-
   SYSTEM_INPUTS = {
     0x01 => :y1,
     0x02 => :y2,
