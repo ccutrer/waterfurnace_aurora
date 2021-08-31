@@ -144,9 +144,11 @@ class MQTTBridge
       end
       node.property("watts", "Energy Usage", :integer, @abc.blower.watts, unit: "W") if @abc.energy_monitoring?
       if @abc.blower.is_a?(Aurora::Blower::ECM)
-        %w[blower-only low-compressor high-compressor aux-heat].each do |setting|
+        presets = %w[blower-only aux-heat]
+        presets.concat %w[low-compressor high-compressor] unless @abc.iz2?
+        presets.each do |setting|
           field = "#{setting.tr('-', '_')}_speed"
-          node.property("#{setting}-speed", "#{setting.tr('-', ' ').titleize} Speed", :integer,
+          node.property("#{setting}-speed", "#{setting.tr('-', ' ').titleize} Preset Speed", :integer,
                         @abc.blower.public_send(field), format: 1..12) do |value, property|
             @mutex.synchronize { property.value = @abc.blower.public_send("#{field}=", value) }
           end
