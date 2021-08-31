@@ -30,7 +30,7 @@ end
 
 options.parse!
 
-unless ARGV.length == 2
+unless ARGV.length == 1
   puts options
   exit 1
 end
@@ -39,8 +39,8 @@ uri = URI.parse(ARGV[0])
 
 last_registers = {}
 
-SENSOR_REGISTERS = [16, 19, 20, 740, 900, 1109, 1105, 1106, 1107, 1108, 1110, 1111, 1114, 1117, 1134, 1147, 1149, 1151,
-                    1153, 1165].freeze
+SENSOR_REGISTERS = [16, 19, 20, 740, 900, 901, 903, 908, 909, 1109, 1105, 1106, 1107, 1108, 1110, 1111, 1114, 1117,
+                    1134, 1148, 1149, 1150, 1151, 1152, 1153, 1164, 1165, 3326, 3330].freeze
 
 io = case uri.scheme
      when "tcp"
