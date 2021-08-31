@@ -78,6 +78,12 @@ class MQTTBridge
             property.value = @abc.public_send(property.id.tr("-", "_"))
           end
 
+          if @abc.dhw?
+            @dhw["enabled"].value = @abc.dhw_enabled
+            @dhw["water-temperature"].value = @abc.dhw_water_temperature
+            @dhw["set-point"].value = @abc.dhw_setpoint
+          end
+
           @abc.faults.each_with_index do |fault_count, i|
             @faults["e#{i + 1}"].value = fault_count
           end
@@ -100,12 +106,9 @@ class MQTTBridge
   def publish_basic_attributes
     @homie_abc = @homie.node("abc", "Aurora Basic Control", "ABC") do |node|
       node.property("compressor-speed", "Compressor Speed", :integer, @abc.compressor_speed,
-                    format: @abc.vs? ? 0..12 : 0..2)
+                    format: @abc.vs_drive? ? 0..12 : 0..2)
       node.property("current-mode", "Current Heating/Cooling Mode", :enum, @abc.current_mode,
                     format: %w[lockout standby blower heating cooling eh1 eh2 emergency waiting dehumidify])
-      if @abc.dhw?
-        node.property("dhw-water-temperature", "DHW Water Temperature", :float, @abc.dhw_water_temperature, unit: "ºF")
-      end
       node.property("entering-air-temperature", "Entering Air Temperature", :float, @abc.entering_air_temperature,
                     unit: "ºF")
       node.property("entering-water-temperature", "Entering Water Temperature", :float,
@@ -136,6 +139,20 @@ class MQTTBridge
       node.property("aux-heat-ecm-speed", "Aux Heat ECM Speed", :integer, @abc.aux_heat_ecm_speed,
                     format: 1..12) do |value, property|
         @mutex.synchronize { property.value = @abc.aux_heat_ecm_speed = value }
+      end
+    end
+
+    if @abc.dhw?
+      @dhw = @homie.node("dhw", "Domestic Hot Water Generator", "DHW") do |node|
+        node.property("enabled", "Enabled", :boolean, @abc.dhw_enabled) do |value, property|
+          @mutex.synchronize { property.value = @abc.dhw_enabled = value }
+        end
+        node.property("water-temperature", "DHW Water Temperature", :float,
+                      @abc.dhw_water_temperature, unit: "ºF")
+        node.property("set-point", "DHW Set Point", :float, @abc.dhw_setpoint, format: 100..140,
+                                                                               unit: "ºF") do |value, property|
+          @mutex.synchronize { property.value = @abc.dhw_setpoint = value }
+        end
       end
     end
 

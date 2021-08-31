@@ -38,6 +38,8 @@ module Aurora
                 :faults,
                 :current_mode,
                 :fan_speed,
+                :dhw_enabled,
+                :dhw_setpoint,
                 :entering_air_temperature,
                 :relative_humidity,
                 :leaving_air_temperature,
@@ -61,9 +63,10 @@ module Aurora
       @modbus_slave = self.class.open_modbus_slave(uri)
       @modbus_slave.read_retry_timeout = 15
       @modbus_slave.read_retries = 2
-      registers = Aurora.transform_registers(@modbus_slave.holding_registers[88..91, 105...110])
+      registers = Aurora.transform_registers(@modbus_slave.holding_registers[88..91, 105...110, 1114])
       @program = registers[88]
       @serial_number = registers[105]
+      @dhw_water_temperature = registers[1114]
 
       @zones = if iz2?
                  iz2_zone_count = @modbus_slave.holding_registers[483]
@@ -111,7 +114,8 @@ module Aurora
     def refresh
       registers_to_read = [6, 19..20, 25, 30, 340, 344, 347, 740..741, 900, 1110..1111, 1114, 1147..1153, 1165,
                            31_003]
-      registers_to_read.concat([362, 3001]) if vs?
+      registers_to_read << (400..401) if dhw?
+      registers_to_read.concat([362, 3001]) if vs_drive?
 
       if zones.first.is_a?(IZ2Zone)
         zones.each_with_index do |_z, i|
@@ -135,18 +139,20 @@ module Aurora
       outputs = registers[30]
 
       @fan_speed                  = registers[344]
+      @dhw_enabled                = registers[400]
+      @dhw_setpoint               = registers[401]
       @entering_air_temperature   = registers[740]
       @relative_humidity          = registers[741]
       @leaving_air_temperature    = registers[900]
       @leaving_water_temperature  = registers[1110]
       @entering_water_temperature = registers[1111]
-      @dhw_water_temperature      = registers[1114] if dhw?
+      @dhw_water_temperature      = registers[1114]
       @waterflow                  = registers[1117]
-      @compressor_speed = if vs?
+      @compressor_speed = if vs_drive?
                             registers[3001]
                           elsif outputs.include?(:cc2)
                             2
-                          elsif outputs.include?(:cc1)
+                          elsif outputs.include?(:cc)
                             1
                           else
                             0
@@ -211,7 +217,9 @@ module Aurora
     end
 
     def dhw_setpoint=(value)
-      @modbus_slave.holding_registers[401] = value
+      raise ArgumentError unless (100..140).include?(value)
+
+      @modbus_slave.holding_registers[401] = (value * 10).to_i
     end
 
     def loop_pressure_trip=(value)
@@ -269,12 +277,12 @@ module Aurora
       @modbus_slave.holding_registers[323] = pump_speed == :with_compressor ? 0x7fff : pump_speed
     end
 
-    def vs?
+    def vs_drive?
       @program == "ABCVSP"
     end
 
     def dhw?
-      vs?
+      (-999..999).include?(dhw_water_temperature)
     end
 
     # config aurora system

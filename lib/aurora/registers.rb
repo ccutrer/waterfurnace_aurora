@@ -830,7 +830,7 @@ module Aurora
     1111 => "Entering Water",
     1112 => "Leaving Air Temperature",
     1113 => "Suction Temperature",
-    1114 => "DHW Temp",
+    1114 => "DHW Temperature",
     1115 => "Discharge Pressure",
     1116 => "Suction Pressure",
     1117 => "Waterflow",
