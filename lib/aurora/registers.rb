@@ -142,6 +142,45 @@ module Aurora
     5 => :dirty_filter
   }.freeze
 
+  BRINE_TYPE = Hash.new("Water").merge!(
+    485 => "Antifreeze"
+  ).freeze
+
+  FLOW_METER_TYPE = Hash.new("Other").merge!(
+    0 => "None",
+    1 => '3/4"',
+    2 => '1"'
+  ).freeze
+
+  PUMP_TYPE = Hash.new("Other").merge!(
+    0 => "Open Loop",
+    1 => "FC1",
+    2 => "FC2",
+    3 => "VS Pump",
+    4 => "VS Pump + 26-99",
+    5 => "VS Pump + UPS26-99",
+    6 => "FC1_GLNP",
+    7 => "FC2_GLNP"
+  ).freeze
+
+  PHASE_TYPE = Hash.new("Other").merge!(
+    0 => "Single",
+    1 => "Three"
+  ).freeze
+
+  BLOWER_TYPE = Hash.new("Other").merge!(
+    0 => "PSC",
+    1 => "ECM 208/230",
+    2 => "ECM 265/277",
+    3 => "5 Speed ECM 460"
+  ).freeze
+
+  ENERGY_MONITOR_TYPE = Hash.new("Other").merge!(
+    0 => "None",
+    1 => "Compressor Monitor",
+    2 => "Energy Monitor"
+  ).freeze
+
   VS_FAULTS = {
     "Under-Voltage Warning" => (71..77),
     "RPM Sensor Signal Fault" => (78..82),
@@ -157,8 +196,8 @@ module Aurora
 
   AR_SETTINGS = {
     0 => "Cycle with Compressor",
-    1 => "Cycle with Thermostat Humidification Call",
-    2 => "Slow Opening Water Valve",
+    1 => "Slow Opening Water Valve",
+    2 => "Cycle with Thermostat Humidification Call",
     3 => "Cycle with Blower"
   }.freeze
 
@@ -169,17 +208,18 @@ module Aurora
       fp1: value & 0x01 == 0x01 ? "30ºF" : "15ºF",
       fp2: value & 0x02 == 0x02 ? "30ºF" : "15ºF",
       rv: value & 0x04 == 0x04 ? "O" : "B",
-      ar: AR_SETTINGS[(value >> 3) & 0x7],
+      ar: AR_SETTINGS[(value >> 3) & 0x3],
       cc: value & 0x20 == 0x20 ? "Single Stage" : "Dual Stage",
       lo: value & 0x40 == 0x40 ? "Continouous" : "Pulse",
-      dh_rh: value & 0x80 == 0x80 ? "Dehumdifier On" : "Reheat On"
+      dh_rh: value & 0x80 == 0x80 ? "Dehumidifier On" : "Reheat On"
     }
   end
 
   COMPONENT_STATUS = {
     1 => :active,
     2 => :added,
-    3 => :removed
+    3 => :removed,
+    0xffff => :missing
   }.freeze
 
   SYSTEM_OUTPUTS = {
@@ -267,13 +307,36 @@ module Aurora
 
   }.freeze
 
-  AXB_INPUTS = {
-  }.freeze
+  def axb_inputs(value)
+    result = {}
+    result["Smart Grid"] = value & 0x001 == 0x001
+    result["Home Automation 1"] = value & 0x002 == 0x002
+    result["Home Automation 2"] = value & 0x004 == 0x004
+    result["Pump Slave"] = value & 0x008 == 0x008
+
+    result[:mb_address] = value & 0x010 == 0x010 ? 3 : 4
+    result[:sw1_2] = value & 0x020 == 0x020 # future use # rubocop:disable Naming/VariableNumber
+    result[:sw1_3] = value & 0x040 == 0x040 # future use # rubocop:disable Naming/VariableNumber
+    result[:cycle_with] = if value & 0x080 == 0x080 && value & 0x100 == 0x100
+                            "Blower"
+                          elsif value & 0x100 == 0x100
+                            "Low Capacity Compressor"
+                          elsif value & 0x080 == 0x080
+                            "High Capacity Compressor"
+                          else
+                            "Thermostat Dehumidifier"
+                          end
+    leftover = value & ~0x1ff
+    result[:unknown] = format("0x%04x", leftover) unless leftover.zero?
+    result
+  end
 
   AXB_OUTPUTS = {
-    0x10 => "Accessory 2",
-    0x02 => "Loop Pump",
-    0x01 => "DHW"
+    0x01 => :dhw,
+    0x02 => :loop_pump,
+    0x04 => :diverting_valve,
+    0x08 => :dehumidifer_reheat,
+    0x10 => :accessory2
   }.freeze
 
   HEATING_MODE = {
@@ -418,11 +481,11 @@ module Aurora
   # intermittent off time allowed: 5, 10, 15, 20, 25, 30, 35, 40
 
   REGISTER_CONVERTERS = {
-    TO_HUNDREDTHS => [2, 3, 801, 807, 813, 816, 817, 819, 820, 825, 828],
+    TO_HUNDREDTHS => [2, 3, 417, 418, 801, 804, 807, 813, 816, 817, 819, 820, 825, 828],
     method(:dipswitch_settings) => [4, 33],
     TO_TENTHS => [19, 20, 401, 419, 501, 502, 567, 740, 745, 746, 747, 900,
-                  1105, 1106, 1107, 1108, 1110, 1111, 1114, 1117, 1134, 1136,
-                  3327, 3522,
+                  1105, 1106, 1107, 1108, 1109, 1110, 1111, 1112, 1113, 1114, 1115, 1116, 1117, 1119, 1124, 1125, 1134,
+                  3322, 3323, 3325, 3326, 3327, 3330, 3522, 3903, 3905, 3906,
                   12_619, 12_620,
                   21_203, 21_204,
                   21_212, 21_213,
@@ -448,17 +511,23 @@ module Aurora
     ->(v) { from_bitmask(v, VS_EEV2) } => [280, 3804],
     method(:vs_manual_control) => [323],
     NEGATABLE => [346, 1146],
+    ->(v) { BRINE_TYPE[v] } => [402],
+    ->(v) { FLOW_METER_TYPE[v] } => [403],
+    ->(v) { BLOWER_TYPE[v] } => [404],
     ->(v) { v.zero? ? :closed : :open } => [405, 408, 410],
     ->(v) { SMARTGRID_ACTION[v] } => [406],
     ->(v) { HA_ALARM[v] } => [409, 411],
+    ->(v) { ENERGY_MONITOR_TYPE[v] } => [412],
+    ->(v) { PUMP_TYPE[v] } => [413],
+    ->(v) { PHASE_TYPE[v] } => [416],
     method(:iz2_fan_desired) => [565],
     ->(registers, idx) { to_string(registers, idx, 8) } => [710],
-    ->(v) { COMPONENT_STATUS[v] } => [800, 806, 812, 815, 818, 824, 827],
-    ->(v) { from_bitmask(v, AXB_INPUTS) } => [1103],
+    ->(v) { COMPONENT_STATUS[v] } => [800, 803, 806, 812, 815, 818, 824, 827],
+    method(:axb_inputs) => [1103],
     ->(v) { from_bitmask(v, AXB_OUTPUTS) } => [1104],
-    ->(v) { TO_TENTHS.call(NEGATABLE.call(v)) } => [1136],
+    ->(v) { TO_TENTHS.call(NEGATABLE.call(v)) } => [1135, 1136],
+    method(:to_int32) => [1146, 1148, 1150, 1152, 1154, 1156, 1164, 3422, 3424],
     method(:manual_operation) => [3002],
-    method(:to_int32) => [3422, 3424],
     ->(v) { HEATING_MODE[v] } => [12_606, 21_202, 21_211, 21_220, 21_229, 21_238, 21_247],
     ->(v) { FAN_MODE[v] } => [12_621, 21_205, 21_214, 21_223, 21_232, 21_241, 21_250],
     ->(v) { from_bitmask(v, HUMIDIFIER_SETTINGS) } => [31_109],
@@ -476,10 +545,11 @@ module Aurora
   }.freeze
 
   REGISTER_FORMATS = {
-    "%ds" => [1, 6, 9, 15, 84, 85],
+    "%ds" => [1, 6, 9, 15, 84, 85, 110],
     "%dV" => [16, 112, 3331, 3424, 3523],
-    "%0.1fºF" => [19, 20, 401, 501, 502, 567, 740, 745, 746, 747, 900, 1110, 1111, 1114, 1134, 1136,
-                  3327, 3522,
+    "%0.1fºF" => [19, 20, 401, 501, 502, 567, 740, 745, 746, 747, 900,
+                  1109, 1110, 1111, 1112, 1113, 1114, 1124, 1125, 1134, 1135, 1136,
+                  3325, 3326, 3327, 3330, 3522, 3903, 3905, 3906,
                   12_619, 12_620,
                   21_203, 21_204,
                   21_212, 21_213,
@@ -490,16 +560,17 @@ module Aurora
                   31_003,
                   31_007, 31_010, 31_013, 31_016, 31_019, 31_022],
     "E%d" => [25, 26],
-    "%d%%" => [282, 321, 322, 346, 565, 741, 3332, 3524],
-    "%0.1f psi" => [419],
+    "%d%%" => [282, 321, 322, 325, 346, 565, 741, 1126, 3332, 3524, 3808],
+    "%0.1f psi" => [419, 1115, 1116, 1119, 3322, 3323],
     "%0.1fA" => [1105, 1106, 1107, 1108],
     "%0.1fgpm" => [1117],
-    "%dW" => [1147, 1149, 1151, 1153, 1165, 3422],
-    "%dBtuh" => [1157]
+    "%dW" => [1146, 1148, 1150, 1152, 1164, 3422],
+    "%dBtuh" => [1154, 1156]
   }.freeze
 
-  def ignore(range)
-    range = (range..range) if range.is_a?(Integer)
+  def ignore(*range)
+    range = range.first if range.length == 1
+    range = [range] if range.is_a?(Integer)
     range.zip(Array.new(range.count)).to_h
   end
 
@@ -629,7 +700,9 @@ module Aurora
     9 => "Compressor Minimum Run Time",
     15 => "Blower Off Delay",
     16 => "Line Voltage",
-    19 => "FP1",
+    17 => "Aux/E Heat Stage", # this has some complicated condition based on
+    # current inputs and outputs on if it should have a value (310 - v) or (130 - v), or be 0
+    19 => "FP1 (Cooling Liquid Line) Temperature",
     20 => "FP2",
     21 => "Condensate", # >= 270 normal, otherwise fault
     25 => "Last Fault Number", # high bit set if locked out
@@ -652,7 +725,8 @@ module Aurora
     88 => "ABC Program",
     92 => "Model Number",
     105 => "Serial Number",
-    112 => "Setup Line Voltage",
+    110 => "Reheat Delay",
+    112 => "Line Voltage Setting",
     201 => "Discharge Pressure", # I can't figure out how this number is represented;
     203 => "Suction Pressure",
     205 => "Discharge Temperature",
@@ -674,6 +748,7 @@ module Aurora
     321 => "VS Pump Min",
     322 => "VS Pump Max",
     323 => "VS Pump Speed Manual Control",
+    325 => "VS Pump Output",
     326 => "VS Pump Fault",
     340 => "Blower Only Speed",
     341 => "Lo Compressor ECM Speed",
@@ -682,21 +757,28 @@ module Aurora
     346 => "Cooling Airflow Adjustment",
     347 => "Aux Heat ECM Speed",
     362 => "Active Dehumidify", # any value is true
-    460 => "IZ2??",
-    461 => "IZ2??",
-    462 => "IZ2 Status", # 5 when online; 1 when in setup mode
     400 => "DHW Enabled",
     401 => "DHW Setpoint",
-    # 403 => "DHW Status", just a guess, based on AID Tool querying this register while showing DHW settings
+    402 => "Brine Type",
+    403 => "Flow Meter Type",
+    404 => "Blower Type",
     405 => "SmartGrid Trigger",
     406 => "SmartGrid Action", # 0/1 for 1/2; see 414
     407 => "Off Time Length",
     408 => "HA Alarm 1 Trigger",
     409 => "HA Alarm 1 Action",
-    410 => "HA Alaram 2 Trigger",
+    410 => "HA Alarm 2 Trigger",
     411 => "HA Alarm 2 Action",
+    412 => "Energy Monitor", # 0 none, 1 compressor monitor, 2 energy monitor
+    413 => "Pump Type",
     414 => "On Peak/SmartGrid", # 0x0001 only
+    416 => "Energy Phase Type",
+    417 => "Power Adjustment Factor L",
+    418 => "Power Adjustment Factor H",
     419 => "Loop Pressure Trip",
+    460 => "IZ2 Heartbeat?",
+    461 => "IZ2 Heartbeat?",
+    462 => "IZ2 Status", # 5 when online; 1 when in setup mode
     483 => "Number of IZ2 Zones",
     501 => "Set Point", # only read by AID tool? this is _not_ heating/cooling set point
     502 => "Ambient Temperature",
@@ -712,6 +794,9 @@ module Aurora
     800 => "Thermostat Installed",
     801 => "Thermostat Version",
     802 => "Thermostat Revision",
+    803 => "??? Installed",
+    804 => "??? Version",
+    805 => "??? Revision",
     806 => "AXB Installed",
     807 => "AXB Version",
     808 => "AXB Revision",
@@ -740,19 +825,29 @@ module Aurora
     1106 => "Aux Amps",
     1107 => "Compressor 1 Amps",
     1108 => "Compressor 2 Amps",
-    1109 => "Heating Liquid Line",
+    1109 => "Heating Liquid Line Temperature",
     1110 => "Leaving Water",
     1111 => "Entering Water",
+    1112 => "Leaving Air Temperature",
+    1113 => "Suction Temperature",
     1114 => "DHW Temp",
+    1115 => "Discharge Pressure",
+    1116 => "Suction Pressure",
     1117 => "Waterflow",
-    1134 => "Saturated Discharge Temperature",
-    1135 => "SubCooling",
-    1147 => "Compressor Watts",
-    1149 => "Blower Watts",
-    1151 => "Aux Watts",
-    1153 => "Total Watts",
-    1157 => "Ht of Rej",
-    1165 => "VS Pump Watts",
+    1119 => "Loop Pressure", # only valid < 1000psi
+    1124 => "Saturated Evaporator Temperature",
+    1125 => "SuperHeat",
+    1126 => "Vaport Injector Open %",
+    1134 => "Saturated Condensor Discharge Temperature",
+    1135 => "SubCooling (Heating)",
+    1136 => "SubCooling (Cooling)",
+    1146 => "Compressor Watts",
+    1148 => "Blower Watts",
+    1150 => "Aux Watts",
+    1152 => "Total Watts",
+    1154 => "Heat of Extraction",
+    1156 => "Heat of Rejection",
+    1164 => "Pump Watts",
     12_606 => "Heating Mode (write)",
     12_619 => "Heating Setpoint (write)",
     12_620 => "Cooling Setpoint (write)",
@@ -770,6 +865,11 @@ module Aurora
     3226 => "VS Drive Details (Alarm 1)",
     3227 => "VS Drive Details (Alarm 2)",
     3327 => "VS Drive Temperature",
+    3322 => "VS Drive Discharge Pressure",
+    3323 => "VS Drive Suction Pressure",
+    3325 => "VS Drive Discharge Temperature",
+    3326 => "VS Drive Compressor Ambient Temperature",
+    3330 => "VS Drive Entering Water Temperature",
     3331 => "VS Drive Line Voltage",
     3332 => "VS Drive Thermo Power",
     3422 => "VS Drive Compressor Power",
@@ -778,7 +878,11 @@ module Aurora
     3523 => "VS Drive UDC Voltage",
     3524 => "VS Drive Fan Speed",
     3804 => "VS Drive Details (EEV2 Ctl)",
-    3904 => "Leaving Air Temperature?",
+    3808 => "VS Drive SuperHeat Percent",
+    3903 => "VS Drive Suction Temperature",
+    3904 => "VS Drive Leaving Air Temperature?",
+    3905 => "VS Drive Saturated Evaporator Discharge Temperature",
+    3906 => "VS Drive SuperHeat Temperature",
     31_003 => "Outdoor Temp",
     31_005 => "IZ2 Demand",
     31_109 => "Humidifier Mode", # write to 21114
@@ -795,8 +899,8 @@ module Aurora
                    .merge(faults(601..699))
                    .merge(ignore(711..717))
                    .merge(zone_registers)
-                   .merge(ignore(3423))
-                   .merge(ignore(3425))
+                   .merge(ignore(1147, 1149, 1151, 1153, 1155, 1157, 1165))
+                   .merge(ignore(3423, 3425))
                    .merge(ignore(31_401..31_412))
                    .merge(ignore(31_414..31_420))
                    .merge(ignore(31_422..31_433))
