@@ -1,7 +1,37 @@
 # frozen_string_literal: true
 
+require "yaml"
+require "uri"
+
 module Aurora
   class ABCClient
+    class << self
+      def open_modbus_slave(uri)
+        uri = URI.parse(uri)
+
+        io = case uri.scheme
+             when "tcp"
+               require "socket"
+               TCPSocket.new(uri.host, uri.port)
+             when "telnet", "rfc2217"
+               require "net/telnet/rfc2217"
+               Net::Telnet::RFC2217.new(uri.host,
+                                        port: uri.port || 23,
+                                        baud: 19_200,
+                                        parity: :even)
+
+             else
+               return Aurora::MockABC.new(YAML.load_file(uri.path)) if File.file?(uri.path)
+
+               require "ccutrer-serialport"
+               CCutrer::SerialPort.new(uri.path, baud: 19_200, parity: :even)
+             end
+
+        client = ::ModBus::RTUClient.new(io)
+        client.with_slave(1)
+      end
+    end
+
     attr_reader :modbus_slave,
                 :serial_number,
                 :zones,
@@ -27,8 +57,8 @@ module Aurora
                 :loop_pump_watts,
                 :total_watts
 
-    def initialize(modbus_slave)
-      @modbus_slave = modbus_slave
+    def initialize(uri)
+      @modbus_slave = self.class.open_modbus_slave(uri)
       @modbus_slave.read_retry_timeout = 15
       @modbus_slave.read_retries = 2
       registers = Aurora.transform_registers(@modbus_slave.holding_registers[88..91, 105...110])
@@ -200,6 +230,12 @@ module Aurora
 
     def vs_pump_max=(value)
       @modbus_slave.holding_registers[322] = value
+    end
+
+    def line_voltage=(value)
+      raise ArgumentError unless (90..635).include?(value)
+
+      @modbus_slave.holding_registers[112] = value
     end
 
     def clear_fault_history

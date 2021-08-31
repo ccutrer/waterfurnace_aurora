@@ -9,16 +9,12 @@ require "optparse"
 require "yaml"
 require "aurora/core_ext/string"
 
-debug_modbus = mock = false
+debug_modbus = false
 
 options = OptionParser.new do |opts|
   opts.banner = "Usage: aurora_mqtt_bridge /path/to/serial/port [options]"
 
   opts.on("--debug-modbus", "Print actual protocol bytes") { debug_modbus = true }
-  opts.on("--mock",
-          "Instead of talking to an actual heat pump, mock it with registers from the given YAML file (instead of a serial port)") do # rubocop:disable Layout/LineLength
-    mock = true
-  end
   opts.on("-h", "--help", "Prints this help") do
     puts opts
     exit
@@ -34,33 +30,9 @@ end
 
 mqtt_uri = ARGV[1]
 
-if mock
-  slave = Aurora::MockABC.new(YAML.load_file(ARGV[0]))
-else
-  uri = URI.parse(ARGV[0])
-
-  args = case uri.scheme
-         when "tcp"
-           require "socket"
-           [TCPSocket.new(uri.host, uri.port)]
-         when "telnet", "rfc2217"
-           require "net/telnet/rfc2217"
-           [Net::Telnet::RFC2217.new(uri.host,
-                                     port: uri.port || 23,
-                                     baud: 19_200,
-                                     parity: :even)]
-         else
-           [CCutrer::SerialPort.new(uri.path, baud: 19_200, parity: :even)]
-         end
-
-  client = ModBus::RTUClient.new(*args)
-  client.logger = Logger.new($stdout)
-  client.logger.level = debug_modbus ? :debug : :warn
-
-  slave = client.with_slave(1)
-end
-
-abc = Aurora::ABCClient.new(slave)
+abc = Aurora::ABCClient.new(ARGV[0])
+abc.modbus_slave.logger = Logger.new($stdout)
+abc.modbus_slave.logger.level = debug_modbus ? :debug : :warn
 
 class MQTTBridge
   def initialize(abc, homie)
@@ -229,7 +201,7 @@ end
 log_level = ARGV.include?("--debug") ? :debug : :warn
 logger = Logger.new($stdout)
 logger.level = log_level
-slave.logger = logger
+abc.modbus_slave.logger = logger
 
 device = "aurora-#{abc.serial_number}"
 homie = MQTT::Homie::Device.new(device, "Aurora MQTT Bridge", mqtt: mqtt_uri)

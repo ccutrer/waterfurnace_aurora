@@ -2,6 +2,8 @@
 
 module Aurora
   class MockABC
+    attr_accessor :logger
+
     def initialize(registers)
       @registers = registers
     end
@@ -9,8 +11,6 @@ module Aurora
     def read_retry_timeout=(_); end
 
     def read_retries=(_); end
-
-    def logger=(_); end
 
     def holding_registers
       self

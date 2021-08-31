@@ -2,29 +2,29 @@
 # frozen_string_literal: true
 
 require "aurora"
-require "ccutrer-serialport"
 require "uri"
 require "yaml"
 
 uri = URI.parse(ARGV[0])
 
-args = case uri.scheme
-       when "tcp"
-         require "socket"
-         [TCPSocket.new(uri.host, uri.port)]
-       when "telnet", "rfc2217"
-         require "net/telnet/rfc2217"
-         [Net::Telnet::RFC2217.new(uri.host,
-                                   port: uri.port || 23,
-                                   baud: 19_200,
-                                   parity: :even)]
-       else
-         [CCutrer::SerialPort.new(uri.path, baud: 19_200, parity: :even)]
-       end
+io = case uri.scheme
+     when "tcp"
+       require "socket"
+       TCPSocket.new(uri.host, uri.port)
+     when "telnet", "rfc2217"
+       require "net/telnet/rfc2217"
+       Net::Telnet::RFC2217.new(uri.host,
+                                port: uri.port || 23,
+                                baud: 19_200,
+                                parity: :even)
+     else
+       require "ccutrer-serialport"
+       CCutrer::SerialPort.new(uri.path, baud: 19_200, parity: :even)
+     end
 
 port = ARGV[1]&.to_i || 502
 
-server1 = ModBus::RTUServer.new(*args)
+server1 = ModBus::RTUServer.new(io)
 server1.logger = Logger.new($stdout, :debug)
 # AID Tool queries slave 1, AWL queries slave 2; just use both
 slave1 = server1.with_slave(1)
@@ -35,7 +35,7 @@ slave255 = server2.with_slave(255)
 r = slave1.holding_registers = slave2.holding_registers = slave255.holding_registers = Array.new(31_473, 0)
 
 # prepopulate some data
-registers = YAML.safe_load(File.read(File.expand_path("registers.yml", __dir__)))
+registers = YAML.safe_load(File.read(ARGV[2]))
 registers.each { |(k, v)| r[k] = v }
 
 server1.request_callback = lambda { |uid, func, req|

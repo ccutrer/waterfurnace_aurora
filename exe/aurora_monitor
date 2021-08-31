@@ -2,7 +2,6 @@
 # frozen_string_literal: true
 
 require "aurora"
-require "ccutrer-serialport"
 require "logger"
 require "optparse"
 require "socket"
@@ -10,7 +9,7 @@ require "uri"
 
 diff_only = debug_modbus = ignore_awl_heartbeat = ignore_sensors = false
 
-OptionParser.new do |opts|
+options = OptionParser.new do |opts|
   opts.banner = "Usage: aurora_monitor /path/to/serial/port [options]"
 
   opts.on("-q", "--quiet",
@@ -27,7 +26,14 @@ OptionParser.new do |opts|
     puts opts
     exit
   end
-end.parse!
+end
+
+options.parse!
+
+unless ARGV.length == 2
+  puts options
+  exit 1
+end
 
 uri = URI.parse(ARGV[0])
 
@@ -36,21 +42,22 @@ last_registers = {}
 SENSOR_REGISTERS = [16, 19, 20, 740, 900, 1109, 1105, 1106, 1107, 1108, 1110, 1111, 1114, 1117, 1134, 1147, 1149, 1151,
                     1153, 1165].freeze
 
-args = case uri.scheme
-       when "tcp"
-         require "socket"
-         [TCPSocket.new(uri.host, uri.port)]
-       when "telnet", "rfc2217"
-         require "net/telnet/rfc2217"
-         [Net::Telnet::RFC2217.new(uri.host,
-                                   port: uri.port || 23,
-                                   baud: 19_200,
-                                   parity: :even)]
-       else
-         [CCutrer::SerialPort.new(uri.path, baud: 19_200, parity: :even)]
-       end
+io = case uri.scheme
+     when "tcp"
+       require "socket"
+       TCPSocket.new(uri.host, uri.port)
+     when "telnet", "rfc2217"
+       require "net/telnet/rfc2217"
+       Net::Telnet::RFC2217.new(uri.host,
+                                port: uri.port || 23,
+                                baud: 19_200,
+                                parity: :even)
+     else
+       require "ccutrer-serialport"
+       CCutrer::SerialPort.new(uri.path, baud: 19_200, parity: :even)
+     end
 
-server = ModBus::RTUServer.new(*args)
+server = ModBus::RTUServer.new(io)
 server.promiscuous = true
 server.logger = Logger.new($stdout)
 server.logger.level = debug_modbus ? :debug : :warn

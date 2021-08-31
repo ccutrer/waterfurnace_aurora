@@ -7,16 +7,12 @@ require "logger"
 require "optparse"
 require "yaml"
 
-debug_modbus = monitor = mock = false
+debug_modbus = monitor = false
 
 options = OptionParser.new do |opts|
   opts.banner = "Usage: web_aid_tool /path/to/serial/port [options]"
 
   opts.on("--debug-modbus", "Print actual protocol bytes") { debug_modbus = true }
-  opts.on("--mock",
-          "Instead of talking to an actual heat pump, mock it with registers from the given YAML file (instead of a serial port)") do # rubocop:disable Layout/LineLength
-    mock = true
-  end
   opts.on("--monitor", "Print interpreted registers as they are requested, like aurora_monitor") { monitor = true }
   opts.on("-h", "--help", "Prints this help") do
     puts opts
@@ -31,31 +27,9 @@ unless ARGV.length == 1
   exit 1
 end
 
-if mock
-  slave = Aurora::MockABC.new(YAML.load_file(ARGV[0]))
-else
-  uri = URI.parse(ARGV[0])
-
-  args = case uri.scheme
-         when "tcp"
-           require "socket"
-           [TCPSocket.new(uri.host, uri.port)]
-         when "telnet", "rfc2217"
-           require "net/telnet/rfc2217"
-           [Net::Telnet::RFC2217.new(uri.host,
-                                     port: uri.port || 23,
-                                     baud: 19_200,
-                                     parity: :even)]
-         else
-           [CCutrer::SerialPort.new(uri.path, baud: 19_200, parity: :even)]
-         end
-
-  client = ModBus::RTUClient.new(*args)
-  client.logger = Logger.new($stdout)
-  client.logger.level = debug_modbus ? :debug : :warn
-
-  slave = client.with_slave(1)
-end
+slave = Aurora::ABCClient.open_modbus_slave(ARGV[0])
+slave.logger = Logger.new($stdout)
+slave.logger.level = debug_modbus ? :debug : :warn
 
 def parse_query_string(query_string)
   query_string.split("&").map { |p| p.split("=") }.to_h
@@ -69,6 +43,7 @@ end
 require "sinatra"
 
 set :public_folder, "html"
+set :logging, false
 
 get "/" do
   send_file "html/index.htm"
@@ -118,7 +93,10 @@ get "/request.cgi" do
       start...(start + length)
     end
     registers = slave.read_multiple_holding_registers(*queries)
-    puts Aurora.print_registers(registers) if monitor
+    if monitor
+      puts "READING"
+      puts Aurora.print_registers(registers)
+    end
     result["values"] = registers.values.join(",")
   when "putregs"
     writes = params["regs"].split(";").map do |write|
@@ -127,7 +105,6 @@ get "/request.cgi" do
     if monitor
       puts "WRITING"
       puts Aurora.print_registers(writes)
-      puts "==="
     end
 
     writes.each do |(addr, value)|
