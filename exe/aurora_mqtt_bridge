@@ -123,7 +123,7 @@ class MQTTBridge
       end
       node.property("relative-humidity", "Relative Humidity", :integer, @abc.relative_humidity, unit: "%",
                                                                                                 format: 0..100)
-      node.property("waterflow", "Waterflow", :float, unit: "gpm")
+      node.property("waterflow", "Waterflow", :float, @abc.waterflow, unit: "gpm")
       node.property("fp1", "FP1 Sensor", :float, @abc.fp1, unit: "ºF")
       node.property("fp2", "FP2 Sensor", :float, @abc.fp2, unit: "ºF")
       %i[compressor blower aux_heat loop_pump total].each do |component|

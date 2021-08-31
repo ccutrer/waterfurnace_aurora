@@ -112,7 +112,7 @@ module Aurora
     end
 
     def refresh
-      registers_to_read = [6, 19..20, 25, 30, 340, 344, 347, 740..741, 900, 1110..1111, 1114, 1147..1153, 1165,
+      registers_to_read = [6, 19..20, 25, 30, 340, 344, 347, 740..741, 900, 1110..1111, 1114, 1117, 1147..1153, 1165,
                            31_003]
       registers_to_read << (400..401) if dhw?
       registers_to_read.concat([362, 3001]) if vs_drive?
