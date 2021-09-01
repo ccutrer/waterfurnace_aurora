@@ -1,6 +1,7 @@
 FROM ruby:2.7
+ENV WATERFURNACE_AURORA_VERSION 0.4.5
 ENV TTY=/dev/ttyUSB0
 ENV MQTT=mqtt://localhost
-RUN gem install waterfurnace_aurora
+RUN gem install waterfurnace_aurora -v ${WEEWX_VERSION}
 WORKDIR /usr/local/bundle/bin/
 CMD ruby aurora_mqtt_bridge $TTY $MQTT
