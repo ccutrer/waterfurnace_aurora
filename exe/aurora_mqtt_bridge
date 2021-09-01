@@ -46,8 +46,20 @@ class MQTTBridge
         when /\$modbus$/
           registers = @abc.query_registers(value)
           Aurora.print_registers(registers) do |register, v|
-            @homie.mqtt.publish("#{@homie.topic}/$modbus/#{register}", v, retain: false, qos: 1)
+            @homie.mqtt.publish("#{@homie.topic}/$modbus/#{register}", v, qos: 1)
           end
+        when %r{\$modbus/getregs}
+          query_id, query = value.split(":")
+          queries = query.split(";").map do |range|
+            start, length = range.split(",").map(&:to_i)
+            next start if length.nil?
+
+            start...(start + length)
+          end
+          registers = @abc.modbus_slave.read_multiple_holding_registers(*queries)
+          result = registers.values.join(",")
+          @homie.mqtt.publish("#{@homie.topic}/$modbus/getregs/response",
+                              "#{query_id}:#{result}", qos: 1)
         when %r{\$modbus/(\d+)/set$}
           register = $1.to_i
           value = case value
@@ -59,7 +71,7 @@ class MQTTBridge
           @abc.modbus_slave.holding_registers[register] = value if value
           registers = { register => @abc.modbus_slave.holding_registers[register] }
           Aurora.print_registers(registers) do |r, v|
-            @homie.mqtt.publish("#{@homie.topic}/$modbus/#{r}", v, retain: false, qos: 1)
+            @homie.mqtt.publish("#{@homie.topic}/$modbus/#{r}", v, qos: 1)
           end
         end
       end
@@ -261,6 +273,7 @@ class MQTTBridge
 
     # direct access to modbus registers for debugging purposes
     @homie.mqtt.subscribe("#{@homie.topic}/$modbus")
+    @homie.mqtt.subscribe("#{@homie.topic}/$modbus/getregs")
     @homie.mqtt.subscribe("#{@homie.topic}/$modbus/+/set")
     @homie.publish
   end

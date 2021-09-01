@@ -26,7 +26,9 @@ module Aurora
                                         port: uri.port || 23,
                                         baud: 19_200,
                                         parity: :even)
-
+             when "mqtt", "mqtts"
+               require "aurora/mqtt_modbus"
+               return Aurora::MQTTModBus.new(uri)
              else
                return Aurora::MockABC.new(YAML.load_file(uri.path)) if File.file?(uri.path)
 
