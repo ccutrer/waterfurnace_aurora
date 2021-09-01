@@ -420,6 +420,15 @@ module Aurora
     end
   end
 
+  def thermostat_configuration2(value)
+    result = {
+      mode: HEATING_MODE[(value >> 8) & 0x07]
+    }
+    leftover = value & ~0x0700
+    result[:unknown] = format("0x%04x", leftover) unless leftover.zero?
+    result
+  end
+
   def zone_configuration1(value)
     fan = if value & 0x80 == 0x80
             :continuous
@@ -433,7 +442,7 @@ module Aurora
       on_time: ((value >> 9) & 0x7) * 5,
       off_time: (((value >> 12) & 0x7) + 1) * 5,
       cooling_target_temperature: ((value & 0x7e) >> 1) + 36,
-      heating_target_temperature_carry: value & 0o1
+      heating_target_temperature_carry: value & 0x01
     }
     leftover = value & ~0x7fff
     result[:unknown] = format("0x%04x", leftover) unless leftover.zero?
@@ -503,7 +512,7 @@ module Aurora
     ->(v) { from_bitmask(v, VS_ALARM2) } => [218, 3227],
     ->(v) { from_bitmask(v, VS_EEV2) } => [280, 3804],
     method(:vs_manual_control) => [323],
-    NEGATABLE => [346, 1146],
+    NEGATABLE => [346],
     ->(v) { BRINE_TYPE[v] } => [402],
     ->(v) { FLOW_METER_TYPE[v] } => [403],
     ->(v) { BLOWER_TYPE[v] } => [404],
@@ -514,6 +523,7 @@ module Aurora
     ->(v) { PUMP_TYPE[v] } => [413],
     ->(v) { PHASE_TYPE[v] } => [416],
     method(:iz2_fan_desired) => [565],
+    ->(v) { v == 0xffff ? 0 : v } => 601..699,
     ->(registers, idx) { to_string(registers, idx, 8) } => [710],
     ->(v) { COMPONENT_STATUS[v] } => [800, 803, 806, 812, 815, 818, 824, 827],
     method(:axb_inputs) => [1103],
@@ -521,12 +531,13 @@ module Aurora
     ->(v) { TO_TENTHS.call(NEGATABLE.call(v)) } => [1135, 1136],
     method(:to_int32) => [1146, 1148, 1150, 1152, 1154, 1156, 1164, 3422, 3424],
     method(:manual_operation) => [3002],
+    method(:thermostat_configuration2) => [12_006],
     ->(v) { HEATING_MODE[v] } => [12_606, 21_202, 21_211, 21_220, 21_229, 21_238, 21_247],
     ->(v) { FAN_MODE[v] } => [12_621, 21_205, 21_214, 21_223, 21_232, 21_241, 21_250],
     ->(v) { from_bitmask(v, HUMIDIFIER_SETTINGS) } => [31_109],
     ->(v) { { humidification_target: v >> 8, dehumidification_target: v & 0xff } } => [31_110],
     method(:iz2_demand) => [31_005],
-    method(:zone_configuration1) => [31_008, 31_011, 31_014, 31_017, 31_020, 31_023],
+    method(:zone_configuration1) => [12_005, 31_008, 31_011, 31_014, 31_017, 31_020, 31_023],
     method(:zone_configuration2) => [31_009, 31_012, 31_015, 31_018, 31_021, 31_024],
     method(:zone_configuration3) => [31_200, 31_203, 31_206, 31_209, 31_212, 31_215],
     ->(registers, idx) { to_string(registers, idx, 13) } => [31_400],
@@ -876,10 +887,14 @@ module Aurora
     3904 => "VS Drive Leaving Air Temperature?",
     3905 => "VS Drive Saturated Evaporator Discharge Temperature",
     3906 => "VS Drive SuperHeat Temperature",
+    12_005 => "Fan Configuration",
+    12_006 => "Heating Mode",
     12_606 => "Heating Mode (write)",
     12_619 => "Heating Setpoint (write)",
     12_620 => "Cooling Setpoint (write)",
     12_621 => "Fan Mode (write)",
+    12_622 => "Intermittent Fan On Time (write)",
+    12_623 => "Intermittent Fan Off Time (write)",
     31_003 => "Outdoor Temp",
     31_005 => "IZ2 Demand",
     31_109 => "Humidifier Mode", # write to 21114
