@@ -19,21 +19,17 @@ The register map has been deciphered in a number of ways:
  * capturing traffic between an AWL and the ABC
  * capturing traffic between an AID tool and this code,
    masquerading as an ABC.
+ * inspecting the (obfuscated) source of the web AID Tool from an
+   AWL
 
-Note that as of now, this code and register map has _only_ been tested
-against a WaterFurnace 7-series residential unit, coupled with an
-IntelliZone 2 zone controller hosting 6 zones. It's highly likely that
-different units (like a 3 or 5 series) or thermostat configurations
-(single thermostat, IntelliZone 1) will use different registers, and
-as such will not be able to expose some of the most useful information,
-such as the current temperature, set point, and requested mode of the
-thermostat. If you own a different unit, I would be glad to have your
-helping extending support!
+This code has been tested against several variations of equipment.
+If you own a different unit, and things aren't working well for you,
+I would be glad to have your help extending support!
 
-|Make|Model|Working|
---- | --- | ---
-|Waterfurnace|7-series|Yes|
-|Geosmart|PremiumV|Yes|
+ * WaterFurnace 7 Series, IntelliZone 2, DHW, ECM blower, VS Drive, VS Pump
+ * WaterFurnace 5 Series, ECM blower
+ * WaterFurnace 5 Series split, ECM blower, DHW
+ * GeoSmart PremiumV, DHW, ECM blower, VS Drive, VS Pump
 
 ## Installation
 
@@ -46,7 +42,8 @@ the Windows machine. Then:
 ```sh
 gem install waterfurnace_aurora 
 ```
-On Ubuntu 21.04 the following is needed to install the gem:
+
+On Ubuntu 21.04 the following dependencies are needed to install the gem:
 
 ```sh
 sudo apt install build-essential ruby2.7 ruby-dev
@@ -72,7 +69,7 @@ sudo systemctl start aurora_mqtt_bridge
 ```
 
 Once connected, status updates such as current temperature, set point, and a
-plethora of other diagnostic information, will be published to MQTT regularly.
+plethora of other diagnostic information will be published to MQTT regularly.
 Several properties such as set point and current mode can also be written
 back to the ABC via MQTT.
 
@@ -134,7 +131,8 @@ When using a TIA-568-B terminated cable with a USB RS-485 dongle the connections
 ### Connection with AWL
 
 If you would still like your AWL to function, you can connect AWL to the AID
-port, and then connect your computer to the AID pass-through port on the AWL.
+port on the heat pump, and then connect your computer to the AID Tool
+pass-through port on the AWL.
 
 ### Non-local Serial Ports
 
@@ -144,7 +142,25 @@ server (like ser2net) to use 19200 baud, EVEN. You can also use RFC2217 serial
 ports (allowing the serial connection parameters to be set automatically) with
 a URI like telnet://192.168.1.10:2217/.
 
-### Connecting _between_ the ABC and another device
+### Simulated ABC
+
+If you have a dump of registers from an ABC in YAML format (such as generated
+via aurora_fetch), you can provide the filename instead of a serial port
+path or a network connection, and any of the tools will work against that 
+nstead.
+
+### MQTT Pass Through
+
+If you're running the MQTT bridge, and would like to also try out another tool
+(such as the [web AID tool](#web_aid_tool), you can provide an MQTT URI instead
+of a serial port path. You will need to append the full path to the $modbus
+topic, like so:
+
+```
+$ web_aid_tool mqtt://mqtt-server/homie/aurora-123/$modbus
+```
+
+### Connecting _between_ the ABC and AWL
 
 If you need to eavesdrop over existing communication, it is possible to 
 mangle an ethernet cable such that it still has both ends, but you're connected
@@ -168,7 +184,7 @@ This tool simply monitors all traffic on the serial bus, and dumps out anything
 it can decipher. This includes raw register values for registers that are not
 recognized. This is used when you are connected between an AID Tool or AWL and
 the ABC. Trigger an action on the AID Tool or the Symphony website, watch the
-dump, and guess what's what! It has several options (see `--help`) tweak its
+dump, and guess what's what! It has several options (see `--help`) to tweak its
 output, but the most useful is `-q` which combines several of them to only
 print when registers actually change, and exclude known, frequently updating
 values (like power usage sensors):
@@ -204,9 +220,10 @@ Ambient Temperature (747): 0.0ºF
 
 This tool masquerades as an ABC. To date, I've only used this against an AID
 tool, and not an AWL, in order to not confuse WaterFurnace's servers with
-potentially bogus data. You modify bin/registers.yml to pre-set the data,
-and then it serves it up when the AID Tool requests it. Change some date, go
-look in the AID tool what changed, to see if you guessed right!
+potentially bogus data. This tool has not been used in a long time, and may
+not work. You give it a path to a YAML file, and then it serves it up when
+the AID Tool requests it. Change some data, go look in the AID tool to see what
+changed, to see if you guessed right!
 
 ### aurora_fetch
 
@@ -226,13 +243,20 @@ $ aurora_fetch /dev/ttyHeatPump 745-746 --yaml
 746: 730
 ```
 
+This is the easiest way to make a "dump" of your system to send if you're having
+problems:
+
+```
+$ aurora_fetch /dev/ttyHeatPump valid --yaml > myheatpump.yml
+```
+
 ### web_aid_tool
 
 This is a reproduction of the web AID tool, as provided on some early AWL
 units. It depends on code from an actual AWL. For copyright reasons, these
 files are not provided. You will need to download them from your AWL, and
 place them into an html directory. You can do this by running
-`grab_awl_asset.sh`. If you an older AID tool, you can provide its IP
+`grab_awl_asset.sh`. If you have an older AID tool, you can provide its IP
 address as an argument. Newer AID tools will only allow access to this
 in setup mode. You enter setup mode by holding down the mode button for
 5 seconds, and then the LED will flash green rapidly for a few seconds.
