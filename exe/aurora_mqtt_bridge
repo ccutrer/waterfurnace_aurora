@@ -224,25 +224,21 @@ class MQTTBridge
                       format: allowed_modes) do |value, property|
           @mutex.synchronize { property.value = zone.target_mode = value.to_sym }
         end
-        if zone.respond_to?(:current_mode) # TODO: implement for non-IZ2
-          node.property("current-mode", "Current Heating/Cooling Mode Requested", :enum, zone.current_mode,
-                        format: %w[standby h1 h2 h3 c1 c2])
-        end
+        node.property("current-mode", "Current Heating/Cooling Mode Requested", :enum, zone.current_mode,
+                      format: %w[standby h1 h2 h3 c1 c2])
         node.property("target-fan-mode", "Target Fan Mode", :enum, zone.target_fan_mode,
                       format: %w[auto continuous intermittent]) do |value, property|
           @mutex.synchronize { property.value = zone.target_fan_mode = value.to_sym }
         end
-        if zone.respond_to?(:current_fan_mode) # TODO: implement for non-IZ2
-          node.property("current-fan-mode", "Current Fan Status", :boolean, zone.current_fan_mode)
-          node.property("fan-intermittent-on", "Fan Intermittent Mode On Duration", :enum, zone.fan_intermittent_on,
-                        unit: "M", format: %w[0 5 10 15 20]) do |value, property|
-            @mutex.synchronize { property.value = zone.fan_intermittent_on = value.to_i }
-          end
-          node.property("fan-intermittent-off", "Fan Intermittent Mode Off Duration", :enum, zone.fan_intermittent_on,
-                        unit: "M", format: %w[0 5 10 15 20 25 30 35 40]) do |value, property|
-            @mutex.synchronize { property.value = zone.fan_intermittent_on = value.to_i }
-          end
+        node.property("fan-intermittent-on", "Fan Intermittent Mode On Duration", :enum, zone.fan_intermittent_on,
+                      unit: "M", format: %w[0 5 10 15 20]) do |value, property|
+          @mutex.synchronize { property.value = zone.fan_intermittent_on = value.to_i }
         end
+        node.property("fan-intermittent-off", "Fan Intermittent Mode Off Duration", :enum, zone.fan_intermittent_on,
+                      unit: "M", format: %w[0 5 10 15 20 25 30 35 40]) do |value, property|
+          @mutex.synchronize { property.value = zone.fan_intermittent_on = value.to_i }
+        end
+        node.property("current-fan-mode", "Current Fan Status", :boolean, zone.current_fan_mode)
         if zone.is_a?(Aurora::IZ2Zone)
           node.property("priority", "Zone Priority", :enum, zone.priority, format: %w[economy comfort])
           node.property("size", "Size", :enum, zone.size, format: %w[0 25 45 70])

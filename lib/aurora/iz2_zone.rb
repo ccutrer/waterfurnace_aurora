@@ -5,12 +5,9 @@ require "aurora/thermostat"
 module Aurora
   class IZ2Zone < Thermostat
     attr_reader :zone_number,
-                :current_mode,
-                :current_fan_mode,
-                :fan_intermittent_on,
-                :fan_intermittent_off,
                 :priority,
-                :size, :normalized_size
+                :size,
+                :normalized_size
 
     def initialize(abc, zone_number)
       super(abc)
