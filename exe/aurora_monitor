@@ -2,7 +2,6 @@
 # frozen_string_literal: true
 
 require "aurora"
-require "ccutrer-serialport"
 require "logger"
 require "optparse"
 require "socket"
@@ -10,7 +9,7 @@ require "uri"
 
 diff_only = debug_modbus = ignore_awl_heartbeat = ignore_sensors = false
 
-OptionParser.new do |opts|
+options = OptionParser.new do |opts|
   opts.banner = "Usage: aurora_monitor /path/to/serial/port [options]"
 
   opts.on("-q", "--quiet",
@@ -27,30 +26,38 @@ OptionParser.new do |opts|
     puts opts
     exit
   end
-end.parse!
+end
+
+options.parse!
+
+unless ARGV.length == 1
+  puts options
+  exit 1
+end
 
 uri = URI.parse(ARGV[0])
 
 last_registers = {}
 
-SENSOR_REGISTERS = [16, 19, 20, 740, 900, 1109, 1105, 1106, 1107, 1108, 1110, 1111, 1114, 1117, 1134, 1147, 1149, 1151,
-                    1153, 1165].freeze
+SENSOR_REGISTERS = [16, 19, 20, 740, 900, 901, 903, 908, 909, 1109, 1105, 1106, 1107, 1108, 1110, 1111, 1114, 1117,
+                    1134, 1148, 1149, 1150, 1151, 1152, 1153, 1164, 1165, 3326, 3330].freeze
 
-args = case uri.scheme
-       when "tcp"
-         require "socket"
-         [TCPSocket.new(uri.host, uri.port)]
-       when "telnet", "rfc2217"
-         require "net/telnet/rfc2217"
-         [Net::Telnet::RFC2217.new(uri.host,
-                                   port: uri.port || 23,
-                                   baud: 19_200,
-                                   parity: :even)]
-       else
-         [CCutrer::SerialPort.new(uri.path, baud: 19_200, parity: :even)]
-       end
+io = case uri.scheme
+     when "tcp"
+       require "socket"
+       TCPSocket.new(uri.host, uri.port)
+     when "telnet", "rfc2217"
+       require "net/telnet/rfc2217"
+       Net::Telnet::RFC2217.new(uri.host,
+                                port: uri.port || 23,
+                                baud: 19_200,
+                                parity: :even)
+     else
+       require "ccutrer-serialport"
+       CCutrer::SerialPort.new(uri.path, baud: 19_200, parity: :even)
+     end
 
-server = ModBus::RTUServer.new(*args)
+server = ModBus::RTUServer.new(io)
 server.promiscuous = true
 server.logger = Logger.new($stdout)
 server.logger.level = debug_modbus ? :debug : :warn
@@ -69,7 +76,11 @@ diff_and_print = lambda do |registers|
 end
 
 server.request_callback = lambda { |uid, func, req|
-  if func == 68
+  if func == 6
+    puts "#{Time.now} ===== write register to #{uid}:"
+    registers = { req[:addr] => req[:val] }
+    puts Aurora.print_registers(registers)
+  elsif func == 68
     puts "#{Time.now} ===== no idea to #{uid}: #{req.inspect}" unless diff_only
   elsif func == 67
     puts "#{Time.now} ===== write discontiguous registers to #{uid}:"
@@ -77,7 +88,10 @@ server.request_callback = lambda { |uid, func, req|
     puts Aurora.print_registers(registers)
   elsif func == 16
     registers = Range.new(req[:addr], req[:addr] + req[:quant] - 1).zip(req[:val]).to_h
-    next if ignore_awl_heartbeat && registers == { 460 => 102, 461 => 0, 462 => 5 }
+    if ignore_awl_heartbeat && [{ 460 => 102, 461 => 0, 462 => 5 },
+                                { 460 => 102, 461 => 0, 462 => 1 }].include?(registers)
+      next
+    end
 
     puts "#{Time.now} ===== write multiple registers to #{uid}:"
     puts Aurora.print_registers(registers)
@@ -115,7 +129,7 @@ server.response_callback = lambda { |uid, func, res, req|
     puts "#{Time.now} ===== read discontiguous registers from #{uid}" unless diff_only
     registers = req.zip(res).to_h
     diff_and_print.call(registers)
-  elsif [16, 67, 68].include?(func)
+  elsif [6, 16, 67, 68].include?(func)
     # no output
   else
     puts "#{Time.now} **** new func #{func}"

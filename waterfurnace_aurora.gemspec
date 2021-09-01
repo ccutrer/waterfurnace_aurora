@@ -13,7 +13,7 @@ Gem::Specification.new do |s|
   s.license = "MIT"
 
   s.bindir = "exe"
-  s.executables = Dir["exe/*"].map { |f| File.basename(f) } - ["registers.yml"]
+  s.executables = Dir["exe/*"].map { |f| File.basename(f) }
   s.files = Dir["{exe,lib}/**/*"]
 
   s.required_ruby_version = ">= 2.6"
