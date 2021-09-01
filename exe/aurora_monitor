@@ -76,7 +76,11 @@ diff_and_print = lambda do |registers|
 end
 
 server.request_callback = lambda { |uid, func, req|
-  if func == 68
+  if func == 6
+    puts "#{Time.now} ===== write register to #{uid}:"
+    registers = { req[:addr] => req[:val] }
+    puts Aurora.print_registers(registers)
+  elsif func == 68
     puts "#{Time.now} ===== no idea to #{uid}: #{req.inspect}" unless diff_only
   elsif func == 67
     puts "#{Time.now} ===== write discontiguous registers to #{uid}:"
@@ -125,7 +129,7 @@ server.response_callback = lambda { |uid, func, res, req|
     puts "#{Time.now} ===== read discontiguous registers from #{uid}" unless diff_only
     registers = req.zip(res).to_h
     diff_and_print.call(registers)
-  elsif [16, 67, 68].include?(func)
+  elsif [6, 16, 67, 68].include?(func)
     # no output
   else
     puts "#{Time.now} **** new func #{func}"
