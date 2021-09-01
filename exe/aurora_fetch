@@ -28,28 +28,10 @@ unless ARGV.length == 2
   exit 1
 end
 
-uri = URI.parse(ARGV[0])
+abc = Aurora::ABCClient.new(ARGV[0])
+abc.modbus_slave.logger = Logger.new($stdout)
+abc.modbus_slave.logger.level = debug_modbus ? :debug : :warn
 
-args = case uri.scheme
-       when "tcp"
-         require "socket"
-         [TCPSocket.new(uri.host, uri.port)]
-       when "telnet", "rfc2217"
-         require "net/telnet/rfc2217"
-         [Net::Telnet::RFC2217.new(uri.host,
-                                   port: uri.port || 23,
-                                   baud: 19_200,
-                                   parity: :even)]
-       else
-         [CCutrer::SerialPort.new(uri.path, baud: 19_200, parity: :even)]
-       end
-
-client = ModBus::RTUClient.new(*args)
-client.logger = Logger.new($stdout)
-client.logger.level = debug_modbus ? :debug : :warn
-
-slave = client.with_slave(1)
-abc = Aurora::ABCClient.new(slave)
 registers = abc.query_registers(ARGV[1])
 
 if yaml

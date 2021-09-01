@@ -236,21 +236,18 @@ $ aurora_fetch /dev/ttyHeatPump 745-746 --yaml
 This is a reproduction of the web AID tool, as provided on some early AWL
 units. It depends on code from an actual AWL. For copyright reasons, these
 files are not provided. You will need to download them from your AWL, and
-place them into an html directory:
+place them into an html directory. You can do this by running
+`grab_awl_asset.sh`. If you an older AID tool, you can provide its IP
+address as an argument. Newer AID tools will only allow access to this
+in setup mode. You enter setup mode by holding down the mode button for
+5 seconds, and then the LED will flash green rapidly for a few seconds.
+You will then need to join the WiFi network created by the AID tool,
+name `AID-*`. Then you can run the script and get the assets.
 
- * indexfd49.html
- * js/indexc.js
- * css/index.css
- * images/aurora.png
- * images/back.png
- * images/cfailed.png
- * images/cgood.png
- * images/cidle.png
-
-Then run the web AID tool:
+To run the web AID tool:
 
 ```
 $ web_aid_tool /dev/ttyHeatPump
 ```
 
-After which you'll be able top open a browser to http://localhost:4567/.
+After which you'll be able to open a browser to http://localhost:4567/.
