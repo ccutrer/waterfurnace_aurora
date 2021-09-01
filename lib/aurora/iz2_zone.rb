@@ -17,6 +17,13 @@ module Aurora
       @zone_number = zone_number
     end
 
+    def registers_to_read
+      base1 = 21_203 + (zone_number - 1) * 9
+      base2 = 31_007 + (zone_number - 1) * 3
+      base3 = 31_200 + (zone_number - 1) * 3
+      [base1..(base1 + 1), base2..(base2 + 2), base3]
+    end
+
     def refresh(registers)
       @ambient_temperature = registers[31_007 + (zone_number - 1) * 3]
 

@@ -503,7 +503,7 @@ module Aurora
     ->(v) { from_bitmask(v, VS_ALARM2) } => [218, 3227],
     ->(v) { from_bitmask(v, VS_EEV2) } => [280, 3804],
     method(:vs_manual_control) => [323],
-    NEGATABLE => [346, 1146],
+    NEGATABLE => [346],
     ->(v) { BRINE_TYPE[v] } => [402],
     ->(v) { FLOW_METER_TYPE[v] } => [403],
     ->(v) { BLOWER_TYPE[v] } => [404],

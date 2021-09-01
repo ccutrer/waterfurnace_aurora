@@ -10,6 +10,10 @@ module Aurora
                 :cooling_target_temperature,
                 :heating_target_temperature
 
+    def registers_to_read
+      [502, 745..746]
+    end
+
     def refresh(registers)
       @ambient_temperature = registers[502]
       @heating_target_temperature = registers[745]
@@ -44,12 +48,6 @@ module Aurora
       raw_value = (value * 10).to_i
       @abc.modbus_slave.holding_registers[12_620] = raw_value
       @cooling_target_temperature = value
-    end
-
-    def inspect
-      "#<Aurora::#{self.class.name} #{(instance_variables - [:@abc]).map do |iv|
-                                        "#{iv}=#{instance_variable_get(iv).inspect}"
-                                      end.join(', ')}>"
     end
   end
 end

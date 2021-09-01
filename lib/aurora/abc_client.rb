@@ -4,6 +4,8 @@ require "yaml"
 require "uri"
 
 require "aurora/blower"
+require "aurora/compressor"
+require "aurora/dhw"
 require "aurora/iz2_zone"
 require "aurora/pump"
 require "aurora/thermostat"
@@ -40,23 +42,20 @@ module Aurora
     attr_reader :modbus_slave,
                 :serial_number,
                 :zones,
+                :compressor,
                 :blower,
                 :pump,
+                :dhw,
                 :faults,
                 :current_mode,
-                :dhw_enabled,
-                :dhw_setpoint,
                 :entering_air_temperature,
                 :relative_humidity,
                 :leaving_air_temperature,
                 :leaving_water_temperature,
                 :entering_water_temperature,
-                :dhw_water_temperature,
-                :compressor_speed,
                 :outdoor_temperature,
                 :fp1,
                 :fp2,
-                :compressor_watts,
                 :aux_heat_watts,
                 :total_watts
 
@@ -68,9 +67,16 @@ module Aurora
       registers = Aurora.transform_registers(raw_registers.dup)
       @program = registers[88]
       @serial_number = registers[105]
-      @dhw_water_temperature = registers[1114]
       @energy_monitor = raw_registers[412]
 
+      @zones = if iz2?
+                 iz2_zone_count = @modbus_slave.holding_registers[483]
+                 (0...iz2_zone_count).map { |i| IZ2Zone.new(self, i + 1) }
+               else
+                 [Thermostat.new(self)]
+               end
+
+      @compressor = @program == "ABCVSP" ? Compressor::VSDrive.new(self) : Compressor::GenericCompressor.new(self)
       @blower = case raw_registers[404]
                 when 1, 2 then Blower::ECM.new(self, registers[404])
                 when 3 then Blower::FiveSpeed.new(self, registers[404])
@@ -83,13 +89,8 @@ module Aurora
                 Pump::GenericPump.new(self,
                                       registers[413])
               end
+      @dhw = DHW.new(self) if (-999..999).include?(registers[1114])
 
-      @zones = if iz2?
-                 iz2_zone_count = @modbus_slave.holding_registers[483]
-                 (0...iz2_zone_count).map { |i| IZ2Zone.new(self, i + 1) }
-               else
-                 [Thermostat.new(self)]
-               end
       @faults = []
     end
 
@@ -128,26 +129,18 @@ module Aurora
     end
 
     def refresh
-      registers_to_read = [6, 19..20, 25, 30, 344, 740..741, 900, 1110..1111, 1114, 1147..1153, 1165,
+      registers_to_read = [6, 19..20, 25, 30, 344, 740..741, 900, 1110..1111, 1114, 1150..1153, 1165,
                            31_003]
-      registers_to_read << (400..401) if dhw?
+      zones.each do |z|
+        registers_to_read.concat(z.registers_to_read)
+      end
+      registers_to_read.concat(compressor.registers_to_read)
       registers_to_read.concat(blower.registers_to_read)
       registers_to_read.concat(pump.registers_to_read)
-      registers_to_read.concat([362, 3001]) if vs_drive?
-
-      if zones.first.is_a?(IZ2Zone)
-        zones.each_with_index do |_z, i|
-          base1 = 21_203 + i * 9
-          base2 = 31_007 + i * 3
-          base3 = 31_200 + i * 3
-          registers_to_read << (base1..(base1 + 1))
-          registers_to_read << (base2..(base2 + 2))
-          registers_to_read << base3
-        end
-      else
-        registers_to_read << 502
-        registers_to_read << (745..746)
-      end
+      registers_to_read.concat(dhw.registers_to_read) if dhw
+      # need dehumidify mode to calculate final current mode;
+      # apparently non-VSD doesn't have this register at all?
+      registers_to_read.concat([362]) if compressor.is_a?(Compressor::VSDrive)
 
       @faults = @modbus_slave.holding_registers[601..699]
 
@@ -156,23 +149,11 @@ module Aurora
 
       outputs = registers[30]
 
-      @dhw_enabled                = registers[400]
-      @dhw_setpoint               = registers[401]
       @entering_air_temperature   = registers[740]
       @relative_humidity          = registers[741]
       @leaving_air_temperature    = registers[900]
       @leaving_water_temperature  = registers[1110]
       @entering_water_temperature = registers[1111]
-      @dhw_water_temperature      = registers[1114]
-      @compressor_speed = if vs_drive?
-                            registers[3001]
-                          elsif outputs.include?(:cc2)
-                            2
-                          elsif outputs.include?(:cc)
-                            1
-                          else
-                            0
-                          end
       @outdoor_temperature        = registers[31_003]
       @fp1                        = registers[19]
       @fp2                        = registers[20]
@@ -180,7 +161,6 @@ module Aurora
       @error                      = registers[25] & 0x7fff
       @derated                    = (41..46).include?(@error)
       @safe_mode                  = [47, 48, 49, 72, 74].include?(@error)
-      @compressor_watts           = registers[1147]
       @aux_heat_watts             = registers[1151]
       @total_watts                = registers[1153]
 
@@ -202,27 +182,18 @@ module Aurora
                         :standby
                       end
 
-      blower.refresh(registers)
-      pump.refresh(registers)
-
       zones.each do |z|
         z.refresh(registers)
       end
+      compressor.refresh(registers)
+      blower.refresh(registers)
+      pump.refresh(registers)
+      dhw&.refresh(registers)
     end
 
     def cooling_airflow_adjustment=(value)
       value = 0x10000 + value if value.negative?
       @modbus_slave.holding_registers[346] = value
-    end
-
-    def dhw_enabled=(value)
-      @modbus_slave.holding_registers[400] = value ? 1 : 0
-    end
-
-    def dhw_setpoint=(value)
-      raise ArgumentError unless (100..140).include?(value)
-
-      @modbus_slave.holding_registers[401] = (value * 10).to_i
     end
 
     def loop_pressure_trip=(value)
@@ -268,14 +239,6 @@ module Aurora
 
     def energy_monitoring?
       @energy_monitor == 2
-    end
-
-    def vs_drive?
-      @program == "ABCVSP"
-    end
-
-    def dhw?
-      (-999..999).include?(dhw_water_temperature)
     end
 
     # config aurora system
