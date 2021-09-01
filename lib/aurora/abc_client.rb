@@ -142,7 +142,8 @@ module Aurora
       # apparently non-VSD doesn't have this register at all?
       registers_to_read.concat([362]) if compressor.is_a?(Compressor::VSDrive)
 
-      @faults = @modbus_slave.holding_registers[601..699]
+      faults = @modbus_slave.read_multiple_holding_registers(601..699)
+      @faults = Aurora.transform_registers(faults).values
 
       registers = @modbus_slave.holding_registers[*registers_to_read]
       Aurora.transform_registers(registers)

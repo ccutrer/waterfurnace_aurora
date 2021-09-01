@@ -209,6 +209,9 @@ class MQTTBridge
     end
 
     @faults = @homie.node("faults", "Fault History", "ABC") do |node|
+      node.property("clear-history", "Reset fault counts", :enum, retained: false, format: "clear") do |_|
+        @mutex.synchronize { @abc.clear_fault_history }
+      end
       @abc.faults.each_with_index do |count, i|
         name = Aurora::FAULTS[i + 1]
         node.property("e#{i + 1}", name || "E#{i + 1}", :integer, count)
