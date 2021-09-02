@@ -523,7 +523,6 @@ module Aurora
     ->(v) { PUMP_TYPE[v] } => [413],
     ->(v) { PHASE_TYPE[v] } => [416],
     method(:iz2_fan_desired) => [565],
-    ->(v) { v == 0xffff ? 0 : v } => 601..699,
     ->(registers, idx) { to_string(registers, idx, 8) } => [710],
     ->(v) { COMPONENT_STATUS[v] } => [800, 803, 806, 812, 815, 818, 824, 827],
     method(:axb_inputs) => [1103],
