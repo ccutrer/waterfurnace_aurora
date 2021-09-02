@@ -6,6 +6,7 @@ require "uri"
 require "aurora/blower"
 require "aurora/compressor"
 require "aurora/dhw"
+require "aurora/humidifier"
 require "aurora/iz2_zone"
 require "aurora/pump"
 require "aurora/thermostat"
@@ -48,6 +49,7 @@ module Aurora
                 :blower,
                 :pump,
                 :dhw,
+                :humidifier,
                 :faults,
                 :current_mode,
                 :entering_air_temperature,
@@ -78,11 +80,12 @@ module Aurora
                  [Thermostat.new(self)]
                end
 
+      @abc_dipswitches = registers[33]
       @compressor = if @program == "ABCVSP"
                       Compressor::VSDrive.new(self)
                     else
                       Compressor::GenericCompressor.new(self,
-                                                        registers[33][:compressor])
+                                                        @abc_dipswitches[:compressor])
                     end
       @blower = case raw_registers[404]
                 when 1, 2 then Blower::ECM.new(self, registers[404])
@@ -97,6 +100,7 @@ module Aurora
                                       registers[413])
               end
       @dhw = DHW.new(self) if (-999..999).include?(registers[1114])
+      @humidifier = Humidifier.new(self) if @abc_dipswitches[:accessory_relay] == :humidifier
 
       @faults = []
     end
@@ -197,6 +201,7 @@ module Aurora
       blower.refresh(registers)
       pump.refresh(registers)
       dhw&.refresh(registers)
+      humidifier&.refresh(registers)
     end
 
     def cooling_airflow_adjustment=(value)

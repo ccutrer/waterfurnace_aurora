@@ -91,7 +91,8 @@ class MQTTBridge
                          @compressor => @abc.compressor,
                          @blower => @abc.blower,
                          @pump => @abc.pump,
-                         @dhw => @abc.dhw }.compact
+                         @dhw => @abc.dhw,
+                         @humidifier => @abc.humidifier }.compact
           @abc.zones.each_with_index do |z, idx|
             homie_zone = @homie["zone#{idx + 1}"]
             components[homie_zone] = z
@@ -217,6 +218,12 @@ class MQTTBridge
                                                                             unit: "ºF") do |value, property|
           @mutex.synchronize { property.value = @abc.dhw.set_point = value }
         end
+      end
+    end
+
+    if @abc.humidifier
+      @humidifier = @homie.node("humidifier", "Humidifier", "Humidifier") do |node|
+        node.property("running", "Humidifier is running", :boolean, @abc.humidifier.running?)
       end
     end
 
