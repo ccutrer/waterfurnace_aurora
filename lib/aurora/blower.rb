@@ -4,8 +4,9 @@ require "aurora/component"
 
 module Aurora
   module Blower
-    class GenericBlower < Component
-      attr_reader :type, :watts
+    class PSC < Component
+      attr_reader :type, :watts, :running
+      alias running? running
 
       def initialize(abc, type)
         super(abc)
@@ -22,19 +23,11 @@ module Aurora
 
       def refresh(registers)
         @watts = registers[1148] if abc.energy_monitoring?
+        @running = registers[30].include?(:blower)
       end
     end
 
-    class PSC < GenericBlower
-      attr_reader :running
-      alias running? running
-
-      def refresh(registers)
-        @running = registers[30].include?(:g)
-      end
-    end
-
-    class FiveSpeed < GenericBlower
+    class FiveSpeed < PSC
       attr_reader :speed
 
       def speed_range
@@ -49,7 +42,7 @@ module Aurora
                    3
                  elsif outputs.include?(:cc)
                    2
-                 elsif outputs.include?(:g)
+                 elsif outputs.include?(:blower)
                    1
                  else
                    0
@@ -57,7 +50,7 @@ module Aurora
       end
     end
 
-    class ECM < GenericBlower
+    class ECM < PSC
       attr_reader :speed, :blower_only_speed, :low_compressor_speed, :high_compressor_speed, :aux_heat_speed,
                   :iz2_desired_speed
 

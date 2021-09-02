@@ -162,9 +162,8 @@ class MQTTBridge
     end
 
     @blower = @homie.node("blower", "Blower", @abc.blower.type) do |node|
-      if @abc.blower.respond_to?(:running)
-        node.property("running", "Blower is running", :boolean, @abc.blower.running?)
-      else
+      node.property("running", "Blower is running", :boolean, @abc.blower.running?)
+      if @abc.blower.respond_to?(:speed)
         node.property("speed", "Current blower speed", :integer, @abc.blower.speed, format: @abc.blower.speed_range)
       end
       node.property("watts", "Energy Usage", :integer, @abc.blower.watts, unit: "W") if @abc.energy_monitoring?
