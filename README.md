@@ -49,6 +49,11 @@ On Ubuntu 21.04 the following dependencies are needed to install the gem:
 sudo apt install build-essential ruby2.7 ruby-dev
 ```
 
+### Docker
+A very simple Dockerfile is provided in the ```docker``` folder to build a docker image. This image is meant to run the MQTT bridge by default but can be used to run any of the other tools.
+More details [here](/docker) 
+
+
 ## MQTT/Homie Bridge
 
 An MQTT bridge is provided to allow easy integration into other systems. You

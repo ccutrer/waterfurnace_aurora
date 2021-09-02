@@ -1,0 +1,14 @@
+version: '3.3'
+
+services:
+  waterfurnace_aurora:
+    container_name: waterfurnace_aurora
+    build: 
+      context: https://github.com/ccutrer/waterfurnace_aurora.git#main
+      dockerfile: ./docker/Dockerfile
+    image: ccutrer/waterfurnace_aurora
+    devices:
+      - '/dev/ttyUSB0'
+    environment:
+      - TTY=/dev/ttyUSB0
+      - MQTT=mqtt://localhost
