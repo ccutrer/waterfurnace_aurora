@@ -5,7 +5,8 @@ require "aurora/component"
 module Aurora
   module Pump
     class GenericPump < Component
-      attr_reader :type, :watts, :waterflow
+      attr_reader :type, :watts, :waterflow, :running
+      alias running? running
 
       def initialize(abc, type)
         super(abc)
@@ -21,6 +22,7 @@ module Aurora
       def refresh(registers)
         @waterflow = registers[1117]
         @watts = registers[1164] if abc.energy_monitoring?
+        @running = registers[1104].include?(:loop_pump)
       end
     end
 

@@ -4,7 +4,8 @@ require "aurora/component"
 
 module Aurora
   class DHW < Component
-    attr_reader :enabled, :set_point, :water_temperature
+    attr_reader :enabled, :running, :set_point, :water_temperature
+    alias running? running
 
     def registers_to_read
       [400..401, 1114]
@@ -12,6 +13,7 @@ module Aurora
 
     def refresh(registers)
       @enabled = registers[400]
+      @running = registers[1104].include?(:dhw)
       @set_point = registers[401]
       @water_temperature = registers[1114]
     end

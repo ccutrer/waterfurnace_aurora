@@ -6,7 +6,7 @@ require "uri"
 require "aurora/blower"
 require "aurora/compressor"
 require "aurora/dhw"
-require "aurora/humidifier"
+require "aurora/humidistat"
 require "aurora/iz2_zone"
 require "aurora/pump"
 require "aurora/thermostat"
@@ -49,11 +49,10 @@ module Aurora
                 :blower,
                 :pump,
                 :dhw,
-                :humidifier,
+                :humidistat,
                 :faults,
                 :current_mode,
                 :entering_air_temperature,
-                :relative_humidity,
                 :leaving_air_temperature,
                 :leaving_water_temperature,
                 :entering_water_temperature,
@@ -67,7 +66,7 @@ module Aurora
       @modbus_slave = self.class.open_modbus_slave(uri)
       @modbus_slave.read_retry_timeout = 15
       @modbus_slave.read_retries = 2
-      raw_registers = @modbus_slave.holding_registers[33, 88..91, 105...110, 404, 412..413, 1114]
+      raw_registers = @modbus_slave.holding_registers[33, 88..91, 105...110, 404, 412..413, 1103, 1114]
       registers = Aurora.transform_registers(raw_registers.dup)
       @program = registers[88]
       @serial_number = registers[105]
@@ -81,6 +80,7 @@ module Aurora
                end
 
       @abc_dipswitches = registers[33]
+      @axb_dipswitches = registers[1103]
       @compressor = if @program == "ABCVSP"
                       Compressor::VSDrive.new(self)
                     else
@@ -100,9 +100,23 @@ module Aurora
                                       registers[413])
               end
       @dhw = DHW.new(self) if (-999..999).include?(registers[1114])
-      @humidifier = Humidifier.new(self) if @abc_dipswitches[:accessory_relay] == :humidifier
+      @humidistat = Humidistat.new(self,
+                                   @abc_dipswitches[:accessory_relay] == :humidifier,
+                                   @axb_dipswitches[:accessory_relay2] == :dehumidifier)
 
       @faults = []
+
+      @registers_to_read = [6, 19..20, 25, 30, 344, 740..741, 900, 1104, 1110..1111, 1114, 1150..1153, 1165,
+                            31_003]
+      zones.each do |z|
+        @registers_to_read.concat(z.registers_to_read)
+      end
+      @components = [compressor, blower, pump, dhw, humidistat].compact
+      @components.each do |component|
+        @registers_to_read.concat(component.registers_to_read)
+      end
+      # need dehumidify mode to calculate final current mode
+      @registers_to_read.concat([362]) if compressor.is_a?(Compressor::VSDrive)
     end
 
     def query_registers(query)
@@ -140,29 +154,15 @@ module Aurora
     end
 
     def refresh
-      registers_to_read = [6, 19..20, 25, 30, 344, 740..741, 900, 1110..1111, 1114, 1150..1153, 1165,
-                           31_003]
-      zones.each do |z|
-        registers_to_read.concat(z.registers_to_read)
-      end
-      registers_to_read.concat(compressor.registers_to_read)
-      registers_to_read.concat(blower.registers_to_read)
-      registers_to_read.concat(pump.registers_to_read)
-      registers_to_read.concat(dhw.registers_to_read) if dhw
-      # need dehumidify mode to calculate final current mode;
-      # apparently non-VSD doesn't have this register at all?
-      registers_to_read.concat([362]) if compressor.is_a?(Compressor::VSDrive)
-
       faults = @modbus_slave.read_multiple_holding_registers(601..699)
       @faults = Aurora.transform_registers(faults).values
 
-      registers = @modbus_slave.holding_registers[*registers_to_read]
+      registers = @modbus_slave.holding_registers[*@registers_to_read]
       Aurora.transform_registers(registers)
 
       outputs = registers[30]
 
       @entering_air_temperature   = registers[740]
-      @relative_humidity          = registers[741]
       @leaving_air_temperature    = registers[900]
       @leaving_water_temperature  = registers[1110]
       @entering_water_temperature = registers[1111]
@@ -197,11 +197,9 @@ module Aurora
       zones.each do |z|
         z.refresh(registers)
       end
-      compressor.refresh(registers)
-      blower.refresh(registers)
-      pump.refresh(registers)
-      dhw&.refresh(registers)
-      humidifier&.refresh(registers)
+      @components.each do |component|
+        component.refresh(registers)
+      end
     end
 
     def cooling_airflow_adjustment=(value)

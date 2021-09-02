@@ -302,23 +302,23 @@ module Aurora
 
   def axb_inputs(value)
     result = {}
-    result["Smart Grid"] = value & 0x001 == 0x001
-    result["Home Automation 1"] = value & 0x002 == 0x002
-    result["Home Automation 2"] = value & 0x004 == 0x004
-    result["Pump Slave"] = value & 0x008 == 0x008
+    result[:smart_grid] = value & 0x001 == 0x001
+    result[:ha1] = value & 0x002 == 0x002
+    result[:ha2] = value & 0x004 == 0x004
+    result[:pump_slave] = value & 0x008 == 0x008
 
     result[:mb_address] = value & 0x010 == 0x010 ? 3 : 4
     result[:sw1_2] = value & 0x020 == 0x020 # future use # rubocop:disable Naming/VariableNumber
     result[:sw1_3] = value & 0x040 == 0x040 # future use # rubocop:disable Naming/VariableNumber
-    result[:cycle_with] = if value & 0x080 == 0x080 && value & 0x100 == 0x100
-                            "Blower"
-                          elsif value & 0x100 == 0x100
-                            "Low Capacity Compressor"
-                          elsif value & 0x080 == 0x080
-                            "High Capacity Compressor"
-                          else
-                            "Thermostat Dehumidifier"
-                          end
+    result[:accessory_relay2] = if value & 0x080 == 0x080 && value & 0x100 == 0x100
+                                  :blower
+                                elsif value & 0x100 == 0x100
+                                  :low_capacity_compressor
+                                elsif value & 0x080 == 0x080
+                                  :high_capacity_compressor
+                                else
+                                  :dehumidifier
+                                end
     leftover = value & ~0x1ff
     result[:unknown] = format("0x%04x", leftover) unless leftover.zero?
     result
@@ -533,8 +533,8 @@ module Aurora
     method(:thermostat_configuration2) => [12_006],
     ->(v) { HEATING_MODE[v] } => [12_606, 21_202, 21_211, 21_220, 21_229, 21_238, 21_247],
     ->(v) { FAN_MODE[v] } => [12_621, 21_205, 21_214, 21_223, 21_232, 21_241, 21_250],
-    ->(v) { from_bitmask(v, HUMIDIFIER_SETTINGS) } => [31_109],
-    ->(v) { { humidification_target: v >> 8, dehumidification_target: v & 0xff } } => [31_110],
+    ->(v) { from_bitmask(v, HUMIDIFIER_SETTINGS) } => [12_309, 21_114, 31_109],
+    ->(v) { { humidification_target: v >> 8, dehumidification_target: v & 0xff } } => [12_310, 21_115, 31_110],
     method(:iz2_demand) => [31_005],
     method(:zone_configuration1) => [12_005, 31_008, 31_011, 31_014, 31_017, 31_020, 31_023],
     method(:zone_configuration2) => [31_009, 31_012, 31_015, 31_018, 31_021, 31_024],
@@ -888,16 +888,20 @@ module Aurora
     3906 => "VS Drive SuperHeat Temperature",
     12_005 => "Fan Configuration",
     12_006 => "Heating Mode",
+    12_309 => "De/Humidifier Mode",
+    12_310 => "De/Humidifier Setpoints",
     12_606 => "Heating Mode (write)",
     12_619 => "Heating Setpoint (write)",
     12_620 => "Cooling Setpoint (write)",
     12_621 => "Fan Mode (write)",
     12_622 => "Intermittent Fan On Time (write)",
     12_623 => "Intermittent Fan Off Time (write)",
+    21_114 => "IZ2 De/Humidifier Mode (write)",
+    21_115 => "IZ2 De/Humidifier Setpoints (write)",
     31_003 => "Outdoor Temp",
     31_005 => "IZ2 Demand",
-    31_109 => "Humidifier Mode", # write to 21114
-    31_110 => "Manual De/Humidification Target", # write to 21115
+    31_109 => "De/Humidifier Mode",
+    31_110 => "Manual De/Humidification Setpoints",
     31_400 => "Dealer Name",
     31_413 => "Dealer Phone",
     31_421 => "Dealer Address 1",

@@ -92,7 +92,7 @@ class MQTTBridge
                          @blower => @abc.blower,
                          @pump => @abc.pump,
                          @dhw => @abc.dhw,
-                         @humidifier => @abc.humidifier }.compact
+                         @humidistat => @abc.humidistat }.compact
           @abc.zones.each_with_index do |z, idx|
             homie_zone = @homie["zone#{idx + 1}"]
             components[homie_zone] = z
@@ -120,8 +120,10 @@ class MQTTBridge
 
   def publish_basic_attributes
     @homie_abc = @homie.node("abc", "Aurora Basic Control", "ABC") do |node|
+      allowed_modes = %w[lockout standby blower heating cooling eh1 eh2 emergency waiting]
+      allowed_modes << "dehumidify" if @abc.compressor.is_a?(Aurora::Compressor::VSDrive)
       node.property("current-mode", "Current Heating/Cooling Mode", :enum, @abc.current_mode,
-                    format: %w[lockout standby blower heating cooling eh1 eh2 emergency waiting dehumidify])
+                    format: allowed_modes)
       node.property("entering-air-temperature", "Entering Air Temperature", :float, @abc.entering_air_temperature,
                     unit: "ºF")
       node.property("entering-water-temperature", "Entering Water Temperature", :float,
@@ -133,8 +135,7 @@ class MQTTBridge
       unless @abc.outdoor_temperature.zero? # TODO: figure out the config if this actually exists
         node.property("outdoor-temperature", "Outdoor Temperature", :float, @abc.outdoor_temperature, unit: "ºF")
       end
-      node.property("relative-humidity", "Relative Humidity", :integer, @abc.relative_humidity, unit: "%",
-                                                                                                format: 0..100)
+
       node.property("fp1", "FP1 Sensor", :float, @abc.fp1, unit: "ºF")
       node.property("fp2", "FP2 Sensor", :float, @abc.fp2, unit: "ºF")
       %i[aux_heat total].each do |component|
@@ -192,6 +193,7 @@ class MQTTBridge
 
       next unless @abc.pump.is_a?(Aurora::Pump::VSPump)
 
+      node.property("running", "Pump is running", :boolean, @abc.pump.running)
       node.property("speed", "Speed", :integer, @abc.pump.speed, format: 0..100, unit: "%") do |value, property|
         @mutex.synchronize { property.value = @abc.pump.speed = value }
       end
@@ -214,6 +216,7 @@ class MQTTBridge
         node.property("enabled", "Enabled", :boolean, @abc.dhw.enabled) do |value, property|
           @mutex.synchronize { property.value = @abc.dhw.enabled = value }
         end
+        node.property("running", "DHW Pump is running", :boolean, @abc.dhw.running?)
         node.property("water-temperature", "Water Temperature", :float,
                       @abc.dhw.water_temperature, unit: "ºF")
         node.property("set-point", "Set Point", :float, @abc.dhw.set_point, format: 100..140,
@@ -223,10 +226,36 @@ class MQTTBridge
       end
     end
 
-    if @abc.humidifier
-      @humidifier = @homie.node("humidifier", "Humidifier", "Humidifier") do |node|
-        node.property("running", "Humidifier is running", :boolean, @abc.humidifier.running?)
+    @humidistat = @homie.node("humidistat", "Humidistat", "Humidistat") do |node|
+      node.property("relative-humidity", "Relative Humidity", :integer, @abc.humidistat.relative_humidity,
+         unit: "%", format: 0..100)
+      if @abc.humidistat.humidifier?
+        node.property("humidifier-running", "Humidifier is running", :boolean, @abc.humidistat.humidifier_running?)
+        node.property("humidifier-mode", "Humidifier Mode", :enum, @abc.humidistat.humidifier_mode,
+                      format: %i[auto manual]) do |value, property|
+          @mutex.synchronize { property.value = @abc.humidistat.humidifier_mode = value.to_sym }
+        end
+        node.property("humidification-target", "Humidification target relative humidity", :integer,
+                      @abc.humidistat.humidification_target, unit: "%", format: 15..50) do |value, property|
+          @mutex.synchronize { property.value = @abc.humidistat.humidification_target = value }
+        end
       end
+
+      # VSDrive can perform active dehumidification, even without a dedicated dehumidifier
+      if @abc.humidistat.dehumidifier? || @abc.compressor.is_a?(Aurora::Compressor::VSDrive)
+        node.property("dehumidifier-mode", "Dehumidifier Mode", :enum, @abc.humidistat.dehumidifier_mode,
+                      format: %i[auto manual]) do |value, property|
+          @mutex.synchronize { property.value = @abc.humidistat.dehumidifier_mode = value.to_sym }
+        end
+        node.property("dehumidification-target", "Dehumidification target relative humidity", :integer,
+                      @abc.humidistat.dehumidification_target, unit: "%", format: 35..65) do |value, property|
+          @mutex.synchronize { property.value = @abc.humidistat.dehumidification_target = value }
+        end
+      end
+
+      next unless @abc.humidistat.dehumidifier?
+
+      node.property("dehumidifier-running", "Dehumidifier is running", :boolean, @abc.humidistat.dehumidifier_running?)
     end
 
     @faults = @homie.node("faults", "Fault History", "ABC") do |node|
