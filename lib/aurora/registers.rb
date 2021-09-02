@@ -194,24 +194,24 @@ module Aurora
     name ? "#{value} #{name}" : value.to_s
   end
 
-  AR_SETTINGS = {
-    0 => "Cycle with Compressor",
-    1 => "Slow Opening Water Valve",
-    2 => "Cycle with Thermostat Humidification Call",
-    3 => "Cycle with Blower"
+  ACCESSORY_RELAY_SETTINGS = {
+    0 => :compressor,
+    1 => :slow_opening_water_valve,
+    2 => :humidifier,
+    3 => :blower
   }.freeze
 
   def dipswitch_settings(value)
     return :manual if value == 0x7fff
 
     {
-      fp1: value & 0x01 == 0x01 ? "30ºF" : "15ºF",
-      fp2: value & 0x02 == 0x02 ? "30ºF" : "15ºF",
-      rv: value & 0x04 == 0x04 ? "O" : "B",
-      ar: AR_SETTINGS[(value >> 3) & 0x3],
-      cc: value & 0x20 == 0x20 ? "Single Stage" : "Dual Stage",
-      lo: value & 0x40 == 0x40 ? "Continouous" : "Pulse",
-      dh_rh: value & 0x80 == 0x80 ? "Dehumidifier On" : "Reheat On"
+      fp1: value & 0x01 == 0x01 ? 30 : 15,
+      fp2: value & 0x02 == 0x02 ? 30 : :off,
+      reversing_valve: value & 0x04 == 0x04 ? :o : :b, # cycle to cool on O, or !B
+      accessory_relay: ACCESSORY_RELAY_SETTINGS[(value >> 3) & 0x3],
+      compressor: value & 0x20 == 0x20 ? 1 : 2, # single or dual stage compressor
+      lockout: value & 0x40 == 0x40 ? :continuous : :pulse,
+      dehumidifier_reheat: value & 0x80 == 0x80 ? :dehumidifier : :reheat
     }
   end
 

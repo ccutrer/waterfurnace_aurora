@@ -7,12 +7,17 @@ module Aurora
     class GenericCompressor < Component
       attr_reader :speed, :watts
 
+      def initialize(abc, stages)
+        super(abc)
+        @stages = stages
+      end
+
       def type
-        "Compressor"
+        "#{@stages == 2 ? 'Dual' : 'Single'} Stage Compressor"
       end
 
       def speed_range
-        0..2
+        0..@stages
       end
 
       def registers_to_read
@@ -39,12 +44,12 @@ module Aurora
     class VSDrive < GenericCompressor
       attr_reader :ambient_temperature, :iz2_desired_speed
 
-      def type
-        "Variable Speed Drive"
+      def initialize(abc)
+        super(abc, 12)
       end
 
-      def speed_range
-        0..12
+      def type
+        "Variable Speed Drive"
       end
 
       def registers_to_read

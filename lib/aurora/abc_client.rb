@@ -65,7 +65,7 @@ module Aurora
       @modbus_slave = self.class.open_modbus_slave(uri)
       @modbus_slave.read_retry_timeout = 15
       @modbus_slave.read_retries = 2
-      raw_registers = @modbus_slave.holding_registers[88..91, 105...110, 404, 412..413, 1114]
+      raw_registers = @modbus_slave.holding_registers[33, 88..91, 105...110, 404, 412..413, 1114]
       registers = Aurora.transform_registers(raw_registers.dup)
       @program = registers[88]
       @serial_number = registers[105]
@@ -78,7 +78,12 @@ module Aurora
                  [Thermostat.new(self)]
                end
 
-      @compressor = @program == "ABCVSP" ? Compressor::VSDrive.new(self) : Compressor::GenericCompressor.new(self)
+      @compressor = if @program == "ABCVSP"
+                      Compressor::VSDrive.new(self)
+                    else
+                      Compressor::GenericCompressor.new(self,
+                                                        registers[33][:compressor])
+                    end
       @blower = case raw_registers[404]
                 when 1, 2 then Blower::ECM.new(self, registers[404])
                 when 3 then Blower::FiveSpeed.new(self, registers[404])
