@@ -227,7 +227,7 @@ class MQTTBridge
 
     @humidistat = @homie.node("humidistat", "Humidistat", "Humidistat") do |node|
       node.property("relative-humidity", "Relative Humidity", :integer, @abc.humidistat.relative_humidity,
-         unit: "%", format: 0..100)
+                    unit: "%", format: 0..100)
       if @abc.humidistat.humidifier?
         node.property("humidifier-running", "Humidifier is running", :boolean, @abc.humidistat.humidifier_running?)
         node.property("humidifier-mode", "Humidifier Mode", :enum, @abc.humidistat.humidifier_mode,

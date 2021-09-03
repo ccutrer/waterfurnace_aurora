@@ -10,20 +10,20 @@ module Aurora
           return unless ((req.length - 1) % 4).zero?
 
           params = []
-          req[1..].unpack("n*").each_slice(2) do |(addr, quant)|
+          req[1..-1].unpack("n*").each_slice(2) do |(addr, quant)|
             params << { addr: addr, quant: quant }
           end
           params
         when 66
           return unless ((req.length - 1) % 2).zero?
 
-          req[1..].unpack("n*")
+          req[1..-1].unpack("n*")
         when 67
           # 1 function register, a multiple of two words
           return unless ((req.length - 1) % 4).zero?
 
           params = []
-          req[1..].unpack("n*").each_slice(2) do |(addr, val)|
+          req[1..-1].unpack("n*").each_slice(2) do |(addr, val)|
             params << { addr: addr, val: val }
           end
           params

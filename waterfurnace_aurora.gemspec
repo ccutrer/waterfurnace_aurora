@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
   s.platform = Gem::Platform::RUBY
   s.authors = ["Cody Cutrer"]
   s.email = "cody@cutrer.com'"
-  s.homepage = "https://github.com/ccutrer/waterfurnace"
+  s.homepage = "https://github.com/ccutrer/waterfurnace_aurora"
   s.summary = "Library for communication with WaterFurnace Aurora control systems"
   s.license = "MIT"
 
@@ -16,7 +16,7 @@ Gem::Specification.new do |s|
   s.executables = Dir["exe/*"].map { |f| File.basename(f) }
   s.files = Dir["{exe,lib}/**/*"]
 
-  s.required_ruby_version = ">= 2.6"
+  s.required_ruby_version = ">= 2.5"
 
   s.add_dependency "ccutrer-serialport", "~> 1.0.0"
   s.add_dependency "homie-mqtt", "~> 1.4.4"

@@ -31,6 +31,22 @@ I would be glad to have your help extending support!
  * WaterFurnace 5 Series split, ECM blower, DHW
  * GeoSmart PremiumV, DHW, ECM blower, VS Drive, VS Pump
 
+## Getting Started on a Raspberry Pi
+
+Don't care for the nitty gritty details? Here's the easy path! You'll need a
+Raspberry Pi (tested on a 4), a [USB RS-485 adapter](https://www.amazon.com/gp/product/B07B416CPK),
+and a network cable.
+
+## Create your cable
+
+Either cut the end of an existing patch cable, or take some CAT5 and crimp an
+RJ45 jack on one end. Either way, ensure the end with a jack is wired for
+![TIA-568-B](https://upload.wikimedia.org/wikipedia/commons/6/60/RJ-45_TIA-568B_Left.png).
+
+
+
+
+
 ## Installation
 
 Install ruby 2.6 or 2.7. 3.0 has not been tested. If talking directly

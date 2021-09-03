@@ -186,7 +186,7 @@ module Aurora
     "RPM Sensor Signal Fault" => (78..82),
     "Under-Voltage Stop" => (83..87),
     "Rotor Locked" => (88..92),
-    "Standby" => (93..)
+    "Standby" => (93..99) # should be infinite, but ruby 2.5 doesn't support it
   }.freeze
 
   def vs_fault(value)
