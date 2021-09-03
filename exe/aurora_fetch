@@ -15,6 +15,10 @@ options = OptionParser.new do |opts|
 
   opts.on("--debug-modbus", "Print actual protocol bytes") { debug_modbus = true }
   opts.on("-y", "--yaml", "Output raw values as YAML") { yaml = true }
+  opts.on("-v", "--version", "Print version") do
+    puts Aurora::VERSION
+    exit
+  end
   opts.on("-h", "--help", "Prints this help") do
     puts opts
     exit

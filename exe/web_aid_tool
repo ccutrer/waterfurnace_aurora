@@ -14,6 +14,10 @@ options = OptionParser.new do |opts|
 
   opts.on("--debug-modbus", "Print actual protocol bytes") { debug_modbus = true }
   opts.on("--monitor", "Print interpreted registers as they are requested, like aurora_monitor") { monitor = true }
+  opts.on("-v", "--version", "Print version") do
+    puts Aurora::VERSION
+    exit
+  end
   opts.on("-h", "--help", "Prints this help") do
     puts opts
     exit

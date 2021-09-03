@@ -15,6 +15,10 @@ options = OptionParser.new do |opts|
   opts.banner = "Usage: aurora_mqtt_bridge /path/to/serial/port [options]"
 
   opts.on("--debug-modbus", "Print actual protocol bytes") { debug_modbus = true }
+  opts.on("-v", "--version", "Print version") do
+    puts Aurora::VERSION
+    exit
+  end
   opts.on("-h", "--help", "Prints this help") do
     puts opts
     exit

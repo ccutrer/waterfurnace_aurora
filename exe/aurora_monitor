@@ -22,6 +22,10 @@ options = OptionParser.new do |opts|
   opts.on("--debug-modbus", "Print actual protocol bytes") { debug_modbus = true }
   opts.on("--ignore-awl-heartbeat", "Don't print AWL heartbeat requests") { ignore_awl_heartbeat = true }
   opts.on("--ignore-sensors", "Don't print sensor registers (i.e. because they change a lot)") { ignore_sensors = true }
+  opts.on("-v", "--version", "Print version") do
+    puts Aurora::VERSION
+    exit
+  end
   opts.on("-h", "--help", "Prints this help") do
     puts opts
     exit
