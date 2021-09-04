@@ -1,9 +1,9 @@
 PATH
   remote: .
   specs:
-    waterfurnace_aurora (0.6.2)
+    waterfurnace_aurora (0.6.3)
       ccutrer-serialport (~> 1.0.0)
-      homie-mqtt (~> 1.4.4)
+      homie-mqtt (~> 1.4, >= 1.4.5)
       net-telnet-rfc2217 (~> 1.0, >= 1.0.1)
       rmodbus-ccutrer (~> 2.1)
       sinatra (~> 2.1)
@@ -17,10 +17,11 @@ GEM
       ffi (~> 1.9, >= 1.9.3)
     digest-crc (0.6.4)
       rake (>= 12.0.0, < 14.0.0)
-    ffi (1.15.3)
-    homie-mqtt (1.4.4)
-      mqtt-ccutrer (~> 1.0)
-    mqtt-ccutrer (1.0.0)
+    ffi (1.15.4)
+    homie-mqtt (1.4.5)
+      mqtt-ccutrer (~> 1.0, >= 1.0.1)
+      ruby2_keywords (~> 0.0.5)
+    mqtt-ccutrer (1.0.1)
     mustermann (1.1.1)
       ruby2_keywords (~> 0.0.1)
     net-telnet (0.2.0)

@@ -35,39 +35,97 @@ I would be glad to have your help extending support!
 
 Don't care for the nitty gritty details? Here's the easy path! You'll need a
 Raspberry Pi (tested on a 4), a [USB RS-485 adapter](https://www.amazon.com/gp/product/B07B416CPK),
-and a network cable.
+and a network cable. Additional details can be found in subsequent sections if
+you want to deviate slightly from the simple path.
 
-## Create your cable
+### Create your cable
 
 Either cut the end of an existing patch cable, or take some CAT5 and crimp an
 RJ45 jack on one end. Either way, ensure the end with a jack is wired for
-![TIA-568-B](https://upload.wikimedia.org/wikipedia/commons/6/60/RJ-45_TIA-568B_Left.png).
+[TIA-568-B](https://upload.wikimedia.org/wikipedia/commons/6/60/RJ-45_TIA-568B_Left.png).
+Then remove some jacket at the other end, and strip and twist together
+white/orange and white/green, and blue and orange. The first pair goes into the
+A or + terminal, and the second pair goes into the B or - terminal on your
+USB adapter:
+
+![Cable](doc/cable.jpg)
+
+Plug the jack into the AID tool port on your heat pump:
+
+![Connected to Heat Pump](doc/cable_in_heat_pump.jpg)
+
+Or, if you have an AWL, into the AID tool port of your AWL:
+
+![Connected to AWL](doc/cable_in_awl.jpg)
+
+Finally, plug the USB adapter into your computer:
+
+![Connected to Raspberry Pi](doc/cable_in_pi.jpg)
+
+### Software
+
+[Set up your Pi](https://projects.raspberrypi.org/en/projects/raspberry-pi-setting-up)
+(tested using a Pi Zero W) using the latest Raspberry Pi OS, connect it to the network,
+and then open a terminal window (either SSH to it launch the terminal app with a local
+keyboard). Then install the software:
+
+```sh
+sudo apt install ruby ruby-dev
+sudo gem install rake waterfurnance_aurora --no-doc
+sudo apt install mosquitto
+sudo curl https://github.com/ccutrer/waterfurnace_aurora/raw/main/contrib/aurora_mqtt_bridge.service -L -o /etc/systemd/system/aurora_mqtt_bridge.service
+sudo systemctl enable aurora_mqtt_bridge
+sudo systemctl start aurora_mqtt_bridge
+```
+
+Congratulations, you should now be seeing data published to MQTT! You can
+confirm this by using [MQTT Explorer](http://mqtt-explorer.com) and
+connecting to raspberry-pi.local:
+
+![MQTT Explorer](doc/mqtt_explorer.png)
 
 
+### Integrating With Home Automation
 
+#### OpenHAB
 
+For OpenHAB, install the [MQTT Binding](https://www.openhab.org/addons/bindings/mqtt/),
+and manually add an MQTT Broker thing connecting to raspberrypi.local. After
+that, the Aurora device will show up automatically in your inbox:
+
+![Aurora in OpenHAB Inbox](doc/openhab_inbox.png)
+
+Now all the channels will be automatically created, and you just need to link them to
+items:
+
+![Aurora Channels](doc/openhab_channels.png)
+
+#### Home Assistant
+
+TBD
 
 ## Installation
 
-Install ruby 2.6 or 2.7. 3.0 has not been tested. If talking directly
-to the serial port, Linux is required. Mac may or may not work. Windows
-probably won't work. If you want to run on Windows, you'll need to run
-a network serial port (like with `ser2net`), and connect remotely from
-the Windows machine. Then:
+Install ruby 2.5, 2.6, or 2.7. Ruby 3.0 has not been tested. If talking
+directly to the serial port, Linux is required. Mac may or may not work.
+Windows probably won't work. If you want to run on Windows, you'll need to run
+a network serial port (like with `ser2net`), and connect remotely from the
+Windows machine. Then:
 
 ```sh
 gem install waterfurnace_aurora 
 ```
 
-On Ubuntu 21.04 the following dependencies are needed to install the gem:
+On Debian and Ubuntu, the following dependencies are needed to install the gem:
 
 ```sh
-sudo apt install build-essential ruby2.7 ruby-dev
+sudo apt install ruby ruby-dev
 ```
 
 ### Docker
-A very simple Dockerfile is provided in the ```docker``` folder to build a docker image. This image is meant to run the MQTT bridge by default but can be used to run any of the other tools.
-More details [here](/docker) 
+A very simple Dockerfile is provided in the ```docker``` folder to build a
+docker image. This image is meant to run the MQTT bridge by default but can be
+used to run any of the other tools. More details [here](/docker) 
 
 
 ## MQTT/Homie Bridge
@@ -82,12 +140,18 @@ Ruby installed):
 
 ```sh
 sudo curl https://github.com/ccutrer/waterfurnace_aurora/raw/main/contrib/aurora_mqtt_bridge.service -L -o /etc/systemd/system/aurora_mqtt_bridge.service
-<modify the file to pass the correct URI to your MQTT server, and path to RS-485 device>
-<If you use MQTT authentication you can use the following format to provide login information mqtt://username:password@mqtt.domain.tld >
-<Make sure to change the "User" and "WorkingDirectory" parameters to fit your environnement>
 sudo systemctl enable aurora_mqtt_bridge
 sudo systemctl start aurora_mqtt_bridge
 ```
+
+Be sure modify the file to pass the correct URI to your MQTT server and path
+to RS-485 device. Also to change the "User" parameter to fit your environnment.
+
+If you use MQTT authentication you can use the following format to provide
+login information: mqtt://username:password@mqtt.domain.tld. If you use SSL/TLS
+on your MQTT server, change the URI to be mqtts://. Be sure to URI-escape
+special characters, and %'s must be doubled in the .service file. You may also
+need to surround your MQTT URI in single quotes.
 
 Once connected, status updates such as current temperature, set point, and a
 plethora of other diagnostic information will be published to MQTT regularly.
@@ -139,7 +203,8 @@ your RS-485 device on your computer.
 
 ![Bus Connection](doc/connection_chart.png)
 
-When using a TIA-568-B terminated cable with a USB RS-485 dongle the connections should be the following:
+When using a TIA-568-B terminated cable with a USB RS-485 dongle the
+connections should be the following:
 
 |Dongle terminal |RJ-45 Pin |Wire color |RS-485|
 --- | --- | --- | --- 

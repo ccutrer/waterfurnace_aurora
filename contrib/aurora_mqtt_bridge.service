@@ -2,9 +2,8 @@
 Description=Aurora MQTT Bridge
 
 [Service]
-User=cody
-WorkingDirectory=/home/cody/src/waterfurnace_aurora
-ExecStart=/usr/local/bin/aurora_mqtt_bridge /dev/ttyFurnace mqtt://localhost/
+User=pi
+ExecStart=/usr/local/bin/aurora_mqtt_bridge /dev/ttyUSB0 mqtt://localhost/
 Restart=always
 RestartSec=3s
 
