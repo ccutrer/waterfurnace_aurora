@@ -67,8 +67,8 @@ Finally, plug the USB adapter into your computer:
 
 [Set up your Pi](https://projects.raspberrypi.org/en/projects/raspberry-pi-setting-up)
 using the latest Raspberry Pi OS, connect it to the network, and then open a
-terminal window (either SSH to it launch the terminal app with a local keyboard).
-Then install the software:
+terminal window (either SSH to it or launch the terminal app with a local
+keyboard). Then install the software:
 
 ```sh
 sudo apt install ruby ruby-dev
