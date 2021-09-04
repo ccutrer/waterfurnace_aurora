@@ -72,7 +72,7 @@ keyboard). Then install the software:
 
 ```sh
 sudo apt install ruby ruby-dev
-sudo gem install rake waterfurnance_aurora --no-doc
+sudo gem install rake waterfurnace_aurora --no-doc
 sudo apt install mosquitto
 sudo curl https://github.com/ccutrer/waterfurnace_aurora/raw/main/contrib/aurora_mqtt_bridge.service -L -o /etc/systemd/system/aurora_mqtt_bridge.service
 sudo systemctl enable aurora_mqtt_bridge
