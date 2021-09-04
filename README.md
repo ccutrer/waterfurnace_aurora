@@ -34,7 +34,8 @@ I would be glad to have your help extending support!
 ## Getting Started on a Raspberry Pi
 
 Don't care for the nitty gritty details? Here's the easy path! You'll need a
-Raspberry Pi (tested on a 4), a [USB RS-485 adapter](https://www.amazon.com/gp/product/B07B416CPK),
+Raspberry Pi (tested on a Pi Zero W and a Pi 4), a
+[USB RS-485 adapter](https://www.amazon.com/gp/product/B07B416CPK),
 and a network cable. Additional details can be found in subsequent sections if
 you want to deviate slightly from the simple path.
 
@@ -65,9 +66,9 @@ Finally, plug the USB adapter into your computer:
 ### Software
 
 [Set up your Pi](https://projects.raspberrypi.org/en/projects/raspberry-pi-setting-up)
-(tested using a Pi Zero W) using the latest Raspberry Pi OS, connect it to the network,
-and then open a terminal window (either SSH to it launch the terminal app with a local
-keyboard). Then install the software:
+using the latest Raspberry Pi OS, connect it to the network, and then open a
+terminal window (either SSH to it launch the terminal app with a local keyboard).
+Then install the software:
 
 ```sh
 sudo apt install ruby ruby-dev
