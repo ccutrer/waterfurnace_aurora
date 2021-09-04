@@ -81,7 +81,7 @@ sudo systemctl start aurora_mqtt_bridge
 
 Congratulations, you should now be seeing data published to MQTT! You can
 confirm this by using [MQTT Explorer](http://mqtt-explorer.com) and
-connecting to raspberry-pi.local:
+connecting to raspberrypi.local:
 
 ![MQTT Explorer](doc/mqtt_explorer.png)
 
