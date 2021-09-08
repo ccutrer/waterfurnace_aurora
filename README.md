@@ -343,8 +343,9 @@ This is a reproduction of the web AID tool, as provided on some early AWL
 units. It depends on code from an actual AWL. For copyright reasons, these
 files are not provided. You will need to download them from your AWL, and
 place them into an html directory. You can do this by running
-`grab_awl_asset.sh`. If you have an older AID tool, you can provide its IP
-address as an argument. Newer AID tools will only allow access to this
+`curl https://github.com/ccutrer/waterfurnace_aurora/raw/main/contrib/grab_awl_assets.sh -L -o grab_awl-assets.sh && grab_awl_assets.sh`.
+If you have an older AID tool, you can provide its IP address as an argument.
+Newer AID tools will only allow access to this
 in setup mode. You enter setup mode by holding down the mode button for
 5 seconds, and then the LED will flash green rapidly for a few seconds.
 You will then need to join the WiFi network created by the AID tool,
