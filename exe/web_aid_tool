@@ -120,3 +120,7 @@ get "/request.cgi" do
 
   encode_result(result)
 end
+
+# can't rely on this running automatically when we're installed as a gem,
+# because the wrapper script will confuse it
+Sinatra::Application.run!

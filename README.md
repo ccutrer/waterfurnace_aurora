@@ -357,3 +357,15 @@ $ web_aid_tool /dev/ttyHeatPump
 ```
 
 After which you'll be able to open a browser to http://localhost:4567/.
+
+If you need to access it from another machine, you'll need to run it in
+production mode:
+
+```
+$ APP_ENV=production web_aid_tool /dev/ttyHeatPump
+```
+
+Also remember you can proxy modbus through the MQTT bridge if it's running:
+```
+$ web_aid_tool mqtt://localhost/homie/aurora-xxx/$modbus
+```
