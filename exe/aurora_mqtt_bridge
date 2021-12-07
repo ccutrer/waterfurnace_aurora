@@ -129,19 +129,19 @@ class MQTTBridge
       node.property("current-mode", "Current Heating/Cooling Mode", :enum, @abc.current_mode,
                     format: allowed_modes)
       node.property("entering-air-temperature", "Entering Air Temperature", :float, @abc.entering_air_temperature,
-                    unit: "ºF")
+                    unit: "°F")
       node.property("entering-water-temperature", "Entering Water Temperature", :float,
-                    @abc.entering_water_temperature, unit: "ºF")
+                    @abc.entering_water_temperature, unit: "°F")
       node.property("leaving-air-temperature", "Leaving Air Temperature", :float, @abc.leaving_air_temperature,
-                    unit: "ºF")
+                    unit: "°F")
       node.property("leaving-water-temperature", "Leaving Water Temperature", :float, @abc.leaving_water_temperature,
-                    unit: "ºF")
+                    unit: "°F")
       unless @abc.outdoor_temperature.zero? # TODO: figure out the config if this actually exists
-        node.property("outdoor-temperature", "Outdoor Temperature", :float, @abc.outdoor_temperature, unit: "ºF")
+        node.property("outdoor-temperature", "Outdoor Temperature", :float, @abc.outdoor_temperature, unit: "°F")
       end
 
-      node.property("fp1", "FP1 Sensor", :float, @abc.fp1, unit: "ºF")
-      node.property("fp2", "FP2 Sensor", :float, @abc.fp2, unit: "ºF")
+      node.property("fp1", "FP1 Sensor", :float, @abc.fp1, unit: "°F")
+      node.property("fp2", "FP2 Sensor", :float, @abc.fp2, unit: "°F")
       %i[aux_heat total].each do |component|
         component = "#{component}_watts"
         node.property(component.tr("_", "-"), component.tr("_", " ").titleize, :integer,
@@ -157,7 +157,7 @@ class MQTTBridge
       next unless @abc.compressor.is_a?(Aurora::Compressor::VSDrive)
 
       node.property("ambient-temperature", "Compressor ambient temperature", :float,
-                    @abc.compressor.ambient_temperature, unit: "ºF")
+                    @abc.compressor.ambient_temperature, unit: "°F")
 
       next unless @abc.iz2?
 
@@ -221,9 +221,9 @@ class MQTTBridge
         end
         node.property("running", "DHW Pump is running", :boolean, @abc.dhw.running?)
         node.property("water-temperature", "Water Temperature", :float,
-                      @abc.dhw.water_temperature, unit: "ºF")
+                      @abc.dhw.water_temperature, unit: "°F")
         node.property("set-point", "Set Point", :float, @abc.dhw.set_point, format: 100..140,
-                                                                            unit: "ºF") do |value, property|
+                                                                            unit: "°F") do |value, property|
           @mutex.synchronize { property.value = @abc.dhw.set_point = value }
         end
       end
@@ -302,13 +302,13 @@ class MQTTBridge
           node.property("size", "Size", :enum, zone.size, format: %w[0 25 45 70])
           node.property("normalized-size", "Normalized Size", :integer, zone.normalized_size, unit: "%", format: 0..100)
         end
-        node.property("ambient-temperature", "Ambient Temperature", :float, zone.ambient_temperature, unit: "ºF")
+        node.property("ambient-temperature", "Ambient Temperature", :float, zone.ambient_temperature, unit: "°F")
         node.property("heating-target-temperature", "Heating Target Temperature", :integer,
-                      zone.heating_target_temperature, unit: "ºF", format: 40..90) do |value, property|
+                      zone.heating_target_temperature, unit: "°F", format: 40..90) do |value, property|
           @mutex.synchronize { property.value = zone.heating_target_temperature = value }
         end
         node.property("cooling-target-temperature", "Cooling Target Temperature", :integer,
-                      zone.cooling_target_temperature, unit: "ºF", format: 54..99) do |value, property|
+                      zone.cooling_target_temperature, unit: "°F", format: 54..99) do |value, property|
           @mutex.synchronize { property.value = zone.cooling_target_temperature = value }
         end
       end

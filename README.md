@@ -171,9 +171,9 @@ back. You can also write to a register by addressing `$modbus/:register/set`:
 homie/aurora-<serialno>/$modbus/813 <= IZ2 Version (813): 2.06
 
 745-747 => homie/aurora-<serialno>/$modbus
-homie/aurora-<serialno>/$modbus/745 <= Heating Set Point (745): 68.0ºF
-homie/aurora-<serialno>/$modbus/746 <= Cooling Set Point (746): 73.0ºF
-homie/aurora-<serialno>/$modbus/747 <= Ambient Temperature (747): 73.0ºF
+homie/aurora-<serialno>/$modbus/745 <= Heating Set Point (745): 68.0°F
+homie/aurora-<serialno>/$modbus/746 <= Cooling Set Point (746): 73.0°F
+homie/aurora-<serialno>/$modbus/747 <= Ambient Temperature (747): 73.0°F
 
 known => homie/aurora-<serialno>/$modbus
 <a whole ton of data sent back!>
@@ -292,14 +292,14 @@ Status (31): {:lps=>:closed, :hps=>:closed, :unknown=>"0x0018"}
 ??? (324): 99 (0x0063)
 ECM Speed (344): 2
 ??? (348): 10 (0x000a)
-DHW Setpoint (401): 130.0ºF
+DHW Setpoint (401): 130.0°F
 Relative Humidity (741): 51%
 ??? (742): 0 (0x0000)
 ??? (743): 0 (0x0000)
 ??? (744): 24 (0x0018)
-Heating Set Point (745): 74.0ºF
-Cooling Set Point (746): 72.0ºF
-Ambient Temperature (747): 0.0ºF
+Heating Set Point (745): 74.0°F
+Cooling Set Point (746): 72.0°F
+Ambient Temperature (747): 0.0°F
 ...
 ```
 
@@ -321,8 +321,8 @@ heat pump itself, or the AWL). It accepts the same syntax as
 
 ```
 $ aurora_fetch /dev/ttyHeatPump 745-746
-Heating Set Point (745): 68.0ºF
-Cooling Set Point (746): 73.0ºF
+Heating Set Point (745): 68.0°F
+Cooling Set Point (746): 73.0°F
 
 $ aurora_fetch /dev/ttyHeatPump 745-746 --yaml
 ---
