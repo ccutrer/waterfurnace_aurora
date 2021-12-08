@@ -457,12 +457,11 @@ class MQTTBridge
           current_temperature_property: homie_zone["ambient-temperature"],
           fan_mode_property: homie_zone["target-fan-mode"],
           mode_property: homie_zone["target-mode"],
-          power_property: homie_zone["current-fan-mode"],
           temperature_high_property: homie_zone["cooling-target-temperature"],
           temperature_low_property: homie_zone["heating-target-temperature"],
           templates: {
             action_template: <<~JINJA
-              {% if value..startswith('h') %}
+              {% if value.startswith('h') %}
                 heating
               {% elif value.startswith('c') %}
                 cooling
@@ -472,6 +471,8 @@ class MQTTBridge
             JINJA
           }
         )
+        MQTT::HomeAssistant.publish_binary_sensor(homie_zone["current-fan-mode"],
+                                                  device_class: :running)
         MQTT::HomeAssistant.publish_select(homie_zone["fan-intermittent-on"],
                                            entity_category: :config)
         MQTT::HomeAssistant.publish_select(homie_zone["fan-intermittent-off"],

@@ -3,7 +3,7 @@ PATH
   specs:
     waterfurnace_aurora (0.6.4)
       ccutrer-serialport (~> 1.0.0)
-      mqtt-homeassistant (~> 0)
+      mqtt-homeassistant (~> 0, >= 0.0.2)
       net-telnet-rfc2217 (~> 1.0, >= 1.0.1)
       rmodbus-ccutrer (~> 2.1)
       sinatra (~> 2.1)
@@ -23,7 +23,7 @@ GEM
       ruby2_keywords (~> 0.0.5)
     json (2.6.1)
     mqtt-ccutrer (1.0.1)
-    mqtt-homeassistant (0.0.1)
+    mqtt-homeassistant (0.0.2)
       homie-mqtt (~> 1.5)
       json (~> 2.0)
     mustermann (1.1.1)
