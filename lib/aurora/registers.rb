@@ -587,9 +587,9 @@ module Aurora
 
   def zone_registers
     (1..6).map do |i|
-      base1 = 21_202 + (i - 1) * 9
-      base2 = 31_007 + (i - 1) * 3
-      base3 = 31_200 + (i - 1) * 3
+      base1 = 21_202 + ((i - 1) * 9)
+      base2 = 31_007 + ((i - 1) * 3)
+      base3 = 31_200 + ((i - 1) * 3)
       {
         base1 => "Zone #{i} Heating Mode (write)",
         (base1 + 1) => "Zone #{i} Heating Setpoint (write)",

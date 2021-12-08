@@ -9,7 +9,7 @@ module Aurora
     def inspect
       "#<Aurora::#{self.class.name} #{(instance_variables - [:@abc]).map do |iv|
                                         "#{iv}=#{instance_variable_get(iv).inspect}"
-                                      end.join(', ')}>"
+                                      end.join(", ")}>"
     end
 
     private

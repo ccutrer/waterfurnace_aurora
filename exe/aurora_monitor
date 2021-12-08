@@ -79,7 +79,7 @@ diff_and_print = lambda do |registers|
   last_registers = new_registers
 end
 
-server.request_callback = lambda { |uid, func, req|
+server.request_callback = lambda do |uid, func, req|
   if func == 6
     puts "#{Time.now} ===== write register to #{uid}:"
     registers = { req[:addr] => req[:val] }
@@ -104,9 +104,9 @@ server.request_callback = lambda { |uid, func, req|
   else
     puts "#{Time.now} **** new func #{func}"
   end
-}
+end
 
-server.response_callback = lambda { |uid, func, res, req|
+server.response_callback = lambda do |uid, func, res, req|
   if func == 3 && res.is_a?(Array) && req
     unless req[:quant] == res.length
       puts "wrong number of results"
@@ -138,7 +138,7 @@ server.response_callback = lambda { |uid, func, res, req|
   else
     puts "#{Time.now} **** new func #{func}"
   end
-}
+end
 
 server.send(:serve, server.instance_variable_get(:@sp))
 loop { nil }

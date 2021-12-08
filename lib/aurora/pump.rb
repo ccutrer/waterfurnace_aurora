@@ -6,7 +6,7 @@ module Aurora
   module Pump
     class GenericPump < Component
       attr_reader :type, :watts, :waterflow, :running
-      alias running? running
+      alias_method :running?, :running
 
       def initialize(abc, type)
         super(abc)
@@ -28,7 +28,7 @@ module Aurora
 
     class VSPump < GenericPump
       attr_reader :speed, :minimum_speed, :maximum_speed, :manual_control
-      alias manual_control? manual_control
+      alias_method :manual_control?, :manual_control
 
       def registers_to_read
         super + [321..325]

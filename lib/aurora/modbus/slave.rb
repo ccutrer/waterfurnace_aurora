@@ -4,14 +4,14 @@ module Aurora
   module ModBus
     module Slave
       def read_multiple_holding_registers(*ranges)
-        values = if ranges.any? { |r| r.is_a?(Range) }
+        values = if ranges.any?(Range)
                    addrs_and_lengths = ranges.map do |r|
                      r = Array(r)
                      [r.first, r.last - r.first + 1]
                    end.flatten
-                   query("A#{addrs_and_lengths.pack('n*')}").unpack("n*")
+                   query("A#{addrs_and_lengths.pack("n*")}").unpack("n*")
                  else
-                   query("B#{ranges.pack('n*')}").unpack("n*")
+                   query("B#{ranges.pack("n*")}").unpack("n*")
                  end
         ranges.map { |r| Array(r) }.flatten.zip(values).to_h
       end

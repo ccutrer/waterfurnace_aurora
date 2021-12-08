@@ -11,6 +11,9 @@ Gem::Specification.new do |s|
   s.homepage = "https://github.com/ccutrer/waterfurnace_aurora"
   s.summary = "Library for communication with WaterFurnace Aurora control systems"
   s.license = "MIT"
+  s.metadata = {
+    "rubygems_mfa_required" => "true"
+  }
 
   s.bindir = "exe"
   s.executables = Dir["exe/*"].map { |f| File.basename(f) }
@@ -24,6 +27,8 @@ Gem::Specification.new do |s|
   s.add_dependency "rmodbus-ccutrer", "~> 2.1"
   s.add_dependency "sinatra", "~> 2.1"
 
-  s.add_development_dependency "byebug", "~> 9.0"
-  s.add_development_dependency "rubocop", "~> 1.19"
+  s.add_development_dependency "byebug", "~> 11.0"
+  s.add_development_dependency "rubocop", "~> 1.23"
+  s.add_development_dependency "rubocop-performance", "~> 1.12"
+  s.add_development_dependency "rubocop-rake", "~> 0.6"
 end

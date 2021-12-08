@@ -13,7 +13,7 @@ module Aurora
       end
 
       def type
-        "#{@stages == 2 ? 'Dual' : 'Single'} Stage Compressor"
+        "#{@stages == 2 ? "Dual" : "Single"} Stage Compressor"
       end
 
       def speed_range
