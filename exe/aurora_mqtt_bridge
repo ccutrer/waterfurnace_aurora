@@ -145,15 +145,18 @@ class MQTTBridge
       node.property("fp2", "FP2 Sensor", :float, @abc.fp2, unit: "°F")
       %i[aux_heat total].each do |component|
         component = "#{component}_watts"
-        node.property(component.tr("_", "-"), component.tr("_", " ").titleize, :integer,
-                      @abc.public_send(component), unit: "W")
+        node.property(component.tr("_", "-"),
+                      component.sub("_watts", " Power Usage").tr("_", " ").titleize,
+                      :integer,
+                      @abc.public_send(component),
+                      unit: "W")
       end
     end
 
     @compressor = @homie.node("compressor", "Compressor", @abc.compressor.type) do |node|
       node.property("speed", "Current Speed", :integer, @abc.compressor.speed,
                     format: @abc.compressor.speed_range)
-      node.property("watts", "Energy Usage", :integer, @abc.compressor.watts, unit: "W") if @abc.energy_monitoring?
+      node.property("watts", "Power Usage", :integer, @abc.compressor.watts, unit: "W") if @abc.energy_monitoring?
 
       next unless @abc.compressor.is_a?(Aurora::Compressor::VSDrive)
 
@@ -171,7 +174,7 @@ class MQTTBridge
       if @abc.blower.respond_to?(:speed)
         node.property("speed", "Current Speed", :integer, @abc.blower.speed, format: @abc.blower.speed_range)
       end
-      node.property("watts", "Energy Usage", :integer, @abc.blower.watts, unit: "W") if @abc.energy_monitoring?
+      node.property("watts", "Power Usage", :integer, @abc.blower.watts, unit: "W") if @abc.energy_monitoring?
 
       next unless @abc.blower.is_a?(Aurora::Blower::ECM)
 
@@ -193,7 +196,7 @@ class MQTTBridge
 
     @pump = @homie.node("pump", "Loop Pump", @abc.pump.type) do |node|
       node.property("waterflow", "Waterflow", :float, @abc.pump.waterflow, unit: "gpm")
-      node.property("watts", "Energy Usage", :integer, @abc.pump.watts, unit: "W") if @abc.energy_monitoring?
+      node.property("watts", "Power Usage", :integer, @abc.pump.watts, unit: "W") if @abc.energy_monitoring?
 
       next unless @abc.pump.is_a?(Aurora::Pump::VSPump)
 

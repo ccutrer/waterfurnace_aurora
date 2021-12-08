@@ -101,9 +101,76 @@ items:
 
 ![Aurora Channels](doc/openhab_channels.png)
 
+You may or may not want to ignore the Home Assistant copy of discovered things.
+
 #### Home Assistant
 
-TBD
+Just connect HASS to the same MQTT broker, and ensure discovery is enabled.
+Everything will automatically show up. You can easily customize entity names
+and IDs. You can also customize Lovelace if you would like to include more of
+the WaterFurnace specific controls. One example:
+
+```
+type: vertical-stack
+cards:
+  - type: custom:simple-thermostat
+    entity: climate.waterfurnace_zone_1
+    sensors:
+      - entity: sensor.waterfurnace_humidistat_relative_humidity
+        name: Humidity
+      - entity: sensor.waterfurnace_heat_pump_total_power_usage
+        name: Consumption
+      - entity: sensor.waterfurnace_blower_current_speed
+        name: Fan Speed
+    control:
+      hvac: true
+      fan:
+        auto:
+          name: Auto
+        continuous:
+          name: Continuous
+          icon: mdi:fan
+        intermittent:
+          name: Intermittent
+          icon: mdi:fan
+  - type: entities
+    entities:
+      - entities:
+          - entity: sensor.waterfurnace_loop_pump_power_usage
+            name: Pump
+          - entity: sensor.waterfurnace_loop_pump_waterflow
+            name: Water Flow
+          - entity: sensor.waterfurnace_heat_pump_entering_water_temperature
+            name: Entering Water Temp
+          - entity: sensor.waterfurnace_heat_pump_leaving_water_temperature
+            name: Leaving Water Temp
+        entity: climate.waterfurnace_zone_1
+        show_state: false
+        name: Loop Details
+        toggle: false
+        type: custom:multiple-entity-row
+      - entities:
+          - entity: sensor.waterfurnace_heat_pump_entering_air_temperature
+            name: Air Temp In
+          - entity: sensor.waterfurnace_heat_pump_leaving_air_temperature
+            name: Air Leaving Temp
+        entity: climate.waterfurnace_zone_1
+        show_state: false
+        name: Air Sensors
+        toggle: false
+        type: custom:multiple-entity-row
+      - head:
+          entity: sensor.waterfurnace_heat_pump_total_power_usage
+          name: Power Consumption
+        items:
+          - entity: sensor.waterfurnace_compressor_power_usage
+            name: Compressor
+          - entity: sensor.waterfurnace_blower_power_usage
+            name: Fan
+        type: custom:fold-entity-row
+      - entity: sensor.waterfurnace_domestic_hot_water_generator_water_temperature
+        name: Hot Water Heater Temp
+```
 
 ## Installation
 
