@@ -108,7 +108,7 @@ module Aurora
     48 => "EEV OD Comm Error", # Com with EEV is interupted EEV has gone independent mode
     49 => "Cabinet Temperature Sensor", # Ambient Temperature (Tamb) is <-76 or > 212 F and out of range or invalid
     51 => "Discharge Temp Sensor", # Discharge Sensor (Sd) is > 280 F or invalid (-76 to 392 F)
-    52 => "Suction Presure Sensor", # Suction Pressure (P0) is invalid (0 to 232 psi)
+    52 => "Suction Pressure Sensor", # Suction Pressure (P0) is invalid (0 to 232 psi)
     53 => "Condensing Pressure Sensor", # Low condensing pressure (PD) or invalid (0 to 870 psi) Retry 10x.
     54 => "Low Supply Voltage", # Supply Voltage is <180 V (190V to reset) or powered off/on too quickly (<30 sec.).
     55 => "Out of Envelope", # Comp Operating out of envelope (P0) more than 90 sec. Retry 10x.
