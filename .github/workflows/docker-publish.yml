@@ -1,0 +1,56 @@
+name: Docker Image CI
+
+on:
+  schedule:
+    - cron: '33 2 */14 * *'
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main ]
+    
+env:
+  # Use docker.io for Docker Hub if empty
+  REGISTRY: ghcr.io
+  # github.repository as <account>/<repo>
+  IMAGE_NAME: ${{ github.repository }}
+  
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+      
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Log into registry ${{ env.REGISTRY }}
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v1
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Docker meta
+      id: meta
+      uses: docker/metadata-action@v3
+      with:
+        images: ${{ env.REGISTRY }}/${{ github.actor }}/${{ github.repository }}
+        tags: |
+          type=semver,pattern={{raw}}
+          type=ref,event=branch
+          type=ref,event=tag
+          type=raw,value={{tag}}
+          type=sha
+        flavor: |
+          latest=true
+        
+    - name: Build and push
+      uses: docker/build-push-action@v2
+      with:
+        context: ./docker
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
