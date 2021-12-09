@@ -92,14 +92,14 @@ module Aurora
                 when 3 then Blower::FiveSpeed.new(self, registers[404])
                 else; Blower::PSC.new(self, registers[404])
                 end
-      @pump = if (3..5).include?(raw_registers[413])
+      @pump = if (3..5).cover?(raw_registers[413])
                 Pump::VSPump.new(self,
                                  registers[413])
               else
                 Pump::GenericPump.new(self,
                                       registers[413])
               end
-      @dhw = DHW.new(self) if (-999..999).include?(registers[1114])
+      @dhw = DHW.new(self) if (-999..999).cover?(registers[1114])
       @humidistat = Humidistat.new(self,
                                    @abc_dipswitches[:accessory_relay] == :humidifier,
                                    @axb_dipswitches[:accessory_relay2] == :dehumidifier)
@@ -171,7 +171,7 @@ module Aurora
       @fp2                        = registers[20]
       @locked_out                 = registers[25] & 0x8000
       @error                      = registers[25] & 0x7fff
-      @derated                    = (41..46).include?(@error)
+      @derated                    = (41..46).cover?(@error)
       @safe_mode                  = [47, 48, 49, 72, 74].include?(@error)
       @aux_heat_watts             = registers[1151]
       @total_watts                = registers[1153]
@@ -212,7 +212,7 @@ module Aurora
     end
 
     def line_voltage=(value)
-      raise ArgumentError unless (90..635).include?(value)
+      raise ArgumentError unless (90..635).cover?(value)
 
       @modbus_slave.holding_registers[112] = value
     end
@@ -227,13 +227,13 @@ module Aurora
                          pump_speed: :with_compressor,
                          aux_heat: false)
       raise ArgumentError, "mode must be :off, :heating, or :cooling" unless %i[off heating cooling].include?(mode)
-      raise ArgumentError, "compressor speed must be between 0 and 12" unless (0..12).include?(compressor_speed)
+      raise ArgumentError, "compressor speed must be between 0 and 12" unless (0..12).cover?(compressor_speed)
 
-      unless blower_speed == :with_compressor || (0..12).include?(blower_speed)
+      unless blower_speed == :with_compressor || (0..12).cover?(blower_speed)
         raise ArgumentError,
               "blower speed must be :with_compressor or between 0 and 12"
       end
-      unless pump_speed == :with_compressor || (0..100).include?(pump_speed)
+      unless pump_speed == :with_compressor || (0..100).cover?(pump_speed)
         raise ArgumentError,
               "pump speed must be :with_compressor or between 0 and 100"
       end
@@ -273,7 +273,7 @@ module Aurora
     def inspect
       "#<Aurora::ABCClient #{(instance_variables - [:@modbus_slave]).map do |iv|
                                "#{iv}=#{instance_variable_get(iv).inspect}"
-                             end.join(', ')}>"
+                             end.join(", ")}>"
     end
   end
 end

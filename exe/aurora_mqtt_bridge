@@ -3,6 +3,7 @@
 
 require "aurora"
 require "homie-mqtt"
+require "mqtt/home_assistant"
 require "ccutrer-serialport"
 require "uri"
 require "optparse"
@@ -79,7 +80,7 @@ class MQTTBridge
           end
         end
       end
-    rescue StandardError => e
+    rescue => e
       warn "failed processing message: #{e}\n#{e.backtrace}"
     end
 
@@ -123,41 +124,44 @@ class MQTTBridge
   end
 
   def publish_basic_attributes
-    @homie_abc = @homie.node("abc", "Aurora Basic Control", "ABC") do |node|
+    @homie_abc = @homie.node("abc", "Heat Pump", "ABC") do |node|
       allowed_modes = %w[lockout standby blower heating cooling eh1 eh2 emergency waiting]
       allowed_modes << "dehumidify" if @abc.compressor.is_a?(Aurora::Compressor::VSDrive)
       node.property("current-mode", "Current Heating/Cooling Mode", :enum, @abc.current_mode,
                     format: allowed_modes)
       node.property("entering-air-temperature", "Entering Air Temperature", :float, @abc.entering_air_temperature,
-                    unit: "ºF")
+                    unit: "°F")
       node.property("entering-water-temperature", "Entering Water Temperature", :float,
-                    @abc.entering_water_temperature, unit: "ºF")
+                    @abc.entering_water_temperature, unit: "°F")
       node.property("leaving-air-temperature", "Leaving Air Temperature", :float, @abc.leaving_air_temperature,
-                    unit: "ºF")
+                    unit: "°F")
       node.property("leaving-water-temperature", "Leaving Water Temperature", :float, @abc.leaving_water_temperature,
-                    unit: "ºF")
+                    unit: "°F")
       unless @abc.outdoor_temperature.zero? # TODO: figure out the config if this actually exists
-        node.property("outdoor-temperature", "Outdoor Temperature", :float, @abc.outdoor_temperature, unit: "ºF")
+        node.property("outdoor-temperature", "Outdoor Temperature", :float, @abc.outdoor_temperature, unit: "°F")
       end
 
-      node.property("fp1", "FP1 Sensor", :float, @abc.fp1, unit: "ºF")
-      node.property("fp2", "FP2 Sensor", :float, @abc.fp2, unit: "ºF")
+      node.property("fp1", "FP1 Sensor", :float, @abc.fp1, unit: "°F")
+      node.property("fp2", "FP2 Sensor", :float, @abc.fp2, unit: "°F")
       %i[aux_heat total].each do |component|
         component = "#{component}_watts"
-        node.property(component.tr("_", "-"), component.tr("_", " ").titleize, :integer,
-                      @abc.public_send(component), unit: "W")
+        node.property(component.tr("_", "-"),
+                      component.sub("_watts", " Power Usage").tr("_", " ").titleize,
+                      :integer,
+                      @abc.public_send(component),
+                      unit: "W")
       end
     end
 
     @compressor = @homie.node("compressor", "Compressor", @abc.compressor.type) do |node|
-      node.property("speed", "Current compressor speed", :integer, @abc.compressor.speed,
+      node.property("speed", "Current Speed", :integer, @abc.compressor.speed,
                     format: @abc.compressor.speed_range)
-      node.property("watts", "Energy Usage", :integer, @abc.compressor.watts, unit: "W") if @abc.energy_monitoring?
+      node.property("watts", "Power Usage", :integer, @abc.compressor.watts, unit: "W") if @abc.energy_monitoring?
 
       next unless @abc.compressor.is_a?(Aurora::Compressor::VSDrive)
 
-      node.property("ambient-temperature", "Compressor ambient temperature", :float,
-                    @abc.compressor.ambient_temperature, unit: "ºF")
+      node.property("ambient-temperature", "Ambient Temperature", :float,
+                    @abc.compressor.ambient_temperature, unit: "°F")
 
       next unless @abc.iz2?
 
@@ -166,19 +170,19 @@ class MQTTBridge
     end
 
     @blower = @homie.node("blower", "Blower", @abc.blower.type) do |node|
-      node.property("running", "Blower is running", :boolean, @abc.blower.running?)
+      node.property("running", "Running", :boolean, @abc.blower.running?)
       if @abc.blower.respond_to?(:speed)
-        node.property("speed", "Current blower speed", :integer, @abc.blower.speed, format: @abc.blower.speed_range)
+        node.property("speed", "Current Speed", :integer, @abc.blower.speed, format: @abc.blower.speed_range)
       end
-      node.property("watts", "Energy Usage", :integer, @abc.blower.watts, unit: "W") if @abc.energy_monitoring?
+      node.property("watts", "Power Usage", :integer, @abc.blower.watts, unit: "W") if @abc.energy_monitoring?
 
       next unless @abc.blower.is_a?(Aurora::Blower::ECM)
 
       presets = %w[blower-only aux-heat]
       presets.concat %w[low-compressor high-compressor] unless @abc.iz2?
       presets.each do |setting|
-        field = "#{setting.tr('-', '_')}_speed"
-        node.property("#{setting}-speed", "#{setting.tr('-', ' ').titleize} Preset Speed", :integer,
+        field = "#{setting.tr("-", "_")}_speed"
+        node.property("#{setting}-speed", "#{setting.tr("-", " ").titleize} Preset Speed", :integer,
                       @abc.blower.public_send(field), format: 1..12) do |value, property|
           @mutex.synchronize { property.value = @abc.blower.public_send("#{field}=", value) }
         end
@@ -192,23 +196,23 @@ class MQTTBridge
 
     @pump = @homie.node("pump", "Loop Pump", @abc.pump.type) do |node|
       node.property("waterflow", "Waterflow", :float, @abc.pump.waterflow, unit: "gpm")
-      node.property("watts", "Energy Usage", :integer, @abc.pump.watts, unit: "W") if @abc.energy_monitoring?
+      node.property("watts", "Power Usage", :integer, @abc.pump.watts, unit: "W") if @abc.energy_monitoring?
 
       next unless @abc.pump.is_a?(Aurora::Pump::VSPump)
 
-      node.property("running", "Pump is running", :boolean, @abc.pump.running)
+      node.property("running", "Running", :boolean, @abc.pump.running)
       node.property("speed", "Speed", :integer, @abc.pump.speed, format: 0..100, unit: "%") do |value, property|
         @mutex.synchronize { property.value = @abc.pump.speed = value }
       end
-      node.property("manual-control", "If manual control is enabled", :boolean,
+      node.property("manual-control", "Manual Control", :boolean,
                     @abc.pump.manual_control?) do |value, property|
         @mutex.synchronize { property.value = @abc.pump.manual_control = value }
       end
-      node.property("minimum-speed", "Speed pump runs at compressor speed 0", :integer, @abc.pump.minimum_speed,
+      node.property("minimum-speed", "Actual Minimum Speed", :integer, @abc.pump.minimum_speed,
                     format: 0..100, unit: "%") do |value, property|
         @mutex.synchronize { property.value = @abc.pump.minimum_speed = value }
       end
-      node.property("maximum-speed", "Speed pump runs at compressor speed 12", :integer, @abc.pump.minimum_speed,
+      node.property("maximum-speed", "Actual Maximum Speed", :integer, @abc.pump.minimum_speed,
                     format: 0..100, unit: "%") do |value, property|
         @mutex.synchronize { property.value = @abc.pump.maximum_speed = value }
       end
@@ -219,11 +223,11 @@ class MQTTBridge
         node.property("enabled", "Enabled", :boolean, @abc.dhw.enabled) do |value, property|
           @mutex.synchronize { property.value = @abc.dhw.enabled = value }
         end
-        node.property("running", "DHW Pump is running", :boolean, @abc.dhw.running?)
+        node.property("running", "Pump Running", :boolean, @abc.dhw.running?)
         node.property("water-temperature", "Water Temperature", :float,
-                      @abc.dhw.water_temperature, unit: "ºF")
+                      @abc.dhw.water_temperature, unit: "°F")
         node.property("set-point", "Set Point", :float, @abc.dhw.set_point, format: 100..140,
-                                                                            unit: "ºF") do |value, property|
+                                                                            unit: "°F") do |value, property|
           @mutex.synchronize { property.value = @abc.dhw.set_point = value }
         end
       end
@@ -233,12 +237,12 @@ class MQTTBridge
       node.property("relative-humidity", "Relative Humidity", :integer, @abc.humidistat.relative_humidity,
                     unit: "%", format: 0..100)
       if @abc.humidistat.humidifier?
-        node.property("humidifier-running", "Humidifier is running", :boolean, @abc.humidistat.humidifier_running?)
+        node.property("humidifier-running", "Humidifier Running", :boolean, @abc.humidistat.humidifier_running?)
         node.property("humidifier-mode", "Humidifier Mode", :enum, @abc.humidistat.humidifier_mode,
                       format: %i[auto manual]) do |value, property|
           @mutex.synchronize { property.value = @abc.humidistat.humidifier_mode = value.to_sym }
         end
-        node.property("humidification-target", "Humidification target relative humidity", :integer,
+        node.property("humidification-target", "Humidification Target Relative Humidity", :integer,
                       @abc.humidistat.humidification_target, unit: "%", format: 15..50) do |value, property|
           @mutex.synchronize { property.value = @abc.humidistat.humidification_target = value }
         end
@@ -250,7 +254,7 @@ class MQTTBridge
                       format: %i[auto manual]) do |value, property|
           @mutex.synchronize { property.value = @abc.humidistat.dehumidifier_mode = value.to_sym }
         end
-        node.property("dehumidification-target", "Dehumidification target relative humidity", :integer,
+        node.property("dehumidification-target", "Dehumidification Target Relative Humidity", :integer,
                       @abc.humidistat.dehumidification_target, unit: "%", format: 35..65) do |value, property|
           @mutex.synchronize { property.value = @abc.humidistat.dehumidification_target = value }
         end
@@ -258,11 +262,11 @@ class MQTTBridge
 
       next unless @abc.humidistat.dehumidifier?
 
-      node.property("dehumidifier-running", "Dehumidifier is running", :boolean, @abc.humidistat.dehumidifier_running?)
+      node.property("dehumidifier-running", "Dehumidifier Running", :boolean, @abc.humidistat.dehumidifier_running?)
     end
 
     @faults = @homie.node("faults", "Fault History", "ABC") do |node|
-      node.property("clear-history", "Reset fault counts", :enum, retained: false, format: "clear") do |_|
+      node.property("clear-history", "Reset Fault Counts", :enum, retained: false, format: "clear") do |_|
         @mutex.synchronize { @abc.clear_fault_history }
       end
       @abc.faults.each_with_index do |count, i|
@@ -302,13 +306,13 @@ class MQTTBridge
           node.property("size", "Size", :enum, zone.size, format: %w[0 25 45 70])
           node.property("normalized-size", "Normalized Size", :integer, zone.normalized_size, unit: "%", format: 0..100)
         end
-        node.property("ambient-temperature", "Ambient Temperature", :float, zone.ambient_temperature, unit: "ºF")
+        node.property("ambient-temperature", "Ambient Temperature", :float, zone.ambient_temperature, unit: "°F")
         node.property("heating-target-temperature", "Heating Target Temperature", :integer,
-                      zone.heating_target_temperature, unit: "ºF", format: 40..90) do |value, property|
+                      zone.heating_target_temperature, unit: "°F", format: 40..90) do |value, property|
           @mutex.synchronize { property.value = zone.heating_target_temperature = value }
         end
         node.property("cooling-target-temperature", "Cooling Target Temperature", :integer,
-                      zone.cooling_target_temperature, unit: "ºF", format: 54..99) do |value, property|
+                      zone.cooling_target_temperature, unit: "°F", format: 54..99) do |value, property|
           @mutex.synchronize { property.value = zone.cooling_target_temperature = value }
         end
       end
@@ -318,7 +322,175 @@ class MQTTBridge
     @homie.mqtt.subscribe("#{@homie.topic}/$modbus")
     @homie.mqtt.subscribe("#{@homie.topic}/$modbus/getregs")
     @homie.mqtt.subscribe("#{@homie.topic}/$modbus/+/set")
-    @homie.publish
+    @homie.publish do
+      # do HASS publishes in this block so they're done in bulk
+
+      MQTT::HomeAssistant.publish_sensor(@homie["abc"]["current-mode"],
+                                         device_class: :power)
+      MQTT::HomeAssistant.publish_sensor(@homie["abc"]["entering-air-temperature"],
+                                         device_class: :temperature,
+                                         entity_category: :diagnostic)
+      MQTT::HomeAssistant.publish_sensor(@homie["abc"]["entering-water-temperature"],
+                                         device_class: :temperature,
+                                         entity_category: :diagnostic)
+      MQTT::HomeAssistant.publish_sensor(@homie["abc"]["leaving-air-temperature"],
+                                         device_class: :temperature,
+                                         entity_category: :diagnostic)
+      MQTT::HomeAssistant.publish_sensor(@homie["abc"]["leaving-water-temperature"],
+                                         device_class: :temperature,
+                                         entity_category: :diagnostic)
+      unless @abc.outdoor_temperature.zero?
+        MQTT::HomeAssistant.publish_sensor(@homie["abc"]["outdoor-temperature"],
+                                           device_class: :temperature)
+      end
+      MQTT::HomeAssistant.publish_sensor(@homie["abc"]["fp1"],
+                                         device_class: :temperature,
+                                         entity_category: :diagnostic)
+      MQTT::HomeAssistant.publish_sensor(@homie["abc"]["fp2"],
+                                         device_class: :temperature,
+                                         entity_category: :diagnostic)
+      MQTT::HomeAssistant.publish_sensor(@homie["abc"]["aux-heat-watts"],
+                                         device_class: :power)
+      MQTT::HomeAssistant.publish_sensor(@homie["abc"]["total-watts"],
+                                         device_class: :power)
+
+      MQTT::HomeAssistant.publish_sensor(@homie["compressor"]["speed"])
+      MQTT::HomeAssistant.publish_sensor(@homie["compressor"]["watts"],
+                                         device_class: :power)
+
+      if @abc.compressor.is_a?(Aurora::Compressor::VSDrive)
+        MQTT::HomeAssistant.publish_sensor(@homie["compressor"]["ambient-temperature"],
+                                           device_class: :temperature,
+                                           entity_category: :diagnostic)
+
+        if @abc.iz2?
+          MQTT::HomeAssistant.publish_sensor(@homie["compressor"]["iz2-desired-speed"],
+                                             entity_category: :diagnostic)
+        end
+      end
+
+      MQTT::HomeAssistant.publish_binary_sensor(@homie["blower"]["running"],
+                                                device_class: :running)
+      MQTT::HomeAssistant.publish_sensor(@homie["blower"]["speed"]) if @abc.blower.respond_to?(:speed)
+      MQTT::HomeAssistant.publish_sensor(@homie["blower"]["watts"],
+                                         device_class: :power)
+      MQTT::HomeAssistant.publish_number(@homie["blower"]["blower-only-speed"],
+                                         entity_category: :config)
+      MQTT::HomeAssistant.publish_number(@homie["blower"]["aux-heat-speed"],
+                                         entity_category: :config)
+      if @abc.iz2?
+        MQTT::HomeAssistant.publish_sensor(@homie["blower"]["iz2-desired-speed"])
+      else
+        MQTT::HomeAssistant.publish_number(@homie["blower"]["low-compressor-speed"],
+                                           entity_category: :config)
+        MQTT::HomeAssistant.publish_number(@homie["blower"]["high-compressor-speed"],
+                                           entity_category: :config)
+      end
+
+      MQTT::HomeAssistant.publish_sensor(@homie["pump"]["waterflow"],
+                                         entity_category: :diagnostic)
+      MQTT::HomeAssistant.publish_sensor(@homie["pump"]["watts"],
+                                         device_class: :power)
+
+      if @abc.pump.is_a?(Aurora::Pump::VSPump)
+        MQTT::HomeAssistant.publish_binary_sensor(@homie["pump"]["running"],
+                                                  device_class: :running)
+        MQTT::HomeAssistant.publish_number(@homie["pump"]["speed"],
+                                           entity_category: :diagnostic)
+
+        MQTT::HomeAssistant.publish_switch(@homie["pump"]["manual-control"],
+                                           entity_category: :diagnostic)
+        MQTT::HomeAssistant.publish_number(@homie["pump"]["minimum-speed"],
+                                           entity_category: :config)
+        MQTT::HomeAssistant.publish_number(@homie["pump"]["maximum-speed"],
+                                           entity_category: :config)
+      end
+
+      MQTT::HomeAssistant.publish_scene(@homie["faults"]["clear-history"])
+      @homie["faults"].each do |property|
+        next if property.id == "clear-history"
+
+        MQTT::HomeAssistant.publish_sensor(property,
+                                           entity_category: :diagnostic)
+      end
+
+      if @abc.dhw
+        MQTT::HomeAssistant.publish_switch(@homie["dhw"]["enabled"],
+                                           icon: "mdi:water-boiler")
+        MQTT::HomeAssistant.publish_binary_sensor(@homie["dhw"]["running"],
+                                                  device_class: :running)
+        MQTT::HomeAssistant.publish_sensor(@homie["dhw"]["water-temperature"],
+                                           device_class: :temperature)
+        MQTT::HomeAssistant.publish_number(@homie["dhw"]["set-point"])
+      end
+
+      MQTT::HomeAssistant.publish_sensor(@homie["humidistat"]["relative-humidity"],
+                                         device_class: :humidity)
+      if @abc.humidistat.humidifier?
+        MQTT::HomeAssistant.publish_humidifier(
+          @homie["humidistat"]["humidifier-running"],
+          device_class: :humidifier,
+          name: "Humidifier",
+          id: "humidifier",
+          target_property: @homie["humidistat"]["humidification-target"],
+          mode_property: @homie["humidistat"]["humidifier-mode"]
+        )
+      end
+      if @abc.humidistat.dehumidifier? || @abc.compressor.is_a?(Aurora::Compressor::VSDrive)
+        property = if @abc.humidistat.dehumidifier?
+                     @homie["humidistat"]["dehumidifier-running"]
+                   else
+                     # yeah, this isn't right, but we have to give HASS _something_
+                     @homie["humidistat"]["humidifier-running"]
+                   end
+        MQTT::HomeAssistant.publish_humidifier(
+          property,
+          device_class: :dehumidifier,
+          name: "Dehumidifier",
+          id: "dehumidifier",
+          target_property: @homie["humidistat"]["dehumidification-target"],
+          mode_property: @homie["humidistat"]["dehumidifier-mode"]
+        )
+      end
+
+      @abc.zones.each_with_index do |zone, i|
+        homie_zone = @homie["zone#{i + 1}"]
+        MQTT::HomeAssistant.publish_climate(
+          action_property: homie_zone["current-mode"],
+          current_temperature_property: homie_zone["ambient-temperature"],
+          fan_mode_property: homie_zone["target-fan-mode"],
+          mode_property: homie_zone["target-mode"],
+          temperature_high_property: homie_zone["cooling-target-temperature"],
+          temperature_low_property: homie_zone["heating-target-temperature"],
+          templates: {
+            action_template: <<~JINJA
+              {% if value.startswith('h') %}
+                heating
+              {% elif value.startswith('c') %}
+                cooling
+              {% elif value == 'standby' %}
+                idle
+              {% endif %}
+            JINJA
+          }
+        )
+        MQTT::HomeAssistant.publish_binary_sensor(homie_zone["current-fan-mode"],
+                                                  device_class: :running)
+        MQTT::HomeAssistant.publish_select(homie_zone["fan-intermittent-on"],
+                                           entity_category: :config)
+        MQTT::HomeAssistant.publish_select(homie_zone["fan-intermittent-off"],
+                                           entity_category: :config)
+
+        next unless zone.is_a?(Aurora::IZ2Zone)
+
+        MQTT::HomeAssistant.publish_sensor(homie_zone["priority"],
+                                           entity_category: :diagnostic)
+        MQTT::HomeAssistant.publish_sensor(homie_zone["size"],
+                                           entity_category: :diagnostic)
+        MQTT::HomeAssistant.publish_sensor(homie_zone["normalized-size"],
+                                           entity_category: :diagnostic)
+      end
+    end
   end
 end
 
@@ -328,7 +500,7 @@ logger.level = log_level
 abc.modbus_slave.logger = logger
 
 device = "aurora-#{abc.serial_number}"
-homie = MQTT::Homie::Device.new(device, "Aurora MQTT Bridge", mqtt: mqtt_uri)
+homie = MQTT::Homie::Device.new(device, "WaterFurnace", mqtt: mqtt_uri)
 homie.logger = logger
 
 MQTTBridge.new(abc, homie)

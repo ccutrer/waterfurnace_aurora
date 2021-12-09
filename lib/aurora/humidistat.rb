@@ -7,8 +7,8 @@ module Aurora
     attr_reader :humidifier_running, :humidifier_mode, :humidification_target,
                 :dehumidifier_running, :dehumidifier_mode, :dehumidification_target,
                 :relative_humidity
-    alias humidifier_running? humidifier_running
-    alias dehumidifer_running? dehumidifier_running
+    alias_method :humidifier_running?, :humidifier_running
+    alias_method :dehumidifer_running?, :dehumidifier_running
 
     def initialize(abc, has_humidifier, has_dehumidifier)
       super(abc)
@@ -82,8 +82,8 @@ module Aurora
     end
 
     def set_humidistat_targets(humidification_target, dehumidification_target)
-      raise ArgumentError unless (15..50).include?(humidification_target)
-      raise ArgumentError unless (35..65).include?(dehumidification_target)
+      raise ArgumentError unless (15..50).cover?(humidification_target)
+      raise ArgumentError unless (35..65).cover?(dehumidification_target)
 
       holding_registers[abc.iz2? ? 21_115 : 12_310] = (humidification_target << 8) + dehumidification_target
       @humidification_target = humidification_target

@@ -108,7 +108,7 @@ module Aurora
     48 => "EEV OD Comm Error", # Com with EEV is interupted EEV has gone independent mode
     49 => "Cabinet Temperature Sensor", # Ambient Temperature (Tamb) is <-76 or > 212 F and out of range or invalid
     51 => "Discharge Temp Sensor", # Discharge Sensor (Sd) is > 280 F or invalid (-76 to 392 F)
-    52 => "Suction Presure Sensor", # Suction Pressure (P0) is invalid (0 to 232 psi)
+    52 => "Suction Pressure Sensor", # Suction Pressure (P0) is invalid (0 to 232 psi)
     53 => "Condensing Pressure Sensor", # Low condensing pressure (PD) or invalid (0 to 870 psi) Retry 10x.
     54 => "Low Supply Voltage", # Supply Voltage is <180 V (190V to reset) or powered off/on too quickly (<30 sec.).
     55 => "Out of Envelope", # Comp Operating out of envelope (P0) more than 90 sec. Retry 10x.
@@ -550,7 +550,7 @@ module Aurora
   REGISTER_FORMATS = {
     "%ds" => [1, 6, 9, 15, 84, 85, 110],
     "%dV" => [16, 112, 3331, 3424, 3523],
-    "%0.1fºF" => [19, 20, 401, 501, 502, 567, 740, 745, 746, 747, 900, 903,
+    "%0.1f°F" => [19, 20, 401, 501, 502, 567, 740, 745, 746, 747, 900, 903,
                   1109, 1110, 1111, 1112, 1113, 1114, 1124, 1125, 1134, 1135, 1136,
                   3325, 3326, 3327, 3330, 3522, 3903, 3905, 3906,
                   12_619, 12_620,
@@ -587,9 +587,9 @@ module Aurora
 
   def zone_registers
     (1..6).map do |i|
-      base1 = 21_202 + (i - 1) * 9
-      base2 = 31_007 + (i - 1) * 3
-      base3 = 31_200 + (i - 1) * 3
+      base1 = 21_202 + ((i - 1) * 9)
+      base2 = 31_007 + ((i - 1) * 3)
+      base3 = 31_200 + ((i - 1) * 3)
       {
         base1 => "Zone #{i} Heating Mode (write)",
         (base1 + 1) => "Zone #{i} Heating Setpoint (write)",

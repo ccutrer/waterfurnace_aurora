@@ -5,7 +5,7 @@ require "aurora/component"
 module Aurora
   class DHW < Component
     attr_reader :enabled, :running, :set_point, :water_temperature
-    alias running? running
+    alias_method :running?, :running
 
     def registers_to_read
       [400..401, 1114]
@@ -23,7 +23,7 @@ module Aurora
     end
 
     def set_point=(value) # rubocop:disable Naming/AccessorMethodName
-      raise ArgumentError unless (100..140).include?(value)
+      raise ArgumentError unless (100..140).cover?(value)
 
       raw_value = (value * 10).to_i
       holding_registers[401] = raw_value

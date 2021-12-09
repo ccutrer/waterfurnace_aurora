@@ -6,7 +6,7 @@ module Aurora
   module Blower
     class PSC < Component
       attr_reader :type, :watts, :running
-      alias running? running
+      alias_method :running?, :running
 
       def initialize(abc, type)
         super(abc)
