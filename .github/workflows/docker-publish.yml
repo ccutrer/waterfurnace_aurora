@@ -42,6 +42,8 @@ jobs:
           type=semver,pattern={{raw}}
           type=ref,event=branch
           type=ref,event=tag
+          type=raw,value={{tag}}
+          type=sha
         flavor: |
           latest=true
         
