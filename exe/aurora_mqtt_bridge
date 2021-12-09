@@ -322,43 +322,53 @@ class MQTTBridge
     @homie.publish do
       # do HASS publishes in this block so they're done in bulk
 
-      MQTT::HomeAssistant.publish_sensor(@homie["abc"]["current-mode"],
-                                         device_class: :power)
+      MQTT::HomeAssistant.publish_sensor(@homie["abc"]["current-mode"])
       MQTT::HomeAssistant.publish_sensor(@homie["abc"]["entering-air-temperature"],
                                          device_class: :temperature,
-                                         entity_category: :diagnostic)
+                                         entity_category: :diagnostic,
+                                         state_class: measurement)
       MQTT::HomeAssistant.publish_sensor(@homie["abc"]["entering-water-temperature"],
                                          device_class: :temperature,
-                                         entity_category: :diagnostic)
+                                         entity_category: :diagnostic,
+                                         state_class: measurement)
       MQTT::HomeAssistant.publish_sensor(@homie["abc"]["leaving-air-temperature"],
                                          device_class: :temperature,
-                                         entity_category: :diagnostic)
+                                         entity_category: :diagnostic,
+                                         state_class: measurement)
       MQTT::HomeAssistant.publish_sensor(@homie["abc"]["leaving-water-temperature"],
                                          device_class: :temperature,
-                                         entity_category: :diagnostic)
+                                         entity_category: :diagnostic,
+                                         state_class: measurement)
       unless @abc.outdoor_temperature.zero?
         MQTT::HomeAssistant.publish_sensor(@homie["abc"]["outdoor-temperature"],
-                                           device_class: :temperature)
+                                           device_class: :temperature,
+                                           state_class: measurement)
       end
       MQTT::HomeAssistant.publish_sensor(@homie["abc"]["fp1"],
                                          device_class: :temperature,
-                                         entity_category: :diagnostic)
+                                         entity_category: :diagnostic,
+                                         state_class: measurement)
       MQTT::HomeAssistant.publish_sensor(@homie["abc"]["fp2"],
                                          device_class: :temperature,
-                                         entity_category: :diagnostic)
+                                         entity_category: :diagnostic,
+                                         state_class: measurement)
       MQTT::HomeAssistant.publish_sensor(@homie["abc"]["aux-heat-watts"],
-                                         device_class: :power)
+                                         device_class: :power,
+                                         state_class: measurement)
       MQTT::HomeAssistant.publish_sensor(@homie["abc"]["total-watts"],
-                                         device_class: :power)
+                                         device_class: :power,
+                                         state_class: measurement)
 
       MQTT::HomeAssistant.publish_sensor(@homie["compressor"]["speed"])
       MQTT::HomeAssistant.publish_sensor(@homie["compressor"]["watts"],
-                                         device_class: :power)
+                                         device_class: :power,
+                                         state_class: measurement)
 
       if @abc.compressor.is_a?(Aurora::Compressor::VSDrive)
         MQTT::HomeAssistant.publish_sensor(@homie["compressor"]["ambient-temperature"],
                                            device_class: :temperature,
-                                           entity_category: :diagnostic)
+                                           entity_category: :diagnostic,
+                                           state_class: measurement)
 
         if @abc.iz2?
           MQTT::HomeAssistant.publish_sensor(@homie["compressor"]["iz2-desired-speed"],
@@ -370,7 +380,8 @@ class MQTTBridge
                                                 device_class: :running)
       MQTT::HomeAssistant.publish_sensor(@homie["blower"]["speed"]) if @abc.blower.respond_to?(:speed)
       MQTT::HomeAssistant.publish_sensor(@homie["blower"]["watts"],
-                                         device_class: :power)
+                                         device_class: :power,
+                                         state_class: measurement)
       MQTT::HomeAssistant.publish_number(@homie["blower"]["blower-only-speed"],
                                          entity_category: :config)
       MQTT::HomeAssistant.publish_number(@homie["blower"]["aux-heat-speed"],
@@ -387,7 +398,8 @@ class MQTTBridge
       MQTT::HomeAssistant.publish_sensor(@homie["pump"]["waterflow"],
                                          entity_category: :diagnostic)
       MQTT::HomeAssistant.publish_sensor(@homie["pump"]["watts"],
-                                         device_class: :power)
+                                         device_class: :power,
+                                         state_class: measurement)
 
       if @abc.pump.is_a?(Aurora::Pump::VSPump)
         MQTT::HomeAssistant.publish_binary_sensor(@homie["pump"]["running"],
