@@ -250,6 +250,7 @@ class MQTTBridge
 
       # VSDrive can perform active dehumidification, even without a dedicated dehumidifier
       if @abc.humidistat.dehumidifier? || @abc.compressor.is_a?(Aurora::Compressor::VSDrive)
+        node.property("dehumidifier-running", "Dehumidifier Running", :boolean, @abc.humidistat.dehumidifier_running?)
         node.property("dehumidifier-mode", "Dehumidifier Mode", :enum, @abc.humidistat.dehumidifier_mode,
                       format: %i[auto manual]) do |value, property|
           @mutex.synchronize { property.value = @abc.humidistat.dehumidifier_mode = value.to_sym }
@@ -259,10 +260,6 @@ class MQTTBridge
           @mutex.synchronize { property.value = @abc.humidistat.dehumidification_target = value }
         end
       end
-
-      next unless @abc.humidistat.dehumidifier?
-
-      node.property("dehumidifier-running", "Dehumidifier Running", :boolean, @abc.humidistat.dehumidifier_running?)
     end
 
     @faults = @homie.node("faults", "Fault History", "ABC") do |node|
@@ -437,14 +434,8 @@ class MQTTBridge
         )
       end
       if @abc.humidistat.dehumidifier? || @abc.compressor.is_a?(Aurora::Compressor::VSDrive)
-        property = if @abc.humidistat.dehumidifier?
-                     @homie["humidistat"]["dehumidifier-running"]
-                   else
-                     # yeah, this isn't right, but we have to give HASS _something_
-                     @homie["humidistat"]["humidifier-running"]
-                   end
         MQTT::HomeAssistant.publish_humidifier(
-          property,
+          @homie["humidistat"]["dehumidifier-running"],
           device_class: :dehumidifier,
           name: "Dehumidifier",
           id: "dehumidifier",

@@ -5,10 +5,9 @@ require "aurora/component"
 module Aurora
   class Humidistat < Component
     attr_reader :humidifier_running, :humidifier_mode, :humidification_target,
-                :dehumidifier_running, :dehumidifier_mode, :dehumidification_target,
+                :dehumidifier_mode, :dehumidification_target,
                 :relative_humidity
     alias_method :humidifier_running?, :humidifier_running
-    alias_method :dehumidifer_running?, :dehumidifier_running
 
     def initialize(abc, has_humidifier, has_dehumidifier)
       super(abc)
@@ -23,6 +22,11 @@ module Aurora
     def dehumidifier?
       @dehumidifier
     end
+
+    def dehumidifier_running
+      dehumidifier? ? @dehumidifier_running : abc.current_mode == :dehumidify
+    end
+    alias_method :dehumidifier_running?, :dehumidifier_running
 
     def registers_to_read
       result = [741]
