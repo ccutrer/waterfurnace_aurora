@@ -1,0 +1,5 @@
+# frozen_string_literal: true
+gem 'waterfurnace_aurora', git: 'https://github.com/ccutrer/waterfurnace_aurora'
+source "https://rubygems.org"
+
+gemspec
