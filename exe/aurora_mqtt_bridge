@@ -577,7 +577,8 @@ class MQTTBridge
         end
         node.hass_climate(action_property: "current-mode",
                           current_temperature_property: "ambient-temperature",
-                          fan_mode_property: "target-mode",
+                          fan_mode_property: "target-fan-mode",
+                          mode_property: "target-mode",
                           temperature_high_property: "cooling-target-temperature",
                           temperature_low_property: "heating-target-temperature",
                           templates: {
