@@ -43,6 +43,7 @@ module Aurora
     end
 
     attr_reader :modbus_slave,
+                :model,
                 :serial_number,
                 :zones,
                 :compressor,
@@ -66,9 +67,10 @@ module Aurora
       @modbus_slave = self.class.open_modbus_slave(uri)
       @modbus_slave.read_retry_timeout = 15
       @modbus_slave.read_retries = 2
-      raw_registers = @modbus_slave.holding_registers[33, 88..91, 105...110, 404, 412..413, 1103, 1114]
+      raw_registers = @modbus_slave.holding_registers[33, 88...110, 404, 412..413, 1103, 1114]
       registers = Aurora.transform_registers(raw_registers.dup)
       @program = registers[88]
+      @model = registers[92]
       @serial_number = registers[105]
       @energy_monitor = raw_registers[412]
 
