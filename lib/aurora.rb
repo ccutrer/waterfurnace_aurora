@@ -7,6 +7,7 @@ require "aurora/mock_abc"
 require "aurora/modbus/server"
 require "aurora/modbus/slave"
 require "aurora/registers"
+require "aurora/version"
 
 # extend ModBus for WaterFurnace's custom functions
 ModBus::RTUServer.include(Aurora::ModBus::Server)
