@@ -396,6 +396,7 @@ class MQTTBridge
                       @abc.dhw.set_point,
                       format: 100..140,
                       unit: "°F",
+                      step: 5,
                       hass: :number) do |value, property|
           @mutex.synchronize { property.value = @abc.dhw.set_point = value }
         end
