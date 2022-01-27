@@ -65,7 +65,7 @@ module Aurora
 
   def to_string(registers, idx, length)
     (idx...(idx + length)).map do |i|
-      raise ArgumentError, "Missing register #{i} for string starting at #{idx}" unless registers[i]
+      next "\ufffd" unless registers[i] # missing data? add unicode invalid character
 
       (registers[i] >> 8).chr + (registers[i] & 0xff).chr
     end.join.sub(/[ \0]+$/, "")

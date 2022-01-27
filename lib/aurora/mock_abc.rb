@@ -35,6 +35,11 @@ module Aurora
       result = {}
       queries.each do |query|
         Array(query).each do |i|
+          unless @registers.key?(i)
+            logger.warn("missing register #{i}")
+            next
+          end
+
           result[i] = @registers[i]
         end
       end
