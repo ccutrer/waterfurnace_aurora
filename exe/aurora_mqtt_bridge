@@ -181,6 +181,14 @@ class MQTTBridge
                                         state_class: :measurement } })
       end
 
+      node.property("line-voltage",
+                    "Line Voltage Setting",
+                    :integer,
+                    @abc.line_voltage,
+                    format: 90..635,
+                    unit: "V") do |value, property|
+                      @mutex.synchronize { property.value = @abc.line_voltage = value }
+                    end
       node.property("fp1",
                     "FP1 Sensor",
                     :float,

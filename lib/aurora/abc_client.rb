@@ -60,6 +60,7 @@ module Aurora
                 :outdoor_temperature,
                 :fp1,
                 :fp2,
+                :line_voltage,
                 :aux_heat_watts,
                 :total_watts
 
@@ -108,7 +109,7 @@ module Aurora
 
       @faults = []
 
-      @registers_to_read = [6, 19..20, 25, 30, 344, 740..741, 900, 1104, 1110..1111, 1114, 1150..1153, 1165,
+      @registers_to_read = [6, 19..20, 25, 30, 112, 344, 740..741, 900, 1104, 1110..1111, 1114, 1150..1153, 1165,
                             31_003]
       zones.each do |z|
         @registers_to_read.concat(z.registers_to_read)
@@ -175,6 +176,7 @@ module Aurora
       @error                      = registers[25] & 0x7fff
       @derated                    = (41..46).cover?(@error)
       @safe_mode                  = [47, 48, 49, 72, 74].include?(@error)
+      @line_voltage               = registers[112]
       @aux_heat_watts             = registers[1151]
       @total_watts                = registers[1153]
 
