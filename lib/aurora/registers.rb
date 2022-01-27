@@ -112,7 +112,7 @@ module Aurora
     53 => "Condensing Pressure Sensor", # Low condensing pressure (PD) or invalid (0 to 870 psi) Retry 10x.
     54 => "Low Supply Voltage", # Supply Voltage is <180 V (190V to reset) or powered off/on too quickly (<30 sec.).
     55 => "Out of Envelope", # Comp Operating out of envelope (P0) more than 90 sec. Retry 10x.
-    56 => "Drive Over Currnet", # Over current tripped by phase loss, earth fault, short circuit, low water flow, low air flow, or major drive fault. # rubocop:disable Layout/LineLength
+    56 => "Drive Over Current", # Over current tripped by phase loss, earth fault, short circuit, low water flow, low air flow, or major drive fault. # rubocop:disable Layout/LineLength
     57 => "Drive Over/Under Voltage", # DC Link Voltage to compressor is >450vdc or at minimum voltage (<185vdc).
     58 => "High Drive Temp", # Drive Temp has reached critical High Temp >239 F
     59 => "Internal Drive Error", # The MOC has encountered an internal fault or an internal error. Probably fatal.
