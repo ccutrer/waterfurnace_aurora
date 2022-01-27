@@ -63,20 +63,20 @@ module Aurora
         registers = {}
         queries.each do |subquery|
           registers.merge!(modbus_slave.read_multiple_holding_registers(*subquery))
-        rescue ::ModBus::Errors::IllegalDataAddress
+        rescue ::ModBus::Errors::IllegalDataAddress, ::ModBus::Errors::IllegalFunction
           # maybe this unit doesn't respond to all the addresses we want?
           raise unless implicit
 
           # try each query individually
           subquery.each do |subsubquery|
             registers.merge!(modbus_slave.read_multiple_holding_registers(subsubquery))
-          rescue ::ModBus::Errors::IllegalDataAddress
+          rescue ::ModBus::Errors::IllegalDataAddress, ::ModBus::Errors::IllegalFunction
             next unless try_individual
 
             # seriously?? try each register individually
             subsubquery.each do |i|
               registers[i] = modbus_slave.holding_registers[i]
-            rescue ::ModBus::Errors::IllegalDataAddress
+            rescue ::ModBus::Errors::IllegalDataAddress, ::ModBus::Errors::IllegalFunction
               next
             end
           end
