@@ -86,6 +86,7 @@ module Aurora
     end
 
     attr_reader :modbus_slave,
+                :abc_version,
                 :model,
                 :serial_number,
                 :zones,
@@ -111,14 +112,15 @@ module Aurora
       @modbus_slave = self.class.open_modbus_slave(uri)
       @modbus_slave.read_retry_timeout = 15
       @modbus_slave.read_retries = 2
-      raw_registers = @modbus_slave.holding_registers[33, 88...110, 404, 412..413, 1103, 1114]
+      raw_registers = @modbus_slave.holding_registers[2, 33, 88...110, 404, 412..413, 813, 1103, 1114]
       registers = Aurora.transform_registers(raw_registers.dup)
+      @abc_version = registers[2]
       @program = registers[88]
       @model = registers[92]
       @serial_number = registers[105]
       @energy_monitor = raw_registers[412]
 
-      @zones = if iz2?
+      @zones = if iz2? && iz2_version >= 2.0
                  iz2_zone_count = @modbus_slave.holding_registers[483]
                  (0...iz2_zone_count).map { |i| IZ2Zone.new(self, i + 1) }
                else
@@ -152,8 +154,9 @@ module Aurora
 
       @faults = []
 
-      @registers_to_read = [6, 19..20, 25, 30, 112, 344, 740..741, 900, 1104, 1110..1111, 1114, 1150..1153, 1165,
-                            31_003]
+      @registers_to_read = [6, 19..20, 25, 30, 112, 344, 567, 1104, 1110..1111, 1114, 1150..1153, 1165]
+      @registers_to_read.concat([741, 31_003]) if awl_communicating?
+      @registers_to_read << 900 if awl_axb?
       zones.each do |z|
         @registers_to_read.concat(z.registers_to_read)
       end
@@ -178,8 +181,8 @@ module Aurora
 
       outputs = registers[30]
 
-      @entering_air_temperature   = registers[740]
-      @leaving_air_temperature    = registers[900]
+      @entering_air_temperature   = registers[567]
+      @leaving_air_temperature    = registers[900] if awl_axb?
       @leaving_water_temperature  = registers[1110]
       @entering_water_temperature = registers[1111]
       @outdoor_temperature        = registers[31_003]
@@ -270,11 +273,16 @@ module Aurora
     end
 
     # config aurora system
-    { thermostat: 800, axb: 806, iz2: 812, aoc: 815, moc: 818, eev2: 824 }.each do |(component, register)|
+    { thermostat: 800, axb: 806, iz2: 812, aoc: 815, moc: 818, eev2: 824, awl: 827 }.each do |(component, register)|
       class_eval <<-RUBY, __FILE__, __LINE__ + 1
         def #{component}?
           return @#{component} if instance_variable_defined?(:@#{component})
           @#{component} = @modbus_slave.holding_registers[#{register}] != 3
+        end
+
+        def #{component}_version
+          return @#{component}_version if instance_variable_defined?(:@#{component}_version)
+          @#{component}_version = @modbus_slave.holding_registers[#{register + 1}].to_f / 100
         end
 
         def add_#{component}
@@ -285,6 +293,27 @@ module Aurora
           @modbus_slave.holding_registers[#{register}] = 3
         end
       RUBY
+    end
+
+    # see https://www.waterfurnace.com/literature/symphony/ig2001ew.pdf
+    # is there a communicating system compliant with AWL?
+    def awl_communicating?
+      awl_thermostat? || awl_iz2?
+    end
+
+    # is the thermostat AWL compliant?
+    def awl_thermostat?
+      thermostat? && thermostat_version >= 3.0
+    end
+
+    # is the IZ2 AWL compliant?
+    def awl_iz2?
+      iz2? && iz2_version >= 2.0
+    end
+
+    # is the AXB AWL compliant?
+    def awl_axb?
+      axb? && axb_version >= 2.0
     end
 
     def inspect

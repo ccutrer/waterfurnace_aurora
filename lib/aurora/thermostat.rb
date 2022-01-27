@@ -15,19 +15,23 @@ module Aurora
                 :fan_intermittent_off
 
     def registers_to_read
+      return [31] unless @abc.awl_thermostat?
+
       [31, 502, 745..746, 12_005..12_006]
     end
 
     def refresh(registers)
-      @ambient_temperature = registers[502]
-      @heating_target_temperature = registers[745]
-      @cooling_target_temperature = registers[746]
-      config1 = registers[12_005]
-      config2 = registers[12_006]
-      @target_fan_mode = config1[:fan]
-      @fan_intermittent_on = config1[:on_time]
-      @fan_intermittent_off = config1[:off_time]
-      @target_mode = config2[:mode]
+      if @abc.awl_thermostat?
+        @ambient_temperature = registers[502]
+        @heating_target_temperature = registers[745]
+        @cooling_target_temperature = registers[746]
+        config1 = registers[12_005]
+        config2 = registers[12_006]
+        @target_fan_mode = config1[:fan]
+        @fan_intermittent_on = config1[:on_time]
+        @fan_intermittent_off = config1[:off_time]
+        @target_mode = config2[:mode]
+      end
 
       inputs = registers[31]
       @current_fan_mode = inputs.include?(:g)

@@ -29,6 +29,8 @@ module Aurora
     alias_method :dehumidifier_running?, :dehumidifier_running
 
     def registers_to_read
+      return [] unless @abc.awl_communicating?
+
       result = [741]
       if humidifier? || dehumidifier? || abc.compressor.is_a?(Compressor::VSDrive)
         result.concat(abc.iz2? ? [21_114, 31_109..31_110] : [12_309..12_310])

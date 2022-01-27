@@ -20,9 +20,14 @@ module Aurora
       if register.length == 1
         case register.first
         when Integer
+          missing_register(register.first) unless @registers.key?(register.first)
           @registers[register.first]
         when Range
-          @registers.values_at(*register.first.to_a)
+          registers = register.first.to_a
+          registers.each do |i|
+            missing_register(i) unless @registers.key?(i)
+          end
+          @registers.values_at(*registers)
         else
           raise ArgumentError, "Not implemented yet #{register.inspect}"
         end
@@ -36,7 +41,7 @@ module Aurora
       queries.each do |query|
         Array(query).each do |i|
           unless @registers.key?(i)
-            logger.warn("missing register #{i}")
+            missing_register(i)
             next
           end
 
@@ -50,5 +55,11 @@ module Aurora
       @registers[addr] = value
     end
     alias_method :[]=, :write_holding_register
+
+    private
+
+    def missing_register(idx)
+      logger.warn("missing register #{idx}")
+    end
   end
 end

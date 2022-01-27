@@ -31,7 +31,7 @@ module Aurora
       alias_method :manual_control?, :manual_control
 
       def registers_to_read
-        super + [321..325]
+        super + (@abc.awl_axb? ? [321..325] : [321..324])
       end
 
       def refresh(registers)
@@ -39,7 +39,7 @@ module Aurora
         @minimum_speed = registers[321]
         @maximum_speed = registers[322]
         @manual_control = registers[323] != :off
-        @speed = registers[325]
+        @speed = registers[325] if @abc.awl_axb?
       end
 
       def manual_control=(value)

@@ -27,9 +27,15 @@ If you own a different unit, and things aren't working well for you,
 I would be glad to have your help extending support!
 
  * WaterFurnace 7 Series, IntelliZone 2, DHW, ECM blower, VS Drive, VS Pump
+ * WaterFurnace 7 Series, IntelliZone 2, DHW, ECM blower, VS Drive, VS Pump
+   (pre-AWL firmware)
  * WaterFurnace 5 Series, ECM blower
  * WaterFurnace 5 Series split, ECM blower, DHW
  * GeoSmart PremiumV, DHW, ECM blower, VS Drive, VS Pump
+
+Note that if your system has firmware that predates the AWL (see
+https://www.waterfurnace.com/literature/symphony/ig2001ew.pdf), a significant
+amount of data may be inaccessible.
 
 ## Getting Started on a Raspberry Pi
 
