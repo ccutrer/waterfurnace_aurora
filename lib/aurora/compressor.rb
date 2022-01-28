@@ -42,7 +42,7 @@ module Aurora
     end
 
     class VSDrive < GenericCompressor
-      attr_reader :ambient_temperature, :iz2_desired_speed
+      attr_reader :drive_temperature, :inverter_temperature, :ambient_temperature, :iz2_desired_speed, :fan_speed
 
       def initialize(abc)
         super(abc, 12)
@@ -53,7 +53,7 @@ module Aurora
       end
 
       def registers_to_read
-        result = super + [209, 3001, 3326]
+        result = super + [209, 3001, 3326..3327, 3522, 3524]
         result << 564 if abc.iz2?
         result
       end
@@ -63,6 +63,10 @@ module Aurora
 
         @speed = registers[3001]
         @ambient_temperature = registers[3326]
+        @drive_temperature = registers[3327]
+        @inverter_temperature = registers[3522]
+        @fan_speed = registers[3524]
+
         @iz2_desired_speed = registers[564] if abc.iz2?
       end
     end

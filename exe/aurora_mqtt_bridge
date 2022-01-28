@@ -247,6 +247,30 @@ class MQTTBridge
                     hass: { sensor: { device_class: :temperature,
                                       state_class: :measurement,
                                       entity_category: :diagnostic } })
+      node.property("drive-temperature",
+                    "Drive Temperature",
+                    :float,
+                    @abc.compressor.drive_temperature,
+                    unit: "°F",
+                    hass: { sensor: { device_class: :temperature,
+                                      state_class: :measurement,
+                                      entity_category: :diagnostic } })
+      node.property("inverter-temperature",
+                    "Inverter Temperature",
+                    :float,
+                    @abc.compressor.inverter_temperature,
+                    unit: "°F",
+                    hass: { sensor: { device_class: :temperature,
+                                      state_class: :measurement,
+                                      entity_category: :diagnostic } })
+      node.property("fan-speed",
+                    "Fan Speed",
+                    :integer,
+                    @abc.compressor.fan_speed,
+                    unit: "%",
+                    format: 0..100,
+                    hass: { sensor: { state_class: :measurement,
+                                      entity_category: :diagnostic } })
 
       next unless @abc.iz2?
 
