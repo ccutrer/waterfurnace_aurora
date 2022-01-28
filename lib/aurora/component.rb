@@ -6,6 +6,10 @@ module Aurora
       @abc = abc
     end
 
+    def registers_to_read
+      []
+    end
+
     def inspect
       "#<Aurora::#{self.class.name} #{(instance_variables - [:@abc]).map do |iv|
                                         "#{iv}=#{instance_variable_get(iv).inspect}"

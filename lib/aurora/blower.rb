@@ -36,7 +36,7 @@ module Aurora
 
       def refresh(registers)
         outputs = registers[30]
-        @speed = if outputs.include?(:eh1)
+        @speed = if outputs.include?(:eh1) || outputs.include?(:eh2)
                    4
                  elsif outputs.include?(:cc2)
                    3

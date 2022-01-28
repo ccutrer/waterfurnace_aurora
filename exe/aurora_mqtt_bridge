@@ -93,6 +93,7 @@ class MQTTBridge
           @abc.refresh
 
           components = { @homie_abc => @abc,
+                         @aux_heat => @abc.aux_heat,
                          @compressor => @abc.compressor,
                          @blower => @abc.blower,
                          @pump => @abc.pump,
@@ -131,7 +132,7 @@ class MQTTBridge
     }
 
     @homie_abc = @homie.node("abc", "Heat Pump", "ABC") do |node|
-      allowed_modes = %w[lockout standby blower heating cooling eh1 eh2 emergency waiting]
+      allowed_modes = %w[lockout standby blower heating cooling waiting]
       allowed_modes << "dehumidify" if @abc.compressor.is_a?(Aurora::Compressor::VSDrive)
       node.property("current-mode",
                     "Current Heating/Cooling Mode",
@@ -208,12 +209,11 @@ class MQTTBridge
                     hass: { sensor: { device_class: :temperature,
                                       state_class: :measurement,
                                       entity_category: :diagnostic } })
-      %i[aux_heat total].each do |component|
-        component = "#{component}_watts"
-        node.property(component.tr("_", "-"),
-                      component.sub("_watts", " Power Usage").tr("_", " ").titleize,
+      if @abc.energy_monitoring?
+        node.property("watts",
+                      "Total Power Usage",
                       :integer,
-                      @abc.public_send(component),
+                      @abc.watts,
                       unit: "W",
                       hass: { sensor: { device_class: :power,
                                         state_class: :measurement } })
@@ -281,6 +281,25 @@ class MQTTBridge
                     format: 0..12,
                     hass: { sensor: { state_class: :measurement,
                                       entity_category: :diagnostic } })
+    end
+
+    @aux_heat = @homie.node("aux-heat", "Aux Heater", "Aux Heater") do |node|
+      node.property("stage",
+                    "Current Stage",
+                    :integer,
+                    @abc.aux_heat.stage,
+                    format: 0..2,
+                    hass: { sensor: { state_class: :measurement } })
+
+      if @abc.energy_monitoring?
+        node.property("watts",
+                      "Power Usage",
+                      :integer,
+                      @abc.aux_heat.watts,
+                      unit: "W",
+                      hass: { sensor: { device_class: :power,
+                                        state_class: :measurement } })
+      end
     end
 
     @blower = @homie.node("blower", "Blower", @abc.blower.type) do |node|

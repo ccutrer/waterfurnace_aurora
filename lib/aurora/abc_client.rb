@@ -3,6 +3,7 @@
 require "yaml"
 require "uri"
 
+require "aurora/aux_heat"
 require "aurora/blower"
 require "aurora/compressor"
 require "aurora/dhw"
@@ -90,6 +91,7 @@ module Aurora
                 :model,
                 :serial_number,
                 :zones,
+                :aux_heat,
                 :compressor,
                 :blower,
                 :pump,
@@ -105,8 +107,7 @@ module Aurora
                 :fp1,
                 :fp2,
                 :line_voltage,
-                :aux_heat_watts,
-                :total_watts
+                :watts
 
     def initialize(uri)
       @modbus_slave = self.class.open_modbus_slave(uri)
@@ -129,6 +130,7 @@ module Aurora
 
       @abc_dipswitches = registers[33]
       @axb_dipswitches = registers[1103]
+      @aux_heat = AuxHeat.new(self)
       @compressor = if @program == "ABCVSP"
                       Compressor::VSDrive.new(self)
                     else
@@ -160,7 +162,7 @@ module Aurora
       zones.each do |z|
         @registers_to_read.concat(z.registers_to_read)
       end
-      @components = [compressor, blower, pump, dhw, humidistat].compact
+      @components = [aux_heat, compressor, blower, pump, dhw, humidistat].compact
       @components.each do |component|
         @registers_to_read.concat(component.registers_to_read)
       end
@@ -193,8 +195,7 @@ module Aurora
       @derated                    = (41..46).cover?(@error)
       @safe_mode                  = [47, 48, 49, 72, 74].include?(@error)
       @line_voltage               = registers[112]
-      @aux_heat_watts             = registers[1151]
-      @total_watts                = registers[1153]
+      @watts                      = registers[1153]
 
       @current_mode = if outputs.include?(:lockout)
                         :lockout
@@ -202,10 +203,6 @@ module Aurora
                         :dehumidify
                       elsif outputs.include?(:cc2) || outputs.include?(:cc)
                         outputs.include?(:rv) ? :cooling : :heating
-                      elsif outputs.include?(:eh2)
-                        outputs.include?(:rv) ? :eh2 : :emergency
-                      elsif outputs.include?(:eh1)
-                        outputs.include?(:rv) ? :eh1 : :emergency
                       elsif outputs.include?(:blower)
                         :blower
                       elsif registers[6]
