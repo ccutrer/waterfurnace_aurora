@@ -48,7 +48,7 @@ jobs:
         tags: |
           type=semver,pattern={{raw}}
           type=ref,event=branch
-          type=ref,event=${{ steps.version_by_tag.outputs.semver }}
+          type=raw,value=${{ steps.version_by_tag.outputs.semver }}
           type=raw,value=${{ steps.version_by_tag.outputs.tag }}
           type=sha
         flavor: |
