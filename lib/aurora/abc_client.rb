@@ -202,10 +202,18 @@ module Aurora
                       elsif registers[362]
                         :dehumidify
                       elsif outputs.include?(:cc2) || outputs.include?(:cc)
-                        outputs.include?(:rv) ? :cooling : :heating
+                        if outputs.include?(:rv)
+                          :cooling
+                        elsif outputs.include?(:eh2) || outputs.include?(:eh1)
+                          :heating_with_aux
+                        else
+                          :heating
+                        end
+                      elsif outputs.include?(:eh2) || outputs.include?(:eh1)
+                        :emergency_heat
                       elsif outputs.include?(:blower)
                         :blower
-                      elsif registers[6]
+                      elsif !registers[6].zero?
                         :waiting
                       else
                         :standby

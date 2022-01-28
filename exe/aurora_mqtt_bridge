@@ -132,7 +132,7 @@ class MQTTBridge
     }
 
     @homie_abc = @homie.node("abc", "Heat Pump", "ABC") do |node|
-      allowed_modes = %w[lockout standby blower heating cooling waiting]
+      allowed_modes = %w[lockout standby blower heating heating_with_aux emergency_heat cooling waiting]
       allowed_modes << "dehumidify" if @abc.compressor.is_a?(Aurora::Compressor::VSDrive)
       node.property("current-mode",
                     "Current Heating/Cooling Mode",

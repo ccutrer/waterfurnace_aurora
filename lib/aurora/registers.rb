@@ -229,6 +229,8 @@ module Aurora
     0x08 => :blower,
     0x10 => :eh1,
     0x20 => :eh2,
+    # 0x40 => ??, # this turns on and off quite a bit during normal operation
+    # 0x80 => ??, # this turns on occasionally during normal operation; I've only seen it when aux heat is on
     0x200 => :accessory,
     0x400 => :lockout,
     0x800 => :alarm
@@ -703,8 +705,9 @@ module Aurora
     9 => "Compressor Minimum Run Time",
     15 => "Blower Off Delay",
     16 => "Line Voltage",
-    17 => "Aux/E Heat Stage", # this has some complicated condition based on
-    # current inputs and outputs on if it should have a value (310 - v) or (130 - v), or be 0
+    17 => "Aux/E Heat Stage", # this is how long aux/eheat have been requested in seconds
+    # when in eheat mode (explicit on the thermostat), it will stage up to eh2 after 130s
+    # when in aux mode (thermostat set to heat; compressor at full capacity), it will stage up to eh2 after 310s
     19 => "FP1 (Cooling Liquid Line) Temperature",
     20 => "FP2",
     21 => "Condensate", # >= 270 normal, otherwise fault
