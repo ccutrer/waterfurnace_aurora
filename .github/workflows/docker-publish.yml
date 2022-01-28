@@ -32,7 +32,14 @@ jobs:
         registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-        
+    
+    - name: Get version and version code
+      uses: xom9ikk/version-by-tag@v1
+      id: version_by_tag
+      with:
+        path: ./
+        isUseGithubRunNumber: false 
+    
     - name: Docker meta
       id: meta
       uses: docker/metadata-action@v3
@@ -41,8 +48,8 @@ jobs:
         tags: |
           type=semver,pattern={{raw}}
           type=ref,event=branch
-          type=ref,event=tag
-          type=raw,value={{tag}}
+          type=ref,event=${{ steps.version_by_tag.outputs.semver }}
+          type=raw,value=${{ steps.version_by_tag.outputs.tag }}
           type=sha
         flavor: |
           latest=true
