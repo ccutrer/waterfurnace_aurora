@@ -75,8 +75,6 @@ module Aurora
       raw_value |= 0x4000 if humidifier_mode == :auto
       raw_value |= 0x8000 if dehumidifier_mode == :auto
       holding_registers[abc.iz2? ? 21_114 : 12_309] = raw_value
-      @humidifier_mode = humidifier_mode
-      @dehumidifier_mode = dehumidifier_mode
     end
 
     def humidification_target=(value)
@@ -92,8 +90,6 @@ module Aurora
       raise ArgumentError unless (35..65).cover?(dehumidification_target)
 
       holding_registers[abc.iz2? ? 21_115 : 12_310] = (humidification_target << 8) + dehumidification_target
-      @humidification_target = humidification_target
-      @dehumidification_target = dehumidification_target
     end
   end
 end

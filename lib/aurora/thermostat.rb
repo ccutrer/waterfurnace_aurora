@@ -48,14 +48,12 @@ module Aurora
       return unless (raw_value = HEATING_MODE.invert[value])
 
       @abc.modbus_slave.holding_registers[12_606] = raw_value
-      @target_mode = value
     end
 
     def target_fan_mode=(value)
       return unless (raw_value = FAN_MODE.invert[value])
 
       @abc.modbus_slave.holding_registers[12_621] = raw_value
-      @target_fan_mode = value
     end
 
     def heating_target_temperature=(value)
@@ -63,7 +61,6 @@ module Aurora
 
       raw_value = (value * 10).to_i
       @abc.modbus_slave.holding_registers[12_619] = raw_value
-      @heating_target_temperature = value
     end
 
     def cooling_target_temperature=(value)
@@ -71,21 +68,18 @@ module Aurora
 
       raw_value = (value * 10).to_i
       @abc.modbus_slave.holding_registers[12_620] = raw_value
-      @cooling_target_temperature = value
     end
 
     def fan_intermittent_on=(value)
       return unless value >= 0 && value <= 25 && (value % 5).zero?
 
       holding_registers[12_622] = value
-      @fan_intermittent_on = value
     end
 
     def fan_intermittent_off=(value)
       return unless value >= 0 && value <= 40 && (value % 5).zero?
 
       holding_registers[12_623] = value
-      @fan_intermittent_off = value
     end
   end
 end

@@ -27,7 +27,6 @@ module Aurora
 
       raw_value = (value * 10).to_i
       holding_registers[401] = raw_value
-      @set_point = value
     end
   end
 end

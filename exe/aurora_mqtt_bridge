@@ -190,8 +190,8 @@ class MQTTBridge
                     :integer,
                     @abc.line_voltage,
                     format: 90..635,
-                    unit: "V") do |value, property|
-                      @mutex.synchronize { property.value = @abc.line_voltage = value }
+                    unit: "V") do |value|
+                      @mutex.synchronize { @abc.line_voltage = value }
                     end
       node.property("fp1",
                     "FP1 Sensor",
@@ -337,8 +337,8 @@ class MQTTBridge
                       :integer,
                       @abc.blower.public_send(field),
                       format: 1..12,
-                      hass: { number: { entity_category: :config } }) do |value, property|
-          @mutex.synchronize { property.value = @abc.blower.public_send("#{field}=", value) }
+                      hass: { number: { entity_category: :config } }) do |value|
+          @mutex.synchronize { @abc.blower.public_send("#{field}=", value) }
         end
       end
 
@@ -383,8 +383,8 @@ class MQTTBridge
                     "Manual Control",
                     :boolean,
                     @abc.pump.manual_control?,
-                    hass: { switch: { entity_category: :diagnostic } }) do |value, property|
-        @mutex.synchronize { property.value = @abc.pump.manual_control = value }
+                    hass: { switch: { entity_category: :diagnostic } }) do |value|
+        @mutex.synchronize { @abc.pump.manual_control = value }
       end
       node.property("minimum-speed",
                     "Actual Minimum Speed",
@@ -392,8 +392,8 @@ class MQTTBridge
                     @abc.pump.minimum_speed,
                     format: 0..100,
                     unit: "%",
-                    hass: { number: { entity_category: :config } }) do |value, property|
-        @mutex.synchronize { property.value = @abc.pump.minimum_speed = value }
+                    hass: { number: { entity_category: :config } }) do |value|
+        @mutex.synchronize { @abc.pump.minimum_speed = value }
       end
       node.property("maximum-speed",
                     "Actual Maximum Speed",
@@ -401,8 +401,8 @@ class MQTTBridge
                     @abc.pump.minimum_speed,
                     format: 0..100,
                     unit: "%",
-                    hass: { number: { entity_category: :config } }) do |value, property|
-        @mutex.synchronize { property.value = @abc.pump.maximum_speed = value }
+                    hass: { number: { entity_category: :config } }) do |value|
+        @mutex.synchronize { @abc.pump.maximum_speed = value }
       end
       next unless @abc.awl_axb?
 
@@ -412,8 +412,8 @@ class MQTTBridge
                     @abc.pump.speed,
                     format: 0..100,
                     unit: "%",
-                    hass: { number: { entity_category: :diagnostic } }) do |value, property|
-        @mutex.synchronize { property.value = @abc.pump.speed = value }
+                    hass: { number: { entity_category: :diagnostic } }) do |value|
+        @mutex.synchronize { @abc.pump.speed = value }
       end
     end
 
@@ -423,8 +423,8 @@ class MQTTBridge
                       "Enabled",
                       :boolean,
                       @abc.dhw.enabled,
-                      hass: { switch: { icon: "mdi:water-boiler" } }) do |value, property|
-          @mutex.synchronize { property.value = @abc.dhw.enabled = value }
+                      hass: { switch: { icon: "mdi:water-boiler" } }) do |value|
+          @mutex.synchronize { @abc.dhw.enabled = value }
         end
         node.property("running",
                       "Pump Running",
@@ -444,8 +444,8 @@ class MQTTBridge
                       @abc.dhw.set_point,
                       format: 100..140,
                       unit: "°F",
-                      hass: { number: { step: 5 } }) do |value, property|
-          @mutex.synchronize { property.value = @abc.dhw.set_point = value }
+                      hass: { number: { step: 5 } }) do |value|
+          @mutex.synchronize { @abc.dhw.set_point = value }
         end
       end
     end
@@ -461,16 +461,16 @@ class MQTTBridge
                         "Humidifier Mode",
                         :enum,
                         @abc.humidistat.humidifier_mode,
-                        format: %i[auto manual]) do |value, property|
-            @mutex.synchronize { property.value = @abc.humidistat.humidifier_mode = value.to_sym }
+                        format: %i[auto manual]) do |value|
+            @mutex.synchronize { @abc.humidistat.humidifier_mode = value.to_sym }
           end
           node.property("humidification-target",
                         "Humidification Target Relative Humidity",
                         :integer,
                         @abc.humidistat.humidification_target,
                         unit: "%",
-                        format: 15..50) do |value, property|
-            @mutex.synchronize { property.value = @abc.humidistat.humidification_target = value }
+                        format: 15..50) do |value|
+            @mutex.synchronize { @abc.humidistat.humidification_target = value }
           end
           node.hass_humidifier("humidifier-running",
                                target_property: "humidification-target",
@@ -493,16 +493,16 @@ class MQTTBridge
                         "Dehumidifier Mode",
                         :enum,
                         @abc.humidistat.dehumidifier_mode,
-                        format: %i[auto manual]) do |value, property|
-            @mutex.synchronize { property.value = @abc.humidistat.dehumidifier_mode = value.to_sym }
+                        format: %i[auto manual]) do |value|
+            @mutex.synchronize { @abc.humidistat.dehumidifier_mode = value.to_sym }
           end
           node.property("dehumidification-target",
                         "Dehumidification Target Relative Humidity",
                         :integer,
                         @abc.humidistat.dehumidification_target,
                         unit: "%",
-                        format: 35..65) do |value, property|
-            @mutex.synchronize { property.value = @abc.humidistat.dehumidification_target = value }
+                        format: 35..65) do |value|
+            @mutex.synchronize { @abc.humidistat.dehumidification_target = value }
           end
           node.hass_humidifier("dehumidifier-running",
                                target_property: "dehumidification-target",
@@ -563,15 +563,15 @@ class MQTTBridge
                       "Target Heating/Cooling Mode",
                       :enum,
                       zone.target_mode,
-                      format: allowed_modes) do |value, property|
-          @mutex.synchronize { property.value = zone.target_mode = value.to_sym }
+                      format: allowed_modes) do |value|
+          @mutex.synchronize { zone.target_mode = value.to_sym }
         end
         node.property("target-fan-mode",
                       "Target Fan Mode",
                       :enum,
                       zone.target_fan_mode,
-                      format: %w[auto continuous intermittent]) do |value, property|
-          @mutex.synchronize { property.value = zone.target_fan_mode = value.to_sym }
+                      format: %w[auto continuous intermittent]) do |value|
+          @mutex.synchronize { zone.target_fan_mode = value.to_sym }
         end
         node.property("fan-intermittent-on",
                       "Fan Intermittent Mode On Duration",
@@ -579,8 +579,8 @@ class MQTTBridge
                       zone.fan_intermittent_on,
                       unit: "M",
                       format: %w[0 5 10 15 20],
-                      hass: { select: { entity_category: :config } }) do |value, property|
-          @mutex.synchronize { property.value = zone.fan_intermittent_on = value.to_i }
+                      hass: { select: { entity_category: :config } }) do |value|
+          @mutex.synchronize { zone.fan_intermittent_on = value.to_i }
         end
         node.property("fan-intermittent-off",
                       "Fan Intermittent Mode Off Duration",
@@ -588,8 +588,8 @@ class MQTTBridge
                       zone.fan_intermittent_on,
                       unit: "M",
                       format: %w[0 5 10 15 20 25 30 35 40],
-                      hass: { select: { entity_category: :config } }) do |value, property|
-          @mutex.synchronize { property.value = zone.fan_intermittent_on = value.to_i }
+                      hass: { select: { entity_category: :config } }) do |value|
+          @mutex.synchronize { zone.fan_intermittent_on = value.to_i }
         end
         node.property("current-fan-mode",
                       "Current Fan Status",
@@ -630,15 +630,15 @@ class MQTTBridge
                       :integer,
                       zone.heating_target_temperature,
                       unit: "°F",
-                      format: 40..90) do |value, property|
-          @mutex.synchronize { property.value = zone.heating_target_temperature = value }
+                      format: 40..90) do |value|
+          @mutex.synchronize { zone.heating_target_temperature = value }
         end
         node.property("cooling-target-temperature",
                       "Cooling Target Temperature", :integer,
                       zone.cooling_target_temperature,
                       unit: "°F",
-                      format: 54..99) do |value, property|
-          @mutex.synchronize { property.value = zone.cooling_target_temperature = value }
+                      format: 54..99) do |value|
+          @mutex.synchronize { zone.cooling_target_temperature = value }
         end
         node.hass_climate(action_property: "current-mode",
                           current_temperature_property: "ambient-temperature",
