@@ -23,6 +23,7 @@ The register map has been deciphered in a number of ways:
    AWL
 
 This code has been tested against several variations of equipment.
+The amount data available to you will depend on what equipment you have.
 If you own a different unit, and things aren't working well for you,
 I would be glad to have your help extending support!
 
@@ -31,6 +32,7 @@ I would be glad to have your help extending support!
    (pre-AWL firmware)
  * WaterFurnace 5 Series, ECM blower
  * WaterFurnace 5 Series split, ECM blower, DHW
+ * WaterFurnace Versatec Base
  * GeoSmart PremiumV, DHW, ECM blower, VS Drive, VS Pump
 
 Note that if your system has firmware that predates the AWL (see
