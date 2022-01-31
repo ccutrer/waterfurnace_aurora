@@ -17,8 +17,9 @@ options = OptionParser.new do |opts|
   opts.separator("")
   opts.separator(<<~TEXT)
     Use `known` to fetch all identified registers. Use `valid` to fetch all registers
-    that will respond. Note that logging of current progress is only periodic, and
-    does not log every register it's trying to fetch.
+    that should respond. Use `all` to search the entire ModBus address space. Note that
+    logging of current progress is only periodic, and does not log every register it's
+    trying to fetch.
   TEXT
   opts.separator("")
 

@@ -57,6 +57,10 @@ module Aurora
             implicit = true
             try_individual = true if try_individual.nil?
             break Aurora::REGISTER_RANGES
+          when "all"
+            implicit = true
+            try_individual = true if try_individual.nil?
+            break 0..65_535
           when /^(\d+)(?:\.\.|-)(\d+)$/
             $1.to_i..$2.to_i
           else
@@ -69,7 +73,7 @@ module Aurora
         queries.each do |subquery|
           last_log_time = log_query(last_log_time, subquery.inspect)
           registers.merge!(modbus_slave.read_multiple_holding_registers(*subquery))
-        rescue ::ModBus::Errors::IllegalDataAddress, ::ModBus::Errors::IllegalFunction
+        rescue ::ModBus::Errors::IllegalDataAddress, ::ModBus::Errors::IllegalFunction, ::ModBus::Errors::ModBusTimeout
           # maybe this unit doesn't respond to all the addresses we want?
           raise unless implicit
 
@@ -77,7 +81,10 @@ module Aurora
           subquery.each do |subsubquery|
             last_log_time = log_query(last_log_time, subsubquery.inspect)
             registers.merge!(modbus_slave.read_multiple_holding_registers(subsubquery))
-          rescue ::ModBus::Errors::IllegalDataAddress, ::ModBus::Errors::IllegalFunction
+          rescue ::ModBus::Errors::IllegalDataAddress,
+                 ::ModBus::Errors::IllegalFunction,
+                 ::ModBus::Errors::ModBusTimeout => e
+            raise if e.is_a?(::ModBus::Errors::ModBusTimeout) && !try_individual
             next unless try_individual
 
             # seriously?? try each register individually
@@ -85,6 +92,7 @@ module Aurora
               last_log_time = log_query(last_log_time, i.to_s)
               registers[i] = modbus_slave.holding_registers[i]
             rescue ::ModBus::Errors::IllegalDataAddress, ::ModBus::Errors::IllegalFunction
+              # don't catch ModBusTimeout here... it should have no problem responding to a single register request
               next
             end
           end

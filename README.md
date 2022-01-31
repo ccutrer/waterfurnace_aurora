@@ -256,6 +256,9 @@ known => homie/aurora-<serialno>/$modbus
 valid => homie/aurora-<serialno>/$modbus
 <even more data!>
 
+all => homie/aurora-<serialno>/$modbus
+<probably the same amount of data, but probably slower>
+
 3 => homie/aurora-<serialno>/$modbus/340/set
 homie/aurora-<serialno>/$modbus/340 <= Blower Only Speed (340): 3
 ```
