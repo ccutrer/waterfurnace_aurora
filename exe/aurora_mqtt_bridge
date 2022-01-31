@@ -90,30 +90,32 @@ class MQTTBridge
     loop do
       begin
         @mutex.synchronize do
-          @abc.refresh
+          @homie.mqtt.batch_publish do
+            @abc.refresh
 
-          components = { @homie_abc => @abc,
-                         @aux_heat => @abc.aux_heat,
-                         @compressor => @abc.compressor,
-                         @blower => @abc.blower,
-                         @pump => @abc.pump,
-                         @dhw => @abc.dhw,
-                         @humidistat => @abc.humidistat }.compact
-          @abc.zones.each_with_index do |z, idx|
-            homie_zone = @homie["zone#{idx + 1}"]
-            components[homie_zone] = z
-          end
-
-          components.each do |(node, object)|
-            node.each do |property|
-              property.value = object.public_send(property.id.tr("-", "_"))
+            components = { @homie_abc => @abc,
+                          @aux_heat => @abc.aux_heat,
+                          @compressor => @abc.compressor,
+                          @blower => @abc.blower,
+                          @pump => @abc.pump,
+                          @dhw => @abc.dhw,
+                          @humidistat => @abc.humidistat }.compact
+            @abc.zones.each_with_index do |z, idx|
+              homie_zone = @homie["zone#{idx + 1}"]
+              components[homie_zone] = z
             end
-          end
 
-          @abc.faults.each_with_index do |fault_count, i|
-            next if fault_count == 0xffff
+            components.each do |(node, object)|
+              node.each do |property|
+                property.value = object.public_send(property.id.tr("-", "_"))
+              end
+            end
 
-            @faults["e#{i + 1}"].value = fault_count
+            @abc.faults.each_with_index do |fault_count, i|
+              next if fault_count == 0xffff
+
+              @faults["e#{i + 1}"].value = fault_count
+            end
           end
         end
       rescue => e
