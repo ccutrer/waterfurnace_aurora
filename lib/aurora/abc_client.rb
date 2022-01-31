@@ -97,7 +97,11 @@ module Aurora
                 :pump,
                 :dhw,
                 :humidistat,
+                :current_fault,
                 :faults,
+                :locked_out,
+                :derated,
+                :safe_mode,
                 :current_mode,
                 :entering_air_temperature,
                 :leaving_air_temperature,
@@ -108,6 +112,10 @@ module Aurora
                 :fp2,
                 :line_voltage,
                 :watts
+
+    alias_method :locked_out?, :locked_out
+    alias_method :derated?, :derated
+    alias_method :safe_mode?, :safe_mode
 
     def initialize(uri)
       @modbus_slave = self.class.open_modbus_slave(uri)
@@ -157,7 +165,8 @@ module Aurora
       @faults = []
 
       @entering_air_register = awl_axb? ? 740 : 567
-      @registers_to_read = [6, 19..20, 25, 30, 112, 344, @entering_air_register, 1104, 1110..1111, 1114, 1150..1153, 1165]
+      @registers_to_read = [6, 19..20, 25, 30, 112, 344, @entering_air_register, 1104, 1110..1111, 1114, 1150..1153,
+                            1165]
       @registers_to_read.concat([741, 31_003]) if awl_communicating?
       @registers_to_read << 900 if awl_axb?
       zones.each do |z|
@@ -191,10 +200,10 @@ module Aurora
       @outdoor_temperature        = registers[31_003]
       @fp1                        = registers[19]
       @fp2                        = registers[20]
-      @locked_out                 = registers[25] & 0x8000
-      @error                      = registers[25] & 0x7fff
-      @derated                    = (41..46).cover?(@error)
-      @safe_mode                  = [47, 48, 49, 72, 74].include?(@error)
+      @locked_out                 = !(registers[25] & 0x8000).zero?
+      @current_fault              = registers[25] & 0x7fff
+      @derated                    = (41..46).cover?(@current_fault)
+      @safe_mode                  = [47, 48, 49, 72, 74].include?(@current_fault)
       @line_voltage               = registers[112]
       @watts                      = registers[1153]
 

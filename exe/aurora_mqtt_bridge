@@ -94,12 +94,12 @@ class MQTTBridge
             @abc.refresh
 
             components = { @homie_abc => @abc,
-                          @aux_heat => @abc.aux_heat,
-                          @compressor => @abc.compressor,
-                          @blower => @abc.blower,
-                          @pump => @abc.pump,
-                          @dhw => @abc.dhw,
-                          @humidistat => @abc.humidistat }.compact
+                           @aux_heat => @abc.aux_heat,
+                           @compressor => @abc.compressor,
+                           @blower => @abc.blower,
+                           @pump => @abc.pump,
+                           @dhw => @abc.dhw,
+                           @humidistat => @abc.humidistat }.compact
             @abc.zones.each_with_index do |z, idx|
               homie_zone = @homie["zone#{idx + 1}"]
               components[homie_zone] = z
@@ -111,6 +111,7 @@ class MQTTBridge
               end
             end
 
+            @faults["current"].value = @abc.current_fault
             @abc.faults.each_with_index do |fault_count, i|
               next if fault_count == 0xffff
 
@@ -142,6 +143,21 @@ class MQTTBridge
                     @abc.current_mode,
                     format: allowed_modes,
                     hass: { sensor: { state_class: :measurement } })
+      node.property("locked-out",
+                    "Is the heat pump currently locked out?",
+                    :boolean,
+                    @abc.locked_out?,
+                    hass: :binary_sensor)
+      node.property("derated",
+                    "Is the compressor currently running at a derated level?",
+                    :boolean,
+                    @abc.derated?,
+                    hass: :binary_sensor)
+      node.property("safe-mode",
+                    "Is the heat pump currently in safe mode?",
+                    :boolean,
+                    @abc.safe_mode?,
+                    hass: :binary_sensor)
       node.property("entering-air-temperature",
                     "Entering Air Temperature",
                     :float,
@@ -527,6 +543,12 @@ class MQTTBridge
     end
 
     @faults = @homie.node("faults", "Fault History", "ABC") do |node|
+      node.property("current",
+                    "Current fault",
+                    :integer,
+                    @abc.current_fault,
+                    format: 0..99,
+                    hass: :sensor)
       node.property("clear-history",
                     "Reset Fault Counts",
                     :enum,
