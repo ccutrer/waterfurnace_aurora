@@ -156,7 +156,8 @@ module Aurora
 
       @faults = []
 
-      @registers_to_read = [6, 19..20, 25, 30, 112, 344, 567, 1104, 1110..1111, 1114, 1150..1153, 1165]
+      @entering_air_register = awl_axb? ? 740 : 567
+      @registers_to_read = [6, 19..20, 25, 30, 112, 344, @entering_air_register, 1104, 1110..1111, 1114, 1150..1153, 1165]
       @registers_to_read.concat([741, 31_003]) if awl_communicating?
       @registers_to_read << 900 if awl_axb?
       zones.each do |z|
@@ -183,7 +184,7 @@ module Aurora
 
       outputs = registers[30]
 
-      @entering_air_temperature   = registers[567]
+      @entering_air_temperature   = registers[@entering_air_register]
       @leaving_air_temperature    = registers[900] if awl_axb?
       @leaving_water_temperature  = registers[1110]
       @entering_water_temperature = registers[1111]
