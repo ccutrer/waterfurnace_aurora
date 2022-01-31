@@ -5,7 +5,7 @@ require "aurora/component"
 module Aurora
   module Compressor
     class GenericCompressor < Component
-      attr_reader :speed, :watts
+      attr_reader :speed, :watts, :saturated_condensor_discharge_temperature
 
       def initialize(abc, stages)
         super(abc)
@@ -21,11 +21,9 @@ module Aurora
       end
 
       def registers_to_read
-        if abc.energy_monitoring?
-          [1146..1147]
-        else
-          []
-        end
+        result = [1134]
+        result << (1146..1147) if abc.energy_monitoring?
+        result
       end
 
       def refresh(registers)
@@ -37,12 +35,24 @@ module Aurora
                  else
                    0
                  end
+        @saturated_condensor_discharge_temperature = registers[1134]
         @watts = registers[1146] if abc.energy_monitoring?
       end
     end
 
     class VSDrive < GenericCompressor
-      attr_reader :drive_temperature, :inverter_temperature, :ambient_temperature, :iz2_desired_speed, :fan_speed
+      attr_reader :drive_temperature,
+                  :inverter_temperature,
+                  :ambient_temperature,
+                  :iz2_desired_speed,
+                  :fan_speed,
+                  :discharge_pressure,
+                  :discharge_temperature,
+                  :suction_pressure,
+                  :suction_temperature,
+                  :saturated_evaporator_discharge_temperature,
+                  :superheat_temperature,
+                  :superheat_percentage
 
       def initialize(abc)
         super(abc, 12)
@@ -53,7 +63,7 @@ module Aurora
       end
 
       def registers_to_read
-        result = super + [209, 3001, 3326..3327, 3522, 3524]
+        result = super + [209, 3001, 3322..3327, 3522, 3524, 3808, 3903..3906]
         result << 564 if abc.iz2?
         result
       end
@@ -62,10 +72,17 @@ module Aurora
         super
 
         @speed = registers[3001]
+        @discharge_pressure = registers[3322]
+        @suction_pressure = registers[3323]
+        @discharge_temperature = registers[3325]
         @ambient_temperature = registers[3326]
         @drive_temperature = registers[3327]
         @inverter_temperature = registers[3522]
         @fan_speed = registers[3524]
+        @superheat_percentage = registers[3808]
+        @suction_temperature = registers[3903]
+        @saturated_evaporator_discharge_temperature = registers[3905]
+        @superheat_temperature = registers[3906]
 
         @iz2_desired_speed = registers[564] if abc.iz2?
       end

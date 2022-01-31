@@ -143,6 +143,16 @@ class MQTTBridge
                     @abc.current_mode,
                     format: allowed_modes,
                     hass: { sensor: { state_class: :measurement } })
+      node.property("emergency-shutdown",
+                    "Emergency Shutdown Requested",
+                    :boolean,
+                    @abc.emergency_shutdown?,
+                    hass: :binary_sensor)
+      node.property("load-shed",
+                    "Load Shed Requested",
+                    :boolean,
+                    @abc.load_shed?,
+                    hass: :binary_sensor)
       node.property("locked-out",
                     "Is the heat pump currently locked out?",
                     :boolean,
@@ -174,6 +184,17 @@ class MQTTBridge
                     hass: { sensor: { device_class: :temperature,
                                       state_class: :measurement,
                                       entity_category: :diagnostic } })
+      node.property("low-pressure-switch",
+                    "Low Pressure Switch Status",
+                    :enum,
+                    @abc.low_pressure_switch,
+                    format: %w[open closed])
+      node.property("high-pressure-switch",
+                    "High Pressure Switch Status",
+                    :enum,
+                    @abc.high_pressure_switch,
+                    format: %w[open closed])
+
       if @abc.awl_communicating?
         node.property("leaving-air-temperature",
                       "Leaving Air Temperature",
@@ -245,6 +266,14 @@ class MQTTBridge
                     @abc.compressor.speed,
                     format: @abc.compressor.speed_range,
                     hass: { sensor: { state_class: :measurement } })
+      node.property("saturated-condensor-discharge-temperature",
+                    "Saturated Condensor Discharge Temperature",
+                    :float,
+                    @abc.compressor.saturated_condensor_discharge_temperature,
+                    unit: "°F",
+                    hass: { sensor: { device_class: :temperature,
+                                      state_class: :measurement,
+                                      entity_category: :diagnostic } })
       if @abc.energy_monitoring?
         node.property("watts",
                       "Power Usage",
@@ -285,6 +314,62 @@ class MQTTBridge
                     "Fan Speed",
                     :integer,
                     @abc.compressor.fan_speed,
+                    unit: "%",
+                    format: 0..100,
+                    hass: { sensor: { state_class: :measurement,
+                                      entity_category: :diagnostic } })
+      node.property("discharge-temperature",
+                    "Discharge Temperature",
+                    :float,
+                    @abc.compressor.discharge_temperature,
+                    unit: "°F",
+                    hass: { sensor: { device_class: :temperature,
+                                      state_class: :measurement,
+                                      entity_category: :diagnostic } })
+      node.property("discharge-pressure",
+                    "Discharge Pressure",
+                    :float,
+                    @abc.compressor.discharge_pressure,
+                    unit: "psi",
+                    hass: { sensor: { device_class: :pressure,
+                                      state_class: :measurement,
+                                      entity_category: :diagnostic } })
+      node.property("suction-temperature",
+                    "Suction Temperature",
+                    :float,
+                    @abc.compressor.suction_temperature,
+                    unit: "°F",
+                    hass: { sensor: { device_class: :temperature,
+                                      state_class: :measurement,
+                                      entity_category: :diagnostic } })
+      node.property("suction-pressure",
+                    "Suction Pressure",
+                    :float,
+                    @abc.compressor.suction_pressure,
+                    unit: "psi",
+                    hass: { sensor: { device_class: :pressure,
+                                      state_class: :measurement,
+                                      entity_category: :diagnostic } })
+      node.property("saturated-evaporator-discharge-temperature",
+                    "Saturated Evaporator Discharge Temperature",
+                    :float,
+                    @abc.compressor.saturated_evaporator_discharge_temperature,
+                    unit: "°F",
+                    hass: { sensor: { device_class: :temperature,
+                                      state_class: :measurement,
+                                      entity_category: :diagnostic } })
+      node.property("superheat-temperature",
+                    "SuperHeat Temperature",
+                    :float,
+                    @abc.compressor.superheat_temperature,
+                    unit: "°F",
+                    hass: { sensor: { device_class: :temperature,
+                                      state_class: :measurement,
+                                      entity_category: :diagnostic } })
+      node.property("superheat-percentage",
+                    "SuperHeat Percentage",
+                    :integer,
+                    @abc.compressor.superheat_percentage,
                     unit: "%",
                     format: 0..100,
                     hass: { sensor: { state_class: :measurement,
@@ -693,12 +778,12 @@ class MQTTBridge
 end
 
 log_level = ARGV.include?("--debug") ? :debug : :warn
-logger = Logger.new($stdout)
-logger.level = log_level
-abc.modbus_slave.logger = logger
+Aurora.logger = Logger.new($stdout)
+Aurora.logger.level = log_level
+abc.modbus_slave.logger = Aurora.logger
 
 device = "aurora-#{abc.serial_number}"
 homie = MQTT::Homie::Device.new(device, "WaterFurnace", mqtt: mqtt_uri)
-homie.logger = logger
+homie.logger = Aurora.logger
 
 MQTTBridge.new(abc, homie)

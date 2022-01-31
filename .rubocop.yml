@@ -25,6 +25,8 @@ Style/DocumentDynamicEvalDefinition:
   Enabled: false
 Style/Documentation:
   Enabled: false
+Style/DoubleNegation:
+  Enabled: false
 Style/HashSyntax:
   EnforcedStyle: ruby19_no_mixed_keys
 Style/PercentQLiterals:

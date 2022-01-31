@@ -15,9 +15,9 @@ module Aurora
                 :fan_intermittent_off
 
     def registers_to_read
-      return [31] unless @abc.awl_thermostat?
+      return [] unless @abc.awl_thermostat?
 
-      [31, 502, 745..746, 12_005..12_006]
+      [502, 745..746, 12_005..12_006]
     end
 
     def refresh(registers)
