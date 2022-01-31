@@ -65,7 +65,9 @@ module Aurora
         end
         queries = Aurora.normalize_ranges(ranges)
         registers = {}
+        last_log_time = nil
         queries.each do |subquery|
+          last_log_time = log_query(last_log_time, subquery.inspect)
           registers.merge!(modbus_slave.read_multiple_holding_registers(*subquery))
         rescue ::ModBus::Errors::IllegalDataAddress, ::ModBus::Errors::IllegalFunction
           # maybe this unit doesn't respond to all the addresses we want?
@@ -73,12 +75,14 @@ module Aurora
 
           # try each query individually
           subquery.each do |subsubquery|
+            last_log_time = log_query(last_log_time, subsubquery.inspect)
             registers.merge!(modbus_slave.read_multiple_holding_registers(subsubquery))
           rescue ::ModBus::Errors::IllegalDataAddress, ::ModBus::Errors::IllegalFunction
             next unless try_individual
 
             # seriously?? try each register individually
             Array(subsubquery).each do |i|
+              last_log_time = log_query(last_log_time, i.to_s)
               registers[i] = modbus_slave.holding_registers[i]
             rescue ::ModBus::Errors::IllegalDataAddress, ::ModBus::Errors::IllegalFunction
               next
@@ -86,6 +90,18 @@ module Aurora
           end
         end
         registers
+      end
+
+      private
+
+      def log_query(last_log_time, query)
+        last_log_time ||= Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        if now - last_log_time > 5
+          Aurora&.logger&.info("Fetching register(s) #{query}...")
+          last_log_time = now
+        end
+        last_log_time
       end
     end
 

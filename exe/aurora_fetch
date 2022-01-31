@@ -15,7 +15,11 @@ options = OptionParser.new do |opts|
   opts.banner = "Usage: aurora_fetch /path/to/serial/port REGISTERS [options]"
 
   opts.separator("")
-  opts.separator("Use `known` to fetch all identified registers. Use `valid` to fetch all registers that will respond.")
+  opts.separator(<<~TEXT)
+    Use `known` to fetch all identified registers. Use `valid` to fetch all registers
+    that will respond. Note that logging of current progress is only periodic, and
+    does not log every register it's trying to fetch.
+  TEXT
   opts.separator("")
 
   opts.on("--debug-modbus", "Print actual protocol bytes") do
@@ -49,8 +53,8 @@ end
 modbus_slave = Aurora::ABCClient.open_modbus_slave(ARGV[0], ignore_missing_registers: ignore_missing_registers)
 modbus_slave.read_retry_timeout = 15
 modbus_slave.read_retries = 2
-modbus_slave.logger = Logger.new($stderr)
-modbus_slave.logger.level = debug_modbus ? :debug : :warn
+Aurora.logger = modbus_slave.logger = Logger.new($stderr)
+modbus_slave.logger.level = debug_modbus ? :debug : :info
 
 registers = Aurora::ABCClient.query_registers(modbus_slave, ARGV[1], try_individual: try_individual)
 

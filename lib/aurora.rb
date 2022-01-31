@@ -15,4 +15,7 @@ ModBus::Client::Slave.prepend(Aurora::ModBus::Slave)
 ModBus::RTUSlave.prepend(Aurora::ModBus::RTU)
 
 module Aurora
+  class << self
+    attr_accessor :logger
+  end
 end
