@@ -8,7 +8,7 @@ require "optparse"
 require "uri"
 require "yaml"
 
-debug_modbus = yaml = false
+debug_modbus = yaml = ignore_missing_registers = false
 try_individual = nil
 
 options = OptionParser.new do |opts|
@@ -18,10 +18,16 @@ options = OptionParser.new do |opts|
   opts.separator("Use `known` to fetch all identified registers. Use `valid` to fetch all registers that will respond.")
   opts.separator("")
 
-  opts.on("--debug-modbus", "Print actual protocol bytes") { debug_modbus = true }
+  opts.on("--debug-modbus", "Print actual protocol bytes") do
+    debug_modbus = true
+  end
   opts.on("--[no-]try-individual",
           "Query registers one-by-one if a range has an illegal address. " \
           "Defaults to true for `valid` and `known` special registers, false otherwise.") { |v| try_individual = v }
+  opts.on("--ignore-missing-registers",
+          "For YAML input only, just log a warning when a register doesn't exist, instead of failing") do
+            ignore_missing_registers = true
+          end
   opts.on("-y", "--yaml", "Output raw values as YAML") { yaml = true }
   opts.on("-v", "--version", "Print version") do
     puts Aurora::VERSION
@@ -40,10 +46,10 @@ unless ARGV.length == 2
   exit 1
 end
 
-modbus_slave = Aurora::ABCClient.open_modbus_slave(ARGV[0])
+modbus_slave = Aurora::ABCClient.open_modbus_slave(ARGV[0], ignore_missing_registers: ignore_missing_registers)
 modbus_slave.read_retry_timeout = 15
 modbus_slave.read_retries = 2
-modbus_slave.logger = Logger.new($stdout)
+modbus_slave.logger = Logger.new($stderr)
 modbus_slave.logger.level = debug_modbus ? :debug : :warn
 
 registers = Aurora::ABCClient.query_registers(modbus_slave, ARGV[1], try_individual: try_individual)

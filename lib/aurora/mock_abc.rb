@@ -4,7 +4,8 @@ module Aurora
   class MockABC
     attr_accessor :logger
 
-    def initialize(registers)
+    def initialize(registers, ignore_missing_registers: false)
+      @ignore_missing_registers = ignore_missing_registers
       @registers = registers
     end
 
@@ -59,6 +60,8 @@ module Aurora
     private
 
     def missing_register(idx)
+      raise ::ModBus::Errors::IllegalDataAddress unless @ignore_missing_registers
+
       logger.warn("missing register #{idx}")
     end
   end

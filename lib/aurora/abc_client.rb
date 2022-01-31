@@ -15,7 +15,7 @@ require "aurora/thermostat"
 module Aurora
   class ABCClient
     class << self
-      def open_modbus_slave(uri)
+      def open_modbus_slave(uri, ignore_missing_registers: false)
         uri = URI.parse(uri)
 
         io = case uri.scheme
@@ -32,7 +32,10 @@ module Aurora
                require "aurora/mqtt_modbus"
                return Aurora::MQTTModBus.new(uri)
              else
-               return Aurora::MockABC.new(YAML.load_file(uri.path)) if File.file?(uri.path)
+               if File.file?(uri.path)
+                 return Aurora::MockABC.new(YAML.load_file(uri.path),
+                                            ignore_missing_registers: ignore_missing_registers)
+               end
 
                require "ccutrer-serialport"
                CCutrer::SerialPort.new(uri.path, baud: 19_200, parity: :even)
@@ -75,7 +78,7 @@ module Aurora
             next unless try_individual
 
             # seriously?? try each register individually
-            subsubquery.each do |i|
+            Array(subsubquery).each do |i|
               registers[i] = modbus_slave.holding_registers[i]
             rescue ::ModBus::Errors::IllegalDataAddress, ::ModBus::Errors::IllegalFunction
               next

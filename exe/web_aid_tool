@@ -7,13 +7,17 @@ require "logger"
 require "optparse"
 require "yaml"
 
-debug_modbus = monitor = false
+debug_modbus = monitor = ignore_missing_registers = false
 
 options = OptionParser.new do |opts|
   opts.banner = "Usage: web_aid_tool /path/to/serial/port [options]"
 
   opts.on("--debug-modbus", "Print actual protocol bytes") { debug_modbus = true }
   opts.on("--monitor", "Print interpreted registers as they are requested, like aurora_monitor") { monitor = true }
+  opts.on("--ignore-missing-registers",
+          "For YAML input only, just log a warning when a register doesn't exist, instead of failing") do
+    ignore_missing_registers = true
+  end
   opts.on("-v", "--version", "Print version") do
     puts Aurora::VERSION
     exit
@@ -31,7 +35,7 @@ unless ARGV.length == 1
   exit 1
 end
 
-slave = Aurora::ABCClient.open_modbus_slave(ARGV[0])
+slave = Aurora::ABCClient.open_modbus_slave(ARGV[0], ignore_missing_registers: ignore_missing_registers)
 slave.logger = Logger.new($stdout)
 slave.logger.level = debug_modbus ? :debug : :warn
 
