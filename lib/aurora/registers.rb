@@ -709,8 +709,8 @@ module Aurora
     17 => "Aux/E Heat Stage", # this is how long aux/eheat have been requested in seconds
     # when in eheat mode (explicit on the thermostat), it will stage up to eh2 after 130s
     # when in aux mode (thermostat set to heat; compressor at full capacity), it will stage up to eh2 after 310s
-    19 => "FP1 (Cooling Liquid Line) Temperature",
-    20 => "FP2",
+    19 => "Cooling Liquid Line Temperature (FP1)",
+    20 => "Air Coil Temperature (FP2)",
     21 => "Condensate", # >= 270 normal, otherwise fault
     25 => "Last Fault Number", # high bit set if locked out
     26 => "Last Lockout",

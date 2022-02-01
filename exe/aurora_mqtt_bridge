@@ -232,18 +232,10 @@ class MQTTBridge
                     unit: "V") do |value|
                       @mutex.synchronize { @abc.line_voltage = value }
                     end
-      node.property("fp1",
-                    "FP1 Sensor",
+      node.property("air-coil-temperature",
+                    "Air Coil Temperature (FP2)",
                     :float,
-                    @abc.fp1,
-                    unit: "°F",
-                    hass: { sensor: { device_class: :temperature,
-                                      state_class: :measurement,
-                                      entity_category: :diagnostic } })
-      node.property("fp2",
-                    "FP2 Sensor",
-                    :float,
-                    @abc.fp2,
+                    @abc.air_coil_temperature,
                     unit: "°F",
                     hass: { sensor: { device_class: :temperature,
                                       state_class: :measurement,
@@ -266,6 +258,14 @@ class MQTTBridge
                     @abc.compressor.speed,
                     format: @abc.compressor.speed_range,
                     hass: { sensor: { state_class: :measurement } })
+      node.property("cooling-liquid-line-temperature",
+                    "Cooling Liquid Line Temperature (FP1)",
+                    :float,
+                    @abc.compressor.cooling_liquid_line_temperature,
+                    unit: "°F",
+                    hass: { sensor: { device_class: :temperature,
+                                      state_class: :measurement,
+                                      entity_category: :diagnostic } })
       node.property("saturated-condensor-discharge-temperature",
                     "Saturated Condensor Discharge Temperature",
                     :float,

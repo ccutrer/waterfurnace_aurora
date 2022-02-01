@@ -139,8 +139,7 @@ module Aurora
                 :leaving_water_temperature,
                 :entering_water_temperature,
                 :outdoor_temperature,
-                :fp1,
-                :fp2,
+                :air_coil_temperature,
                 :line_voltage,
                 :watts
 
@@ -231,8 +230,7 @@ module Aurora
       @leaving_water_temperature  = registers[1110]
       @entering_water_temperature = registers[1111]
       @outdoor_temperature        = registers[31_003]
-      @fp1                        = registers[19]
-      @fp2                        = registers[20]
+      @air_coil_temperature       = registers[20]
       @locked_out                 = !(registers[25] & 0x8000).zero?
       @current_fault              = registers[25] & 0x7fff
       @derated                    = (41..46).cover?(@current_fault)
