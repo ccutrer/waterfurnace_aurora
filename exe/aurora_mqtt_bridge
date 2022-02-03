@@ -375,7 +375,7 @@ class MQTTBridge
       node.property("eev-open-percentage",
                     "Electronic Expansion Valve Open Percentage",
                     :integer,
-                    @abc.compressor.eev_percentage,
+                    @abc.compressor.eev_open_percentage,
                     unit: "%",
                     format: 0..100,
                     hass: { sensor: { state_class: :measurement,

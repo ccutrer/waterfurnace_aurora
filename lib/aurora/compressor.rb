@@ -54,7 +54,7 @@ module Aurora
                   :suction_temperature,
                   :saturated_evaporator_discharge_temperature,
                   :superheat_temperature,
-                  :eev_percentage
+                  :eev_open_percentage
 
       def initialize(abc)
         super(abc, 12)
@@ -82,7 +82,7 @@ module Aurora
         @drive_temperature = registers[3327]
         @inverter_temperature = registers[3522]
         @fan_speed = registers[3524]
-        @eev_percentage = registers[3808]
+        @eev_open_percentage = registers[3808]
         @suction_temperature = registers[3903]
         @saturated_evaporator_discharge_temperature = registers[3905]
         @superheat_temperature = registers[3906]
