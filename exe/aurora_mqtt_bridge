@@ -286,6 +286,12 @@ class MQTTBridge
 
       next unless @abc.compressor.is_a?(Aurora::Compressor::VSDrive)
 
+      node.property("desired-speed",
+                    "Desired Speed",
+                    :integer,
+                    @abc.compressor.desired_speed,
+                    format: @abc.compressor.speed_range,
+                    hass: { sensor: { state_class: :measurement } })
       node.property("ambient-temperature",
                     "Ambient Temperature",
                     :float,
@@ -366,10 +372,10 @@ class MQTTBridge
                     hass: { sensor: { device_class: :temperature,
                                       state_class: :measurement,
                                       entity_category: :diagnostic } })
-      node.property("superheat-percentage",
-                    "SuperHeat Percentage",
+      node.property("eev-percentage",
+                    "EEV Open Percent Open",
                     :integer,
-                    @abc.compressor.superheat_percentage,
+                    @abc.compressor.eev_percentage,
                     unit: "%",
                     format: 0..100,
                     hass: { sensor: { state_class: :measurement,

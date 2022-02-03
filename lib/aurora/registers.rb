@@ -859,7 +859,11 @@ module Aurora
     1154 => "Heat of Extraction",
     1156 => "Heat of Rejection",
     1164 => "Pump Watts",
+    # this combines thermostat/iz2 desired speed with manual operation override
     3000 => "Compressor Speed Desired",
+    # this shows the actual speed
+    # it can differ from desired during a ramp to the desired speed, or
+    # the periodic ramp up to speed 6 that's not visible in the desired speed
     3001 => "Compressor Speed Actual",
     3002 => "Manual Operation",
     3027 => "Compressor Speed",
@@ -885,7 +889,7 @@ module Aurora
     3523 => "VS Drive UDC Voltage",
     3524 => "VS Drive Fan Speed",
     3804 => "VS Drive Details (EEV2 Ctl)",
-    3808 => "VS Drive SuperHeat Percent",
+    3808 => "VS Drive EEV2 % Open",
     3903 => "VS Drive Suction Temperature",
     3904 => "VS Drive Leaving Air Temperature?",
     3905 => "VS Drive Saturated Evaporator Discharge Temperature",

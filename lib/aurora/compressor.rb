@@ -45,6 +45,7 @@ module Aurora
       attr_reader :drive_temperature,
                   :inverter_temperature,
                   :ambient_temperature,
+                  :desired_speed,
                   :iz2_desired_speed,
                   :fan_speed,
                   :discharge_pressure,
@@ -53,7 +54,7 @@ module Aurora
                   :suction_temperature,
                   :saturated_evaporator_discharge_temperature,
                   :superheat_temperature,
-                  :superheat_percentage
+                  :eev_percentage
 
       def initialize(abc)
         super(abc, 12)
@@ -64,7 +65,7 @@ module Aurora
       end
 
       def registers_to_read
-        result = super + [209, 3001, 3322..3327, 3522, 3524, 3808, 3903..3906]
+        result = super + [209, 3000..3001, 3322..3327, 3522, 3524, 3808, 3903..3906]
         result << 564 if abc.iz2?
         result
       end
@@ -72,6 +73,7 @@ module Aurora
       def refresh(registers)
         super
 
+        @desired_speed = registers[3000]
         @speed = registers[3001]
         @discharge_pressure = registers[3322]
         @suction_pressure = registers[3323]
@@ -80,7 +82,7 @@ module Aurora
         @drive_temperature = registers[3327]
         @inverter_temperature = registers[3522]
         @fan_speed = registers[3524]
-        @superheat_percentage = registers[3808]
+        @eev_percentage = registers[3808]
         @suction_temperature = registers[3903]
         @saturated_evaporator_discharge_temperature = registers[3905]
         @superheat_temperature = registers[3906]
