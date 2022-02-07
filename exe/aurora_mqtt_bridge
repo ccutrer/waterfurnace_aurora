@@ -282,6 +282,19 @@ class MQTTBridge
                       unit: "W",
                       hass: { sensor: { device_class: :power,
                                         state_class: :measurement } })
+        node.property("heat-of-extraction",
+                      "Heat of Extraction",
+                      :integer,
+                      @abc.compressor.heat_of_extraction,
+                      unit: "Btuh",
+                      hass: { sensor: { state_class: :measurement } })
+        node.property("heat-of-rejection",
+                      "Heat of Rejection",
+                      :integer,
+                      @abc.compressor.heat_of_rejection,
+                      unit: "Btuh",
+                      hass: { sensor: { state_class: :measurement } })
+
       end
 
       next unless @abc.compressor.is_a?(Aurora::Compressor::VSDrive)

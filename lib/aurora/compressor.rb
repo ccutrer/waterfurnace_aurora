@@ -5,7 +5,12 @@ require "aurora/component"
 module Aurora
   module Compressor
     class GenericCompressor < Component
-      attr_reader :speed, :watts, :cooling_liquid_line_temperature, :saturated_condensor_discharge_temperature
+      attr_reader :speed,
+                  :watts,
+                  :cooling_liquid_line_temperature,
+                  :saturated_condensor_discharge_temperature,
+                  :heat_of_extraction,
+                  :heat_of_rejection
 
       def initialize(abc, stages)
         super(abc)
@@ -22,7 +27,7 @@ module Aurora
 
       def registers_to_read
         result = [19, 1134]
-        result << (1146..1147) if abc.energy_monitoring?
+        result.concat([1146..1147, 1154..1157]) if abc.energy_monitoring?
         result
       end
 
@@ -37,7 +42,12 @@ module Aurora
                  end
         @cooling_liquid_line_temperature = registers[19]
         @saturated_condensor_discharge_temperature = registers[1134]
-        @watts = registers[1146] if abc.energy_monitoring?
+
+        return unless abc.energy_monitoring?
+
+        @watts = registers[1146]
+        @heat_of_extraction = registers[1154]
+        @heat_of_rejection = registers[1156]
       end
     end
 
