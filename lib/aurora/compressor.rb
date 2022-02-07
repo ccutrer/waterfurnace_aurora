@@ -54,6 +54,7 @@ module Aurora
                   :suction_temperature,
                   :saturated_evaporator_discharge_temperature,
                   :superheat_temperature,
+                  :subcool_temperature,
                   :eev_open_percentage
 
       def initialize(abc)
@@ -65,7 +66,7 @@ module Aurora
       end
 
       def registers_to_read
-        result = super + [209, 3000..3001, 3322..3327, 3522, 3524, 3808, 3903..3906]
+        result = super + [209, 1135..1136, 3000..3001, 3322..3327, 3522, 3524, 3808, 3903..3906]
         result << 564 if abc.iz2?
         result
       end
@@ -86,6 +87,7 @@ module Aurora
         @suction_temperature = registers[3903]
         @saturated_evaporator_discharge_temperature = registers[3905]
         @superheat_temperature = registers[3906]
+        @subcool_temperature = registers[registers[30].include?(:rv) ? 1136 : 1135]
 
         @iz2_desired_speed = registers[564] if abc.iz2?
       end

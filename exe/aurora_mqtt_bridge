@@ -372,6 +372,14 @@ class MQTTBridge
                     hass: { sensor: { device_class: :temperature,
                                       state_class: :measurement,
                                       entity_category: :diagnostic } })
+      node.property("subcool-temperature",
+                    "SubCool Temperature",
+                    :float,
+                    @abc.compressor.subcool_temperature,
+                    unit: "°F",
+                    hass: { sensor: { device_class: :temperature,
+                                      state_class: :measurement,
+                                      entity_category: :diagnostic } })
       node.property("eev-open-percentage",
                     "Electronic Expansion Valve Open Percentage",
                     :integer,
