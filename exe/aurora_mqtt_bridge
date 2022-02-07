@@ -437,8 +437,7 @@ class MQTTBridge
 
       next unless @abc.blower.is_a?(Aurora::Blower::ECM)
 
-      presets = %w[blower-only aux-heat]
-      presets.concat %w[low-compressor high-compressor] unless @abc.iz2?
+      presets = %w[blower-only aux-heat low-compressor high-compressor]
       presets.each do |setting|
         field = "#{setting.tr("-", "_")}_speed"
         node.property("#{setting}-speed",
