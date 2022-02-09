@@ -44,10 +44,11 @@ module Aurora
     totals
   end
 
+  NEGATABLE = ->(v) { v & 0x8000 == 0x8000 ? v - 0x10000 : v }
   TO_HUNDREDTHS = ->(v) { v.to_f / 100 }
   TO_TENTHS = ->(v) { v.to_f / 10 }
+  TO_SIGNED_TENTHS = ->(v) { NEGATABLE.call(v).to_f / 10 }
   TO_LAST_LOCKOUT = ->(v) { v & 0x8000 == 0x8000 ? v & 0x7fff : nil }
-  NEGATABLE = ->(v) { v & 0x8000 == 0x8000 ? v - 0x10000 : v }
 
   def from_bitmask(value, flags)
     result = []
@@ -488,18 +489,20 @@ module Aurora
   REGISTER_CONVERTERS = {
     TO_HUNDREDTHS => [2, 3, 417, 418, 801, 804, 807, 813, 816, 817, 819, 820, 825, 828],
     method(:dipswitch_settings) => [4, 33],
-    TO_TENTHS => [19, 20, 401, 419, 501, 502, 567, 740, 745, 746, 747, 900, 901, 903,
-                  1105, 1106, 1107, 1108, 1109, 1110, 1111, 1112, 1113, 1114, 1115, 1116, 1117, 1119, 1124, 1125, 1134,
-                  3322, 3323, 3325, 3326, 3327, 3330, 3522, 3903, 3905, 3906,
+    TO_TENTHS => [401, 419, 745, 746, 901,
+                  1105, 1106, 1107, 1108, 1115, 1116, 1117, 1119,
+                  3322, 3323,
                   12_619, 12_620,
                   21_203, 21_204,
                   21_212, 21_213,
                   21_221, 21_222,
                   21_230, 22_131,
                   21_239, 21_240,
-                  21_248, 21_249,
-                  31_003,
-                  31_007, 31_010, 31_013, 31_016, 31_019, 31_022],
+                  21_248, 21_249],
+    TO_SIGNED_TENTHS => [19, 20, 501, 502, 567, 740, 747, 900, 903,
+                         1109, 1110, 1111, 1112, 1113, 1114, 1124, 1125, 1134, 1135, 1136,
+                         3325, 3326, 3327, 3330, 3522, 3903, 3905, 3906,
+                         31_003, 31_007, 31_010, 31_013, 31_016, 31_019, 31_022],
     TO_LAST_LOCKOUT => [26],
     ->(v) { from_bitmask(v, SYSTEM_OUTPUTS) } => [27, 30],
     ->(v) { from_bitmask(v, SYSTEM_INPUTS) } => [28],
@@ -530,7 +533,6 @@ module Aurora
     ->(v) { COMPONENT_STATUS[v] } => [800, 803, 806, 812, 815, 818, 824, 827],
     method(:axb_inputs) => [1103],
     ->(v) { from_bitmask(v, AXB_OUTPUTS) } => [1104],
-    ->(v) { TO_TENTHS.call(NEGATABLE.call(v)) } => [1135, 1136],
     method(:to_int32) => [1146, 1148, 1150, 1152, 1154, 1156, 1164, 3422, 3424],
     method(:manual_operation) => [3002],
     method(:thermostat_configuration2) => [12_006],
