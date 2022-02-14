@@ -60,9 +60,14 @@ module Aurora
     result
   end
 
-  def to_int32(registers, idx)
+  def to_uint32(registers, idx)
     Aurora&.logger&.warn("Missing register #{idx + 1}") unless registers[idx + 1]
     (registers[idx] << 16) + registers[idx + 1]
+  end
+
+  def to_int32(registers, idx)
+    v = to_uint32(registers, idx)
+    v & 0x80000000 == 0x80000000 ? v - 0x100000000 : v
   end
 
   def to_string(registers, idx, length)
@@ -533,7 +538,8 @@ module Aurora
     ->(v) { COMPONENT_STATUS[v] } => [800, 803, 806, 812, 815, 818, 824, 827],
     method(:axb_inputs) => [1103],
     ->(v) { from_bitmask(v, AXB_OUTPUTS) } => [1104],
-    method(:to_int32) => [1146, 1148, 1150, 1152, 1154, 1156, 1164, 3422, 3424],
+    method(:to_uint32) => [1146, 1148, 1150, 1152, 1164, 3422, 3424],
+    method(:to_int32) => [1154, 1156],
     method(:manual_operation) => [3002],
     method(:thermostat_configuration2) => [12_006],
     ->(v) { HEATING_MODE[v] } => [12_606, 21_202, 21_211, 21_220, 21_229, 21_238, 21_247],
