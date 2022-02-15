@@ -2,16 +2,17 @@
 # frozen_string_literal: true
 
 require "aurora"
-require "ccutrer-serialport"
+require "aurora/web_aid_tool"
 require "logger"
 require "optparse"
-require "yaml"
 
 debug_modbus = monitor = ignore_missing_registers = false
+port = 4567
 
 options = OptionParser.new do |opts|
   opts.banner = "Usage: web_aid_tool /path/to/serial/port [options]"
 
+  opts.on("--port PORT", "Which port to listen on (default 4567)", :integer) { |v| port = v }
   opts.on("--debug-modbus", "Print actual protocol bytes") { debug_modbus = true }
   opts.on("--monitor", "Print interpreted registers as they are requested, like aurora_monitor") { monitor = true }
   opts.on("--ignore-missing-registers",
@@ -39,92 +40,7 @@ slave = Aurora::ABCClient.open_modbus_slave(ARGV[0], ignore_missing_registers: i
 slave.logger = Logger.new($stdout)
 slave.logger.level = debug_modbus ? :debug : :warn
 
-def parse_query_string(query_string)
-  query_string.split("&").map { |p| p.split("=") }.to_h
-end
-
-# _don't_ do URI escaping
-def encode_result(params)
-  params.map { |p| p.join("=") }.join("&")
-end
-
-require "sinatra"
-
-set :public_folder, "html"
-set :logging, false
-
-get "/" do
-  send_file "html/index.htm"
-end
-
-units = 0
-
-get "/getunits.cgi" do
-  encode_result(units: units)
-end
-
-get "/setunits.cgi" do
-  units = params["units"].to_i
-  encode_result(error: 0)
-end
-
-get "/config.cgi" do
-  encode_result(
-    "AWL Version" => Aurora::VERSION,
-    "Local Web Version" => 1.08,
-    "SSID" => nil,
-    "Units" => units,
-    "AWL ID" => ARGV[0],
-    "AWL ID CRC" => nil
-  )
-end
-
-get "/request.cgi" do
-  params = parse_query_string(request.query_string)
-  result = params.slice("cmd", "id", "set", "addr")
-  result["err"] = nil
-
-  # these are just aliases to get a certain set of registers
-  case params["cmd"]
-  when "abcinfo"
-    params["regs"] = "2;8;88,4"
-  when "devices"
-    params["regs"] = "800;803;806,3;812;815;818;824"
-  end
-
-  case params["cmd"]
-  when "getregs", "abcinfo", "devices"
-    queries = params["regs"].split(";").map do |range|
-      start, length = range.split(",").map(&:to_i)
-      next start if length.nil?
-
-      start...(start + length)
-    end
-    registers = slave.read_multiple_holding_registers(*queries)
-    if monitor
-      puts "READING"
-      puts Aurora.print_registers(registers)
-    end
-    result["values"] = registers.values.join(",")
-  when "putregs"
-    writes = params["regs"].split(";").map do |write|
-      write.split(",").map(&:to_i)
-    end.compact.to_h
-    if monitor
-      puts "WRITING"
-      puts Aurora.print_registers(writes)
-    end
-
-    writes.each do |(addr, value)|
-      slave.write_holding_register(addr, value)
-    end
-  else
-    return ""
-  end
-
-  encode_result(result)
-end
-
-# can't rely on this running automatically when we're installed as a gem,
-# because the wrapper script will confuse it
-Sinatra::Application.run!
+Aurora::WebAIDTool.modbus_slave = slave
+Aurora::WebAIDTool.monitor = monitor
+Aurora::WebAIDTool.port = port
+Aurora::WebAIDTool.run!

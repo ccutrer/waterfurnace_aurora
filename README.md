@@ -234,6 +234,15 @@ plethora of other diagnostic information will be published to MQTT regularly.
 Several properties such as set point and current mode can also be written
 back to the ABC via MQTT.
 
+You can also host the web AID tool directly from the MQTT bridge by giving
+it a port to listen on:
+`APP_ENV=production aurora_mqtt_bridge /dev/ttyUSB0 mqtt://localhost/ --web-aid-tool=4567`
+
+The APP_ENV is necessary if you want it to accept connections from other
+devices on the network. See also [Web AID Tool](#web_aid_tool) for more
+details. If you're using systemd, you should add a
+`Environment=APP_ENV=production` line instead to the .service file.
+
 ### ModBus Pass Through
 
 The MQTT bridge has pass through support for direct querying and writing of the

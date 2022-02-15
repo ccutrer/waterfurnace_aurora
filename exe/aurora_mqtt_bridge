@@ -11,11 +11,13 @@ require "yaml"
 require "aurora/core_ext/string"
 
 debug_modbus = false
+web_aid_tool = nil
 
 options = OptionParser.new do |opts|
   opts.banner = "Usage: aurora_mqtt_bridge /path/to/serial/port [options]"
 
   opts.on("--debug-modbus", "Print actual protocol bytes") { debug_modbus = true }
+  opts.on("--web-aid-tool PORT", "Run web aid tool on given port", :integer) { |v| web_aid_tool = v}
   opts.on("-v", "--version", "Print version") do
     puts Aurora::VERSION
     exit
@@ -36,10 +38,12 @@ end
 mqtt_uri = ARGV[1]
 
 abc = Aurora::ABCClient.new(ARGV[0])
-abc.modbus_slave.logger = Logger.new($stdout)
-abc.modbus_slave.logger.level = debug_modbus ? :debug : :warn
+Aurora.logger = abc.modbus_slave.logger = Logger.new($stdout)
+Aurora.logger.level = debug_modbus ? :debug : :info
 
 class MQTTBridge
+  attr_reader :mutex
+
   def initialize(abc, homie)
     @abc = abc
     @homie = homie
@@ -86,7 +90,9 @@ class MQTTBridge
 
     @abc.refresh
     publish_basic_attributes
+  end
 
+  def join
     loop do
       begin
         @mutex.synchronize do
@@ -803,13 +809,20 @@ class MQTTBridge
   end
 end
 
-log_level = ARGV.include?("--debug") ? :debug : :warn
-Aurora.logger = Logger.new($stdout)
-Aurora.logger.level = log_level
-abc.modbus_slave.logger = Aurora.logger
-
 device = "aurora-#{abc.serial_number}"
 homie = MQTT::Homie::Device.new(device, "WaterFurnace", mqtt: mqtt_uri)
 homie.logger = Aurora.logger
 
-MQTTBridge.new(abc, homie)
+mqtt_bridge = MQTTBridge.new(abc, homie)
+
+if web_aid_tool
+  Thread.new { mqtt_bridge.join }
+
+  require "aurora/web_aid_tool"
+  Aurora::WebAIDTool.modbus_slave = abc.modbus_slave
+  Aurora::WebAIDTool.port = web_aid_tool
+  Aurora::WebAIDTool.mutex = mqtt_bridge.mutex
+  Aurora::WebAIDTool.run!
+else
+  mqtt_bridge.join
+end

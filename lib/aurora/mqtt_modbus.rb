@@ -19,7 +19,7 @@ module Aurora
       query_id = SecureRandom.uuid
       mqtt_query = queries.map { |m| m.is_a?(Range) ? "#{m.begin},#{m.count}" : m }.join(";")
       @mqtt.publish("#{@base_topic}/getregs", "#{query_id}:#{mqtt_query}", qos: 1)
-      Timeout.timeout(15) do
+      Timeout.timeout(5) do
         result = {}
         loop do
           packet = @mqtt.get
