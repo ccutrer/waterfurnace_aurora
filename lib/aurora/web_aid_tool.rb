@@ -26,7 +26,7 @@ module Aurora
     end
 
     get "/setunits.cgi" do
-      units = params["units"].to_i
+      self.units = params["units"].to_i
       encode_result(error: 0)
     end
 
