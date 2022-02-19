@@ -12,10 +12,12 @@ require "aurora/core_ext/string"
 
 debug_modbus = false
 web_aid_tool = nil
+device_name = "WaterFurnace"
 
 options = OptionParser.new do |opts|
   opts.banner = "Usage: aurora_mqtt_bridge /path/to/serial/port [options]"
 
+  opts.on("--device-name DEVIECENAME", "Give a descriptive name to your device") { |v| device_name = v }
   opts.on("--debug-modbus", "Print actual protocol bytes") { debug_modbus = true }
   opts.on("--web-aid-tool PORT", "Run web aid tool on given port", :integer) { |v| web_aid_tool = v }
   opts.on("-v", "--version", "Print version") do
@@ -810,7 +812,7 @@ class MQTTBridge
 end
 
 device = "aurora-#{abc.serial_number}"
-homie = MQTT::Homie::Device.new(device, "WaterFurnace", mqtt: mqtt_uri)
+homie = MQTT::Homie::Device.new(device, device_name, mqtt: mqtt_uri)
 homie.logger = Aurora.logger
 
 mqtt_bridge = MQTTBridge.new(abc, homie)
