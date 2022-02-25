@@ -767,7 +767,8 @@ class MQTTBridge
                       "Ambient Temperature",
                       :float,
                       zone.ambient_temperature,
-                      unit: "°F")
+                      unit: "°F",
+                      hass: { sensor: { state_class: :measurement } })
         node.property("heating-target-temperature",
                       "Heating Target Temperature",
                       :integer,
