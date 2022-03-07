@@ -8,6 +8,7 @@ module Aurora
       attr_reader :speed,
                   :watts,
                   :cooling_liquid_line_temperature,
+                  :heating_liquid_line_temperature,
                   :saturated_condensor_discharge_temperature,
                   :heat_of_extraction,
                   :heat_of_rejection
@@ -26,8 +27,8 @@ module Aurora
       end
 
       def registers_to_read
-        result = [19, 1134]
-        result.concat([1146..1147, 1154..1157]) if abc.energy_monitoring?
+        result = [19]
+        result.concat([1109, 1134, 1146..1147, 1154..1157]) if abc.energy_monitoring?
         result
       end
 
@@ -41,10 +42,11 @@ module Aurora
                    0
                  end
         @cooling_liquid_line_temperature = registers[19]
-        @saturated_condensor_discharge_temperature = registers[1134]
 
         return unless abc.energy_monitoring?
 
+        @heating_liquid_line_temperature = registers[1109]
+        @saturated_condensor_discharge_temperature = registers[1134]
         @watts = registers[1146]
         @heat_of_extraction = registers[1154]
         @heat_of_rejection = registers[1156]

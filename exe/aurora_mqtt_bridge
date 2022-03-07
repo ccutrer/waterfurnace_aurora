@@ -274,15 +274,23 @@ class MQTTBridge
                     hass: { sensor: { device_class: :temperature,
                                       state_class: :measurement,
                                       entity_category: :diagnostic } })
-      node.property("saturated-condensor-discharge-temperature",
-                    "Saturated Condensor Discharge Temperature",
-                    :float,
-                    @abc.compressor.saturated_condensor_discharge_temperature,
-                    unit: "°F",
-                    hass: { sensor: { device_class: :temperature,
-                                      state_class: :measurement,
-                                      entity_category: :diagnostic } })
       if @abc.energy_monitoring?
+        node.property("heating-liquid-line-temperature",
+                      "Heating Liquid Line Temperature (FP1)",
+                      :float,
+                      @abc.compressor.heating_liquid_line_temperature,
+                      unit: "°F",
+                      hass: { sensor: { device_class: :temperature,
+                                        state_class: :measurement,
+                                        entity_category: :diagnostic } })
+        node.property("saturated-condensor-discharge-temperature",
+                      "Saturated Condensor Discharge Temperature",
+                      :float,
+                      @abc.compressor.saturated_condensor_discharge_temperature,
+                      unit: "°F",
+                      hass: { sensor: { device_class: :temperature,
+                                        state_class: :measurement,
+                                        entity_category: :diagnostic } })
         node.property("watts",
                       "Power Usage",
                       :integer,
