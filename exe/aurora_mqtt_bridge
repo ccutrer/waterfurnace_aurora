@@ -176,22 +176,34 @@ class MQTTBridge
                     :boolean,
                     @abc.safe_mode?,
                     hass: :binary_sensor)
-      node.property("entering-air-temperature",
-                    "Entering Air Temperature",
-                    :float,
-                    @abc.entering_air_temperature,
-                    unit: "°F",
-                    hass: { sensor: { device_class: :temperature,
-                                      state_class: :measurement,
-                                      entity_category: :diagnostic } })
-      node.property("entering-water-temperature",
-                    "Entering Water Temperature",
-                    :float,
-                    @abc.entering_water_temperature,
-                    unit: "°F",
-                    hass: { sensor: { device_class: :temperature,
-                                      state_class: :measurement,
-                                      entity_category: :diagnostic } })
+      unless @abc.entering_air_temperature.zero?
+        node.property("entering-air-temperature",
+                      "Entering Air Temperature",
+                      :float,
+                      @abc.entering_air_temperature,
+                      unit: "°F",
+                      hass: { sensor: { device_class: :temperature,
+                                        state_class: :measurement,
+                                        entity_category: :diagnostic } })
+      end
+      if @abc.performance_monitoring?
+        node.property("entering-water-temperature",
+                      "Entering Water Temperature",
+                      :float,
+                      @abc.entering_water_temperature,
+                      unit: "°F",
+                      hass: { sensor: { device_class: :temperature,
+                                        state_class: :measurement,
+                                        entity_category: :diagnostic } })
+        node.property("leaving-water-temperature",
+                      "Leaving Water Temperature",
+                      :float,
+                      @abc.leaving_water_temperature,
+                      unit: "°F",
+                      hass: { sensor: { device_class: :temperature,
+                                        state_class: :measurement,
+                                        entity_category: :diagnostic } })
+      end
       node.property("low-pressure-switch",
                     "Low Pressure Switch Status",
                     :enum,
@@ -213,14 +225,6 @@ class MQTTBridge
                                         state_class: :measurement,
                                         entity_category: :diagnostic } })
       end
-      node.property("leaving-water-temperature",
-                    "Leaving Water Temperature",
-                    :float,
-                    @abc.leaving_water_temperature,
-                    unit: "°F",
-                    hass: { sensor: { device_class: :temperature,
-                                      state_class: :measurement,
-                                      entity_category: :diagnostic } })
       # TODO: figure out the config if this actually exists
       if @abc.awl_communicating? && !@abc.outdoor_temperature.zero?
         node.property("outdoor-temperature",
@@ -240,14 +244,16 @@ class MQTTBridge
                     unit: "V") do |value|
                       @mutex.synchronize { @abc.line_voltage = value }
                     end
-      node.property("air-coil-temperature",
-                    "Air Coil Temperature (FP2)",
-                    :float,
-                    @abc.air_coil_temperature,
-                    unit: "°F",
-                    hass: { sensor: { device_class: :temperature,
-                                      state_class: :measurement,
-                                      entity_category: :diagnostic } })
+      if (-999..999).cover?(@abc.air_coil_temperature)
+        node.property("air-coil-temperature",
+                      "Air Coil Temperature (FP2)",
+                      :float,
+                      @abc.air_coil_temperature,
+                      unit: "°F",
+                      hass: { sensor: { device_class: :temperature,
+                                        state_class: :measurement,
+                                        entity_category: :diagnostic } })
+      end
       if @abc.energy_monitoring?
         node.property("watts",
                       "Total Power Usage",
@@ -274,7 +280,7 @@ class MQTTBridge
                     hass: { sensor: { device_class: :temperature,
                                       state_class: :measurement,
                                       entity_category: :diagnostic } })
-      if @abc.energy_monitoring?
+      if @abc.refrigeration_monitoring?
         node.property("heating-liquid-line-temperature",
                       "Heating Liquid Line Temperature (FP1)",
                       :float,
@@ -291,13 +297,6 @@ class MQTTBridge
                       hass: { sensor: { device_class: :temperature,
                                         state_class: :measurement,
                                         entity_category: :diagnostic } })
-        node.property("watts",
-                      "Power Usage",
-                      :integer,
-                      @abc.compressor.watts,
-                      unit: "W",
-                      hass: { sensor: { device_class: :power,
-                                        state_class: :measurement } })
         node.property("heat-of-extraction",
                       "Heat of Extraction",
                       :integer,
@@ -310,7 +309,15 @@ class MQTTBridge
                       @abc.compressor.heat_of_rejection,
                       unit: "Btuh",
                       hass: { sensor: { state_class: :measurement } })
-
+      end
+      if @abc.energy_monitoring?
+        node.property("watts",
+                      "Power Usage",
+                      :integer,
+                      @abc.compressor.watts,
+                      unit: "W",
+                      hass: { sensor: { device_class: :power,
+                                        state_class: :measurement } })
       end
 
       next unless @abc.compressor.is_a?(Aurora::Compressor::VSDrive)
@@ -499,66 +506,68 @@ class MQTTBridge
                                       entity_category: :diagnostic } })
     end
 
-    @pump = @homie.node("pump", "Loop Pump", @abc.pump.type) do |node|
-      node.property("waterflow",
-                    "Waterflow",
-                    :float,
-                    @abc.pump.waterflow,
-                    unit: "gpm",
-                    hass: { sensor: { state_class: :measurement,
-                                      entity_category: :diagnostic } })
-      if @abc.energy_monitoring?
-        node.property("watts",
-                      "Power Usage",
+    if @abc.pump
+      @pump = @homie.node("pump", "Loop Pump", @abc.pump.type) do |node|
+        node.property("waterflow",
+                      "Waterflow",
+                      :float,
+                      @abc.pump.waterflow,
+                      unit: "gpm",
+                      hass: { sensor: { state_class: :measurement,
+                                        entity_category: :diagnostic } })
+        if @abc.energy_monitoring?
+          node.property("watts",
+                        "Power Usage",
+                        :integer,
+                        @abc.pump.watts,
+                        unit: "W",
+                        hass: { sensor: { device_class: :power,
+                                          state_class: :measurement } })
+        end
+
+        next unless @abc.pump.is_a?(Aurora::Pump::VSPump)
+
+        node.property("running",
+                      "Running",
+                      :boolean,
+                      @abc.pump.running,
+                      hass: { binary_sensor: { device_class: :running } })
+        node.property("manual-control",
+                      "Manual Control",
+                      :boolean,
+                      @abc.pump.manual_control?,
+                      hass: { switch: { entity_category: :diagnostic } }) do |value|
+          @mutex.synchronize { @abc.pump.manual_control = value }
+        end
+        node.property("minimum-speed",
+                      "Actual Minimum Speed",
                       :integer,
-                      @abc.pump.watts,
-                      unit: "W",
-                      hass: { sensor: { device_class: :power,
-                                        state_class: :measurement } })
-      end
+                      @abc.pump.minimum_speed,
+                      format: 0..100,
+                      unit: "%",
+                      hass: { number: { entity_category: :config } }) do |value|
+          @mutex.synchronize { @abc.pump.minimum_speed = value }
+        end
+        node.property("maximum-speed",
+                      "Actual Maximum Speed",
+                      :integer,
+                      @abc.pump.minimum_speed,
+                      format: 0..100,
+                      unit: "%",
+                      hass: { number: { entity_category: :config } }) do |value|
+          @mutex.synchronize { @abc.pump.maximum_speed = value }
+        end
+        next unless @abc.awl_axb?
 
-      next unless @abc.pump.is_a?(Aurora::Pump::VSPump)
-
-      node.property("running",
-                    "Running",
-                    :boolean,
-                    @abc.pump.running,
-                    hass: { binary_sensor: { device_class: :running } })
-      node.property("manual-control",
-                    "Manual Control",
-                    :boolean,
-                    @abc.pump.manual_control?,
-                    hass: { switch: { entity_category: :diagnostic } }) do |value|
-        @mutex.synchronize { @abc.pump.manual_control = value }
-      end
-      node.property("minimum-speed",
-                    "Actual Minimum Speed",
-                    :integer,
-                    @abc.pump.minimum_speed,
-                    format: 0..100,
-                    unit: "%",
-                    hass: { number: { entity_category: :config } }) do |value|
-        @mutex.synchronize { @abc.pump.minimum_speed = value }
-      end
-      node.property("maximum-speed",
-                    "Actual Maximum Speed",
-                    :integer,
-                    @abc.pump.minimum_speed,
-                    format: 0..100,
-                    unit: "%",
-                    hass: { number: { entity_category: :config } }) do |value|
-        @mutex.synchronize { @abc.pump.maximum_speed = value }
-      end
-      next unless @abc.awl_axb?
-
-      node.property("speed",
-                    "Speed",
-                    :integer,
-                    @abc.pump.speed,
-                    format: 0..100,
-                    unit: "%",
-                    hass: { number: { entity_category: :diagnostic } }) do |value|
-        @mutex.synchronize { @abc.pump.speed = value }
+        node.property("speed",
+                      "Speed",
+                      :integer,
+                      @abc.pump.speed,
+                      format: 0..100,
+                      unit: "%",
+                      hass: { number: { entity_category: :diagnostic } }) do |value|
+          @mutex.synchronize { @abc.pump.speed = value }
+        end
       end
     end
 
@@ -576,13 +585,6 @@ class MQTTBridge
                       :boolean,
                       @abc.dhw.running?,
                       hass: { binary_sensor: { device_class: :running } })
-        node.property("water-temperature",
-                      "Water Temperature",
-                      :float,
-                      @abc.dhw.water_temperature,
-                      unit: "°F",
-                      hass: { sensor: { device_class: :temperature,
-                                        state_class: :measurement } })
         node.property("set-point",
                       "Set Point",
                       :float,
@@ -592,81 +594,90 @@ class MQTTBridge
                       hass: { number: { step: 5 } }) do |value|
           @mutex.synchronize { @abc.dhw.set_point = value }
         end
+        node.property("water-temperature",
+                      "Water Temperature",
+                      :float,
+                      @abc.dhw.water_temperature,
+                      unit: "°F",
+                      hass: { sensor: { device_class: :temperature,
+                                        state_class: :measurement } })
       end
     end
 
-    @humidistat = @homie.node("humidistat", "Humidistat", "Humidistat") do |node|
-      if @abc.humidistat.humidifier?
-        node.property("humidifier-running",
-                      "Humidifier Running",
-                      :boolean,
-                      @abc.humidistat.humidifier_running?)
-        if @abc.awl_communicating?
-          node.property("humidifier-mode",
-                        "Humidifier Mode",
-                        :enum,
-                        @abc.humidistat.humidifier_mode,
-                        format: %i[auto manual]) do |value|
-            @mutex.synchronize { @abc.humidistat.humidifier_mode = value.to_sym }
+    if @abc.humidistat
+      @humidistat = @homie.node("humidistat", "Humidistat", "Humidistat") do |node|
+        if @abc.humidistat.humidifier?
+          node.property("humidifier-running",
+                        "Humidifier Running",
+                        :boolean,
+                        @abc.humidistat.humidifier_running?)
+          if @abc.awl_communicating?
+            node.property("humidifier-mode",
+                          "Humidifier Mode",
+                          :enum,
+                          @abc.humidistat.humidifier_mode,
+                          format: %i[auto manual]) do |value|
+              @mutex.synchronize { @abc.humidistat.humidifier_mode = value.to_sym }
+            end
+            node.property("humidification-target",
+                          "Humidification Target Relative Humidity",
+                          :integer,
+                          @abc.humidistat.humidification_target,
+                          unit: "%",
+                          format: 15..50) do |value|
+              @mutex.synchronize { @abc.humidistat.humidification_target = value }
+            end
+            node.hass_humidifier("humidifier-running",
+                                 target_property: "humidification-target",
+                                 mode_property: "humidifier-mode",
+                                 id: "humidifier",
+                                 name: "Humidifier",
+                                 device_class: :humidifier)
           end
-          node.property("humidification-target",
-                        "Humidification Target Relative Humidity",
-                        :integer,
-                        @abc.humidistat.humidification_target,
-                        unit: "%",
-                        format: 15..50) do |value|
-            @mutex.synchronize { @abc.humidistat.humidification_target = value }
-          end
-          node.hass_humidifier("humidifier-running",
-                               target_property: "humidification-target",
-                               mode_property: "humidifier-mode",
-                               id: "humidifier",
-                               name: "Humidifier",
-                               device_class: :humidifier)
         end
-      end
 
-      # VSDrive can perform active dehumidification, even without a dedicated dehumidifier
-      if @abc.humidistat.dehumidifier? ||
-         @abc.compressor.is_a?(Aurora::Compressor::VSDrive)
-        node.property("dehumidifier-running",
-                      "Dehumidifier Running",
-                      :boolean,
-                      @abc.humidistat.dehumidifier_running?)
-        if @abc.awl_communicating?
-          node.property("dehumidifier-mode",
-                        "Dehumidifier Mode",
-                        :enum,
-                        @abc.humidistat.dehumidifier_mode,
-                        format: %i[auto manual]) do |value|
-            @mutex.synchronize { @abc.humidistat.dehumidifier_mode = value.to_sym }
+        # VSDrive can perform active dehumidification, even without a dedicated dehumidifier
+        if @abc.humidistat.dehumidifier? ||
+           @abc.compressor.is_a?(Aurora::Compressor::VSDrive)
+          node.property("dehumidifier-running",
+                        "Dehumidifier Running",
+                        :boolean,
+                        @abc.humidistat.dehumidifier_running?)
+          if @abc.awl_communicating?
+            node.property("dehumidifier-mode",
+                          "Dehumidifier Mode",
+                          :enum,
+                          @abc.humidistat.dehumidifier_mode,
+                          format: %i[auto manual]) do |value|
+              @mutex.synchronize { @abc.humidistat.dehumidifier_mode = value.to_sym }
+            end
+            node.property("dehumidification-target",
+                          "Dehumidification Target Relative Humidity",
+                          :integer,
+                          @abc.humidistat.dehumidification_target,
+                          unit: "%",
+                          format: 35..65) do |value|
+              @mutex.synchronize { @abc.humidistat.dehumidification_target = value }
+            end
+            node.hass_humidifier("dehumidifier-running",
+                                 target_property: "dehumidification-target",
+                                 mode_property: "dehumidifier-mode",
+                                 id: "dehumidifier",
+                                 name: "Dehumidifier",
+                                 device_class: :dehumidifier)
           end
-          node.property("dehumidification-target",
-                        "Dehumidification Target Relative Humidity",
-                        :integer,
-                        @abc.humidistat.dehumidification_target,
-                        unit: "%",
-                        format: 35..65) do |value|
-            @mutex.synchronize { @abc.humidistat.dehumidification_target = value }
-          end
-          node.hass_humidifier("dehumidifier-running",
-                               target_property: "dehumidification-target",
-                               mode_property: "dehumidifier-mode",
-                               id: "dehumidifier",
-                               name: "Dehumidifier",
-                               device_class: :dehumidifier)
         end
-      end
-      next unless @abc.awl_communicating?
+        next unless @abc.awl_communicating?
 
-      node.property("relative-humidity",
-                    "Relative Humidity",
-                    :integer,
-                    @abc.humidistat.relative_humidity,
-                    unit: "%",
-                    format: 0..100,
-                    hass: { sensor: { device_class: :humidity,
-                                      state_class: :measurement } })
+        node.property("relative-humidity",
+                      "Relative Humidity",
+                      :integer,
+                      @abc.humidistat.relative_humidity,
+                      unit: "%",
+                      format: 0..100,
+                      hass: { sensor: { device_class: :humidity,
+                                        state_class: :measurement } })
+      end
     end
 
     @faults = @homie.node("faults", "Fault History", "ABC") do |node|

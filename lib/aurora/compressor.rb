@@ -28,7 +28,8 @@ module Aurora
 
       def registers_to_read
         result = [19]
-        result.concat([1109, 1134, 1146..1147, 1154..1157]) if abc.energy_monitoring?
+        result.concat([1109, 1134, 1154..1157]) if abc.refrigeration_monitoring?
+        result << (1146..1147) if abc.energy_monitoring?
         result
       end
 
@@ -43,13 +44,16 @@ module Aurora
                  end
         @cooling_liquid_line_temperature = registers[19]
 
+        if abc.refrigeration_monitoring?
+          @heating_liquid_line_temperature = registers[1109]
+          @saturated_condensor_discharge_temperature = registers[1134]
+          @heat_of_extraction = registers[1154]
+          @heat_of_rejection = registers[1156]
+        end
+
         return unless abc.energy_monitoring?
 
-        @heating_liquid_line_temperature = registers[1109]
-        @saturated_condensor_discharge_temperature = registers[1134]
         @watts = registers[1146]
-        @heat_of_extraction = registers[1154]
-        @heat_of_rejection = registers[1156]
       end
     end
 

@@ -44,8 +44,12 @@ module Aurora
       outputs = registers[30]
       @humidifier_running = humidifier? && outputs.include?(:accessory)
 
-      outputs = registers[1104]
-      @dehumidifer_running = dehumidifier? && outputs.include?(:accessory2)
+      if abc.axb?
+        outputs = registers[1104]
+        @dehumidifer_running = dehumidifier? && outputs.include?(:accessory2)
+      end
+
+      return unless abc.awl_communicating?
 
       base = abc.iz2? ? 31_109 : 12_309
       humidifier_settings_register = abc.iz2? ? 21_114 : 12_309

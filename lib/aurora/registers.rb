@@ -714,7 +714,7 @@ module Aurora
     9 => "Compressor Minimum Run Time",
     15 => "Blower Off Delay",
     16 => "Line Voltage",
-    17 => "Aux/E Heat Stage", # this is how long aux/eheat have been requested in seconds
+    17 => "Aux/E Heat Staging Delay", # this is how long aux/eheat have been requested in seconds
     # when in eheat mode (explicit on the thermostat), it will stage up to eh2 after 130s
     # when in aux mode (thermostat set to heat; compressor at full capacity), it will stage up to eh2 after 310s
     19 => "Cooling Liquid Line Temperature (FP1)",

@@ -185,21 +185,23 @@ module Aurora
       @pump = if (3..5).cover?(raw_registers[413])
                 Pump::VSPump.new(self,
                                  registers[413])
-              else
+              elsif axb?
                 Pump::GenericPump.new(self,
                                       registers[413])
               end
-      @dhw = DHW.new(self) if (-999..999).cover?(registers[1114])
+      @dhw = DHW.new(self) if axb? && (-999..999).cover?(registers[1114])
       @humidistat = Humidistat.new(self,
                                    @abc_dipswitches[:accessory_relay] == :humidifier,
-                                   @axb_dipswitches[:accessory_relay2] == :dehumidifier)
-
+                                   axb? && @axb_dipswitches[:accessory_relay2] == :dehumidifier)
+      @humidistat = nil unless @humidistat.humidifier? || @humidistat.dehumidifier? || awl_communicating?
       @faults = []
 
       @entering_air_register = awl_axb? ? 740 : 567
-      @registers_to_read = [6, 19..20, 25, 30..31, 112, 344, @entering_air_register, 1104, 1110..1111, 1114, 1150..1153,
-                            1165]
+      @registers_to_read = [6, 19..20, 25, 30..31, 112, 344, @entering_air_register]
+      @registers_to_read << 1104 if axb?
       @registers_to_read.concat([741, 31_003]) if awl_communicating?
+      @registers_to_read << (1110..1111) if performance_monitoring?
+      @registers_to_read << (1150..1153) if energy_monitoring?
       @registers_to_read << 900 if awl_axb?
       zones.each do |z|
         @registers_to_read.concat(z.registers_to_read)
@@ -227,8 +229,10 @@ module Aurora
 
       @entering_air_temperature   = registers[@entering_air_register]
       @leaving_air_temperature    = registers[900] if awl_axb?
-      @leaving_water_temperature  = registers[1110]
-      @entering_water_temperature = registers[1111]
+      if performance_monitoring?
+        @leaving_water_temperature  = registers[1110]
+        @entering_water_temperature = registers[1111]
+      end
       @outdoor_temperature        = registers[31_003]
       @air_coil_temperature       = registers[20]
       @locked_out                 = !(registers[25] & 0x8000).zero?
@@ -316,6 +320,20 @@ module Aurora
 
       @modbus_slave.holding_registers[3002] = value
       @modbus_slave.holding_registers[323] = pump_speed == :with_compressor ? 0x7fff : pump_speed
+    end
+
+    # I'm not sure if this is correct. 5 Series documentation says
+    # that performance monitoring is an optional kit that requires
+    # an AXB, but AID Tool Sensor Kit Setup only lets you choose
+    # between None, Compressor Monitor, and Energy Monitor. So I'm
+    # assuming for now that _any_ AXB has at least performance
+    # monitoring.
+    def performance_monitoring?
+      axb?
+    end
+
+    def refrigeration_monitoring?
+      @energy_monitor >= 1
     end
 
     def energy_monitoring?
