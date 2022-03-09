@@ -282,7 +282,7 @@ class MQTTBridge
                                       entity_category: :diagnostic } })
       if @abc.refrigeration_monitoring?
         node.property("heating-liquid-line-temperature",
-                      "Heating Liquid Line Temperature (FP1)",
+                      "Heating Liquid Line Temperature",
                       :float,
                       @abc.compressor.heating_liquid_line_temperature,
                       unit: "°F",
