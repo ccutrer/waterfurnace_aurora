@@ -17,7 +17,7 @@ device_name = "WaterFurnace"
 options = OptionParser.new do |opts|
   opts.banner = "Usage: aurora_mqtt_bridge /path/to/serial/port [options]"
 
-  opts.on("--device-name DEVIECENAME", "Give a descriptive name to your device") { |v| device_name = v }
+  opts.on("--device-name DEVICENAME", "Give a descriptive name to your device") { |v| device_name = v }
   opts.on("--debug-modbus", "Print actual protocol bytes") { debug_modbus = true }
   opts.on("--web-aid-tool PORT", "Run web aid tool on given port", :integer) { |v| web_aid_tool = v }
   opts.on("-v", "--version", "Print version") do
