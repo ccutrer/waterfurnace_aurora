@@ -7,7 +7,7 @@ Gem::Specification.new do |s|
   s.version = Aurora::VERSION
   s.platform = Gem::Platform::RUBY
   s.authors = ["Cody Cutrer"]
-  s.email = "cody@cutrer.com'"
+  s.email = "cody@cutrer.us'"
   s.homepage = "https://github.com/ccutrer/waterfurnace_aurora"
   s.summary = "Library for communication with WaterFurnace Aurora control systems"
   s.license = "MIT"
