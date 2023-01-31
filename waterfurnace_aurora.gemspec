@@ -25,7 +25,7 @@ Gem::Specification.new do |s|
   s.add_dependency "mqtt-homeassistant", "~> 0.1", ">= 0.1.3"
   s.add_dependency "net-telnet-rfc2217", "~> 1.0", ">= 1.0.1"
   s.add_dependency "rmodbus-ccutrer", "~> 2.1"
-  s.add_dependency "sinatra", "~> 2.1"
+  s.add_dependency "sinatra", ">= 2.1", "< 4.0"
   s.add_dependency "thin", "~> 1.8"
 
   s.add_development_dependency "byebug", "~> 11.0"
