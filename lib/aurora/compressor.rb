@@ -19,7 +19,7 @@ module Aurora
       end
 
       def type
-        "#{@stages == 2 ? "Dual" : "Single"} Stage Compressor"
+        "#{(@stages == 2) ? "Dual" : "Single"} Stage Compressor"
       end
 
       def speed_range
@@ -28,7 +28,7 @@ module Aurora
 
       def registers_to_read
         result = [19]
-        result.concat([1109, 1134, 1154..1157]) if abc.refrigeration_monitoring?
+        result.push(1109, 1134, 1154..1157) if abc.refrigeration_monitoring?
         result << (1146..1147) if abc.energy_monitoring?
         result
       end

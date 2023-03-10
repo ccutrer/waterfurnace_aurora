@@ -199,7 +199,7 @@ module Aurora
       @entering_air_register = awl_axb? ? 740 : 567
       @registers_to_read = [6, 19..20, 25, 30..31, 112, 344, @entering_air_register]
       @registers_to_read << 1104 if axb?
-      @registers_to_read.concat([741, 31_003]) if awl_communicating?
+      @registers_to_read.push(741, 31_003) if awl_communicating?
       @registers_to_read << (1110..1111) if performance_monitoring?
       @registers_to_read << (1150..1153) if energy_monitoring?
       @registers_to_read << 900 if awl_axb?
@@ -211,7 +211,7 @@ module Aurora
         @registers_to_read.concat(component.registers_to_read)
       end
       # need dehumidify mode to calculate final current mode
-      @registers_to_read.concat([362]) if compressor.is_a?(Compressor::VSDrive)
+      @registers_to_read.push(362) if compressor.is_a?(Compressor::VSDrive)
     end
 
     def query_registers(query)
@@ -315,11 +315,11 @@ module Aurora
       value = 0
       value = 0x7fff if mode == :off
       value |= 0x100 if mode == :cooling
-      value |= blower_speed == :with_compressor ? 0xf0 : (blower_speed << 4)
+      value |= (blower_speed == :with_compressor) ? 0xf0 : (blower_speed << 4)
       value |= 0x200 if aux_heat
 
       @modbus_slave.holding_registers[3002] = value
-      @modbus_slave.holding_registers[323] = pump_speed == :with_compressor ? 0x7fff : pump_speed
+      @modbus_slave.holding_registers[323] = (pump_speed == :with_compressor) ? 0x7fff : pump_speed
     end
 
     # I'm not sure if this is correct. 5 Series documentation says

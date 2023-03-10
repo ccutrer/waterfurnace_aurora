@@ -20,7 +20,7 @@ Performance/Casecmp:
 Style/Alias:
   EnforcedStyle: prefer_alias_method
 Style/BlockDelimiters:
-  IgnoredMethods: []
+  AllowedMethods: []
 Style/DocumentDynamicEvalDefinition:
   Enabled: false
 Style/Documentation:

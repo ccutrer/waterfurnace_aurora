@@ -76,4 +76,4 @@ end
 # 66 => read multiple discontiguous registers (command is a list of addrs)
 # 67 => write multiple discontiguous registers (command is a list of pairs of addr and value; response has no content)
 # 68 => ?? request has 4 bytes, response has 1 byte that seems to be 0 (for success?)
-ModBus::Server::Funcs.concat([65, 66, 67, 68])
+ModBus::Server::Funcs.push(65, 66, 67, 68)

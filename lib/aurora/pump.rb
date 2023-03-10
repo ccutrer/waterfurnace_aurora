@@ -15,7 +15,7 @@ module Aurora
 
       def registers_to_read
         result = [1117]
-        result.concat([1164..1165]) if abc.energy_monitoring?
+        result.push(1164..1165) if abc.energy_monitoring?
         result
       end
 
