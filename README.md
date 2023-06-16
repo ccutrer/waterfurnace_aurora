@@ -44,7 +44,8 @@ amount of data may be inaccessible.
 Don't care for the nitty gritty details? Here's the easy path! You'll need a
 Raspberry Pi (tested on a Pi Zero W and a Pi 4), a
 [USB RS-485 adapter](https://www.amazon.com/gp/product/B07B416CPK),
-and a network cable. Additional details can be found in subsequent sections if
+and a network cable. Any adapter based on the MAX485 chip is _not_ supported.
+Additional details can be found in subsequent sections if
 you want to deviate slightly from the simple path.
 
 ### Create your cable
@@ -277,6 +278,7 @@ homie/aurora-<serialno>/$modbus/340 <= Blower Only Speed (340): 3
 This gem supports using an RS-485 direct connection. It is possible to directly
 connect to the GPIO on a Raspberry Pi, or to use a USB RS-485 dongle such as
 [this one from Amazon](https://www.amazon.com/gp/product/B07B416CPK).
+Any adapter based on the MAX485 chip is _not_ supported.
 The key is identifying the correct wires as RS-485+ and RS-485-. It's easiest
 to take an existing ethernet cable, and cut off one end. Connect pins 1 and 3
 (white/orange and white/green for a TIA-568-B configured cable) to + and pins
