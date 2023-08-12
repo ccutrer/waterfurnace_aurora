@@ -22,7 +22,7 @@ Gem::Specification.new do |s|
   s.required_ruby_version = ">= 2.5"
 
   s.add_dependency "ccutrer-serialport", "~> 1.0"
-  s.add_dependency "mqtt-homeassistant", "~> 0.1", ">= 0.1.3"
+  s.add_dependency "mqtt-homeassistant", "~> 0.1", ">= 0.1.5"
   s.add_dependency "net-telnet-rfc2217", "~> 1.0", ">= 1.0.1"
   s.add_dependency "rmodbus-ccutrer", "~> 2.1"
   s.add_dependency "sinatra", "~> 2.1"
