@@ -236,13 +236,13 @@ class MQTTBridge
                                         state_class: :measurement } })
       end
 
-      node.property("line-voltage",
+      node.property("line-voltage-setting",
                     "Line Voltage Setting",
                     :integer,
                     @abc.line_voltage,
                     format: 90..635,
                     unit: "V") do |value|
-                      @mutex.synchronize { @abc.line_voltage = value }
+                      @mutex.synchronize { @abc.line_voltage_setting = value }
                     end
       if (-999..999).cover?(@abc.air_coil_temperature)
         node.property("air-coil-temperature",
@@ -255,6 +255,13 @@ class MQTTBridge
                                         entity_category: :diagnostic } })
       end
       if @abc.energy_monitoring?
+        node.property("line-voltage",
+                      "Line Voltage",
+                      :integer,
+                      @abc.line_voltage,
+                      format: 90..635,
+                      unit: "V")
+
         node.property("watts",
                       "Total Power Usage",
                       :integer,

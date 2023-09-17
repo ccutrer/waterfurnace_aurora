@@ -141,6 +141,7 @@ module Aurora
                 :outdoor_temperature,
                 :air_coil_temperature,
                 :line_voltage,
+                :line_voltage_setting,
                 :watts
 
     alias_method :emergency_shutdown?, :emergency_shutdown
@@ -201,7 +202,7 @@ module Aurora
       @registers_to_read << 1104 if axb?
       @registers_to_read.push(741, 31_003) if awl_communicating?
       @registers_to_read << (1110..1111) if performance_monitoring?
-      @registers_to_read << (1150..1153) if energy_monitoring?
+      @registers_to_read.push(16, 1150..1153) if energy_monitoring?
       @registers_to_read << 900 if awl_axb?
       zones.each do |z|
         @registers_to_read.concat(z.registers_to_read)
@@ -243,7 +244,8 @@ module Aurora
       @high_pressure_switch       = registers[31][:hps]
       @emergency_shutdown         = !!registers[31][:emergency_shutdown]
       @load_shed                  = !!registers[31][:load_shed]
-      @line_voltage               = registers[112]
+      @line_voltage               = registers[16] if energy_monitoring?
+      @line_voltage_setting       = registers[112]
       @watts                      = registers[1153]
 
       @current_mode = if outputs.include?(:lockout)
@@ -285,7 +287,7 @@ module Aurora
       @modbus_slave.holding_registers[419] = (value * 10).to_i
     end
 
-    def line_voltage=(value)
+    def line_voltage_setting=(value)
       raise ArgumentError unless (90..635).cover?(value)
 
       @modbus_slave.holding_registers[112] = value
