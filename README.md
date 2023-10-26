@@ -285,7 +285,7 @@ to take an existing ethernet cable, and cut off one end. Connect pins 1 and 3
 2 and 4 (orange and green) -. The other pins are C and R from the thermostat
 bus, providing 24VAC power. DO NOT SHORT THESE PINS AGAINST ANYTHING, such
 as the communication pins, or a ground connection anywhere. Best case scenario
-you blow a 5A automotive fuse in your heat pump that you will need to replace.
+you blow a 3A automotive fuse in your heat pump that you will need to replace.
 Worst case scenario you completely brick your ABC board. You have been warned,
 and I am not liable for any problems attempting to do this. Once your cable is
 built, connect to the AID Tool port on the front of your heat pump, and then
