@@ -16,6 +16,7 @@ module Aurora
 
     set :public_folder, "html"
     set :logging, false
+    set :server, 'puma'
 
     get "/" do
       send_file "html/index.htm"
