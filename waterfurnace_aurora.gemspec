@@ -24,8 +24,8 @@ Gem::Specification.new do |s|
   s.add_dependency "ccutrer-serialport", "~> 1.0"
   s.add_dependency "mqtt-homeassistant", "~> 0.1", ">= 0.1.5"
   s.add_dependency "net-telnet-rfc2217", "~> 1.0", ">= 1.0.1"
+  s.add_dependency "puma", "~> 6.4"
+  s.add_dependency "rackup", ">= 1.0.0", "< 3.0.a"
   s.add_dependency "rmodbus", "~> 2.1"
   s.add_dependency "sinatra", ">= 2.2.4", "< 5.0.a"
-  s.add_dependency "rackup", ">= 1.0.0", "< 3.0.a"
-  s.add_dependency "puma", "~> 6.4"
 end

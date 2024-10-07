@@ -36,11 +36,11 @@ unless ARGV.length == 1
   exit 1
 end
 
-#slave = Aurora::ABCClient.open_modbus_slave(ARGV[0], ignore_missing_registers: ignore_missing_registers)
-#slave.logger = Logger.new($stdout)
-#slave.logger.level = debug_modbus ? :debug : :warn
+slave = Aurora::ABCClient.open_modbus_slave(ARGV[0], ignore_missing_registers: ignore_missing_registers)
+slave.logger = Logger.new($stdout)
+slave.logger.level = debug_modbus ? :debug : :warn
 
-#Aurora::WebAIDTool.modbus_slave = slave
+Aurora::WebAIDTool.modbus_slave = slave
 Aurora::WebAIDTool.monitor = monitor
 Aurora::WebAIDTool.port = port
 Aurora::WebAIDTool.run!
