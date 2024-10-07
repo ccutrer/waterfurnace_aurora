@@ -19,7 +19,7 @@ options = OptionParser.new do |opts|
 
   opts.on("--device-name DEVICENAME", "Give a descriptive name to your device") { |v| device_name = v }
   opts.on("--debug-modbus", "Print actual protocol bytes") { debug_modbus = true }
-  opts.on("--web-aid-tool PORT", "Run web aid tool on given port", :integer) { |v| web_aid_tool = v }
+  opts.on("--web-aid-tool PORT", "Run web aid tool on given port", Integer) { |v| web_aid_tool = v }
   opts.on("-v", "--version", "Print version") do
     puts Aurora::VERSION
     exit
