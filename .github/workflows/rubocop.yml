@@ -11,16 +11,12 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        ruby-version: [3.0, 2.7, 2.6]
-
     steps:
       - uses: actions/checkout@v4
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: ${{ matrix.ruby-version }}
+          ruby-version: 3.3
           bundler-cache: true
       - name: Install dependencies
         run: bundle install
