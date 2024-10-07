@@ -61,7 +61,7 @@ module Aurora
   end
 
   def to_uint32(registers, idx)
-    Aurora&.logger&.warn("Missing register #{idx + 1}") unless registers[idx + 1]
+    Aurora.logger&.warn("Missing register #{idx + 1}") unless registers[idx + 1]
     (registers[idx] << 16) + registers[idx + 1]
   end
 

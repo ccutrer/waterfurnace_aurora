@@ -497,7 +497,7 @@ class MQTTBridge
                       @abc.blower.public_send(field),
                       format: 1..12,
                       hass: { number: { entity_category: :config } }) do |value|
-          @mutex.synchronize { @abc.blower.public_send("#{field}=", value) }
+          @mutex.synchronize { @abc.blower.public_send(:"#{field}=", value) }
         end
       end
 

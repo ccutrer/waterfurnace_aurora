@@ -106,7 +106,7 @@ module Aurora
         last_log_time ||= Process.clock_gettime(Process::CLOCK_MONOTONIC)
         now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         if now - last_log_time > 5
-          Aurora&.logger&.info("Fetching register(s) #{query}...")
+          Aurora.logger&.info("Fetching register(s) #{query}...")
           last_log_time = now
         end
         last_log_time

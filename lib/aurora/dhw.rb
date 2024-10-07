@@ -22,7 +22,7 @@ module Aurora
       holding_registers[400] = value ? 1 : 0
     end
 
-    def set_point=(value) # rubocop:disable Naming/AccessorMethodName
+    def set_point=(value)
       raise ArgumentError unless (100..140).cover?(value)
 
       raw_value = (value * 10).to_i
