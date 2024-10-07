@@ -28,7 +28,7 @@ Gem::Specification.new do |s|
   s.add_dependency "sinatra", "~> 2.1"
   s.add_dependency "thin", "~> 1.8"
 
-  s.add_development_dependency "byebug", "~> 11.0"
+  s.add_development_dependency "debug", "~> 1.9"
   s.add_development_dependency "rubocop", "~> 1.23"
   s.add_development_dependency "rubocop-performance", "~> 1.12"
   s.add_development_dependency "rubocop-rake", "~> 0.6"
