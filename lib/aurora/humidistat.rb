@@ -4,8 +4,11 @@ require "aurora/component"
 
 module Aurora
   class Humidistat < Component
-    attr_reader :humidifier_running, :humidifier_mode, :humidification_target,
-                :dehumidifier_mode, :dehumidification_target,
+    attr_reader :humidifier_running,
+                :humidifier_mode,
+                :humidification_target,
+                :dehumidifier_mode,
+                :dehumidification_target,
                 :relative_humidity
     alias_method :humidifier_running?, :humidifier_running
 

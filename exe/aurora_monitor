@@ -12,7 +12,8 @@ diff_only = debug_modbus = ignore_awl_heartbeat = ignore_sensors = false
 options = OptionParser.new do |opts|
   opts.banner = "Usage: aurora_monitor /path/to/serial/port [options]"
 
-  opts.on("-q", "--quiet",
+  opts.on("-q",
+          "--quiet",
           "Enables quiet mode (--diff-only, --ignore-awl-heartbeat, --ignore-sensors) to ease in deciphering new registers") do # rubocop:disable Layout/LineLength
     diff_only = true
     ignore_awl_heartbeat = true
@@ -43,8 +44,35 @@ uri = URI.parse(ARGV[0])
 
 last_registers = {}
 
-SENSOR_REGISTERS = [16, 19, 20, 740, 900, 901, 903, 908, 909, 1109, 1105, 1106, 1107, 1108, 1110, 1111, 1114, 1117,
-                    1134, 1148, 1149, 1150, 1151, 1152, 1153, 1164, 1165, 3326, 3330].freeze
+SENSOR_REGISTERS = [16,
+                    19,
+                    20,
+                    740,
+                    900,
+                    901,
+                    903,
+                    908,
+                    909,
+                    1109,
+                    1105,
+                    1106,
+                    1107,
+                    1108,
+                    1110,
+                    1111,
+                    1114,
+                    1117,
+                    1134,
+                    1148,
+                    1149,
+                    1150,
+                    1151,
+                    1152,
+                    1153,
+                    1164,
+                    1165,
+                    3326,
+                    3330].freeze
 
 io = case uri.scheme
      when "tcp"

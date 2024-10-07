@@ -51,7 +51,11 @@ module Aurora
     end
 
     class ECM < PSC
-      attr_reader :speed, :blower_only_speed, :low_compressor_speed, :high_compressor_speed, :aux_heat_speed,
+      attr_reader :speed,
+                  :blower_only_speed,
+                  :low_compressor_speed,
+                  :high_compressor_speed,
+                  :aux_heat_speed,
                   :iz2_desired_speed
 
       def speed_range

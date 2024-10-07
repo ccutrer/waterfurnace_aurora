@@ -70,7 +70,8 @@ class MQTTBridge
           registers = @abc.modbus_slave.read_multiple_holding_registers(*queries)
           result = registers.values.join(",")
           @homie.mqtt.publish("#{@homie.topic}/$modbus/getregs/response",
-                              "#{query_id}:#{result}", qos: 1)
+                              "#{query_id}:#{result}",
+                              qos: 1)
         when %r{\$modbus/(\d+)/set$}
           register = $1.to_i
           value = case value
@@ -805,7 +806,8 @@ class MQTTBridge
           @mutex.synchronize { zone.heating_target_temperature = value }
         end
         node.property("cooling-target-temperature",
-                      "Cooling Target Temperature", :integer,
+                      "Cooling Target Temperature",
+                      :integer,
                       zone.cooling_target_temperature,
                       unit: "°F",
                       format: 54..99) do |value|
