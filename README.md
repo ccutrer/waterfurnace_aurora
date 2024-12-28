@@ -85,9 +85,12 @@ sudo apt install ruby ruby-dev
 sudo gem install rake waterfurnace_aurora --no-doc
 sudo apt install mosquitto
 sudo curl https://github.com/ccutrer/waterfurnace_aurora/raw/main/contrib/aurora_mqtt_bridge.service -L -o /etc/systemd/system/aurora_mqtt_bridge.service
+sudo nano /etc/systemd/system/aurora_mqtt_bridge.service # edit the service user to match your user
 sudo systemctl enable aurora_mqtt_bridge
 sudo systemctl start aurora_mqtt_bridge
 ```
+
+Be sure to customize the `User=` line in the service file to match your username.
 
 Congratulations, you should now be seeing data published to MQTT! You can
 confirm this by using [MQTT Explorer](http://mqtt-explorer.com) and
