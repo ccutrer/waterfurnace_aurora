@@ -236,7 +236,7 @@ module Aurora
       end
       @outdoor_temperature        = registers[31_003]
       @air_coil_temperature       = registers[20]
-      @locked_out                 = !registers[25].nobits?(0x8000)
+      @locked_out                 = registers[25].anybits?(0x8000)
       @current_fault              = registers[25] & 0x7fff
       @derated                    = (41..46).cover?(@current_fault)
       @safe_mode                  = [47, 48, 49, 72, 74].include?(@current_fault)
