@@ -479,7 +479,7 @@ module Aurora
   def zone_configuration3(value)
     size = (value >> 3) & 0x3
     result = {
-      zone_priority: ((value & 0x20) == 0x20) ? :economy : :comfort,
+      zone_priority: value.allbits?(0x20) ? :economy : :comfort,
       zone_size: ZONE_SIZES[size],
       normalized_size: value >> 8
     }
