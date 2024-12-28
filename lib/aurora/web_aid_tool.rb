@@ -43,7 +43,7 @@ module Aurora
     end
 
     get "/request.cgi" do
-      params = parse_query_string(request.query_string)
+      params = URI.decode_www_form(request.query_string).to_h
       result = params.slice("cmd", "id", "set", "addr")
       result["err"] = nil
 
