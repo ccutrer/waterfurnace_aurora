@@ -151,7 +151,7 @@ class MQTTBridge
                     :enum,
                     @abc.current_mode,
                     format: allowed_modes,
-                    hass: { sensor: { state_class: :measurement } })
+                    hass: :sensor)
       node.property("emergency-shutdown",
                     "Emergency Shutdown Requested",
                     :boolean,
