@@ -287,7 +287,7 @@ Any adapter based on the MAX485 chip is _not_ supported.
 The key is identifying the correct wires as RS-485+ and RS-485-. It's easiest
 to take an existing ethernet cable, and cut off one end. Connect pins 1 and 3
 (white/orange and white/green for a TIA-568-B configured cable) to + and pins
-2 and 4 (orange and green) -. The other pins are C and R from the thermostat
+2 and 4 (orange and blue) -. The other pins are C and R from the thermostat
 bus, providing 24VAC power. DO NOT SHORT THESE PINS AGAINST ANYTHING, such
 as the communication pins, or a ground connection anywhere. Best case scenario
 you blow a 3A automotive fuse in your heat pump that you will need to replace.
