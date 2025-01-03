@@ -2,8 +2,7 @@
 # frozen_string_literal: true
 
 require "aurora"
-require "homie-mqtt"
-require "mqtt/home_assistant"
+require "mqtt/homie/home_assistant"
 require "ccutrer-serialport"
 require "uri"
 require "optparse"
