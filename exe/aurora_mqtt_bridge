@@ -791,15 +791,13 @@ class MQTTBridge
                         :enum,
                         zone.priority,
                         format: %w[economy comfort],
-                        hass: { sensor: { state_class: :measurement,
-                                          entity_category: :diagnostic } })
+                        hass: { sensor: { entity_category: :diagnostic } })
           node.property("size",
                         "Size",
                         :enum,
                         zone.size,
                         format: %w[0 25 45 70],
-                        hass: { sensor: { state_class: :measurement,
-                                          entity_category: :diagnostic } })
+                        hass: { sensor: { entity_category: :diagnostic } })
           node.property("normalized-size",
                         "Normalized Size",
                         :integer,
