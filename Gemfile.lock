@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    waterfurnace_aurora (1.5.6)
+    waterfurnace_aurora (1.5.7)
       ccutrer-serialport (~> 1.0)
       mqtt-homie-homeassistant (~> 1.0, >= 1.0.6)
       net-telnet-rfc2217 (~> 1.0, >= 1.0.1)
