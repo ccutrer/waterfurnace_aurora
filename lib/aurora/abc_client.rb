@@ -200,7 +200,7 @@ module Aurora
       @entering_air_register = awl_axb? ? 740 : 567
       @registers_to_read = [6, 19..20, 25, 30..31, 112, 344, @entering_air_register]
       @registers_to_read << 1104 if axb?
-      @registers_to_read.push(741, 31_003) if awl_communicating?
+      @registers_to_read.push(741..742) if awl_communicating?
       @registers_to_read << (1110..1111) if performance_monitoring?
       @registers_to_read.push(16, 1150..1153) if energy_monitoring?
       @registers_to_read << 900 if awl_axb?
@@ -234,7 +234,7 @@ module Aurora
         @leaving_water_temperature  = registers[1110]
         @entering_water_temperature = registers[1111]
       end
-      @outdoor_temperature        = registers[31_003]
+      @outdoor_temperature        = registers[742]
       @air_coil_temperature       = registers[20]
       @locked_out                 = registers[25].anybits?(0x8000)
       @current_fault              = registers[25] & 0x7fff
