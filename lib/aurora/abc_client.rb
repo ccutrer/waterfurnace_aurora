@@ -172,7 +172,7 @@ module Aurora
       @abc_dipswitches = registers[33]
       @axb_dipswitches = registers[1103]
       @aux_heat = AuxHeat.new(self)
-      @compressor = if %w[ABCVSP ABCSPLVS].include?(@program)
+      @compressor = if %w[ABCVSP ABCVSPR ABCSPLVS].include?(@program)
                       Compressor::VSDrive.new(self)
                     else
                       Compressor::GenericCompressor.new(self,
