@@ -9,6 +9,7 @@ module Aurora
     end
 
     extend Forwardable
+
     delegate %i[modbus_slave monitor units units= mutex] => "self.class"
 
     self.mutex = Mutex.new

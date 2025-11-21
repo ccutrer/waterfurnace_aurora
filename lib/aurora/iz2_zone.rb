@@ -55,26 +55,26 @@ module Aurora
     end
 
     def fan_intermittent_on=(value)
-      return unless value >= 0 && value <= 25 && (value % 5).zero?
+      return unless value.between?(0, 25) && (value % 5).zero?
 
       holding_registers[21_206 + ((zone_number - 1) * 9)] = value
     end
 
     def fan_intermittent_off=(value)
-      return unless value >= 0 && value <= 40 && (value % 5).zero?
+      return unless value.between?(0, 40) && (value % 5).zero?
 
       holding_registers[21_207 + ((zone_number - 1) * 9)] = value
     end
 
     def heating_target_temperature=(value)
-      return unless value >= 40 && value <= 90
+      return unless value.between?(40, 90)
 
       raw_value = (value * 10).to_i
       holding_registers[21_203 + ((zone_number - 1) * 9)] = raw_value
     end
 
     def cooling_target_temperature=(value)
-      return unless value >= 54 && value <= 99
+      return unless value.between?(54, 99)
 
       raw_value = (value * 10).to_i
       holding_registers[21_204 + ((zone_number - 1) * 9)] = raw_value
