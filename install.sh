@@ -62,7 +62,7 @@ ask_yes_no() {
     fi
 
     while true; do
-        read -p "$prompt" response
+        read -p "$prompt" response </dev/tty
         response=${response:-$default}
         case "$response" in
             [Yy]* ) return 0;;
@@ -214,7 +214,7 @@ detect_serial_devices() {
 
         # Force user to select even with one device
         while true; do
-            read -p "Select device number [1-${#devices[@]}]: " selection
+            read -p "Select device number [1-${#devices[@]}]: " selection </dev/tty
             if [[ "$selection" =~ ^[0-9]+$ ]] && [ "$selection" -ge 1 ] && [ "$selection" -le "${#devices[@]}" ]; then
                 SERIAL_DEVICE="${devices[$((selection-1))]}"
                 print_success "Selected: $SERIAL_DEVICE"
@@ -436,7 +436,7 @@ test_hardware_communication() {
     if [ -z "$SERIAL_DEVICE" ]; then
         print_warning "No serial device configured"
         if ! ask_yes_no "Skip hardware communication test?" "y"; then
-            read -p "Enter serial device path (e.g., /dev/ttyHeatPump): " SERIAL_DEVICE
+            read -p "Enter serial device path (e.g., /dev/ttyHeatPump): " SERIAL_DEVICE </dev/tty
         else
             print_info "Skipping hardware communication test"
             return
@@ -683,35 +683,35 @@ setup_mqtt_bridge() {
     # Serial device
     if [ -z "$SERIAL_DEVICE" ]; then
         if [ -n "$existing_serial" ]; then
-            read -p "Enter serial device path [$existing_serial]: " SERIAL_DEVICE
+            read -p "Enter serial device path [$existing_serial]: " SERIAL_DEVICE </dev/tty
             SERIAL_DEVICE=${SERIAL_DEVICE:-$existing_serial}
         else
-            read -p "Enter serial device path (e.g., /dev/ttyUSB0): " SERIAL_DEVICE
+            read -p "Enter serial device path (e.g., /dev/ttyUSB0): " SERIAL_DEVICE </dev/tty
         fi
     fi
 
     # MQTT host
     if [ -z "$MQTT_HOST" ]; then
-        read -p "Enter MQTT broker hostname [$existing_host]: " MQTT_HOST
+        read -p "Enter MQTT broker hostname [$existing_host]: " MQTT_HOST </dev/tty
         MQTT_HOST=${MQTT_HOST:-$existing_host}
     fi
 
     # MQTT port
-    read -p "Enter MQTT broker port [$existing_port]: " MQTT_PORT
+    read -p "Enter MQTT broker port [$existing_port]: " MQTT_PORT </dev/tty
     MQTT_PORT=${MQTT_PORT:-$existing_port}
 
     # MQTT username (optional)
     if [ -n "$existing_user" ]; then
-        read -p "Enter MQTT username [$existing_user]: " MQTT_USER
+        read -p "Enter MQTT username [$existing_user]: " MQTT_USER </dev/tty
         MQTT_USER=${MQTT_USER:-$existing_user}
     else
-        read -p "Enter MQTT username (leave blank if none): " MQTT_USER
+        read -p "Enter MQTT username (leave blank if none): " MQTT_USER </dev/tty
     fi
 
     # MQTT password (optional)
     if [ -n "$MQTT_USER" ]; then
         if [ -n "$existing_password" ] && [ "$MQTT_USER" = "$existing_user" ]; then
-            read -s -p "Enter MQTT password (leave blank to keep existing): " MQTT_PASSWORD
+            read -s -p "Enter MQTT password (leave blank to keep existing): " MQTT_PASSWORD </dev/tty
             echo
             # If blank, use existing password
             if [ -z "$MQTT_PASSWORD" ]; then
@@ -719,26 +719,26 @@ setup_mqtt_bridge() {
                 print_info "Keeping existing password"
             fi
         else
-            read -s -p "Enter MQTT password: " MQTT_PASSWORD
+            read -s -p "Enter MQTT password: " MQTT_PASSWORD </dev/tty
             echo
         fi
     fi
 
     # Device name for MQTT
-    read -p "Enter device name for MQTT [$existing_device_name]: " DEVICE_NAME
+    read -p "Enter device name for MQTT [$existing_device_name]: " DEVICE_NAME </dev/tty
     DEVICE_NAME=${DEVICE_NAME:-$existing_device_name}
 
     # Web Aid Tool (optional web interface)
     if [ -n "$existing_web_aid_port" ]; then
         if ask_yes_no "Enable web aid tool (web interface)? Currently enabled on port $existing_web_aid_port" "y"; then
-            read -p "Enter web aid tool port [$existing_web_aid_port]: " WEB_AID_PORT
+            read -p "Enter web aid tool port [$existing_web_aid_port]: " WEB_AID_PORT </dev/tty
             WEB_AID_PORT=${WEB_AID_PORT:-$existing_web_aid_port}
         else
             WEB_AID_PORT=""
         fi
     else
         if ask_yes_no "Enable web aid tool (provides web interface)?" "n"; then
-            read -p "Enter web aid tool port [4567]: " WEB_AID_PORT
+            read -p "Enter web aid tool port [4567]: " WEB_AID_PORT </dev/tty
             WEB_AID_PORT=${WEB_AID_PORT:-4567}
         else
             WEB_AID_PORT=""
