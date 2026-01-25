@@ -49,7 +49,7 @@ module Aurora
 
       if abc.axb?
         outputs = registers[1104]
-        @dehumidifer_running = dehumidifier? && outputs.include?(:accessory2)
+        @dehumidifier_running = dehumidifier? && outputs.include?(:accessory2)
       end
 
       return unless abc.awl_communicating?
