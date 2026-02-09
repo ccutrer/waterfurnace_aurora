@@ -558,7 +558,7 @@ class MQTTBridge
         node.property("maximum-speed",
                       "Actual Maximum Speed",
                       :integer,
-                      @abc.pump.minimum_speed,
+                      @abc.pump.maximum_speed,
                       format: 0..100,
                       unit: "%",
                       hass: { number: { entity_category: :config } }) do |value|
@@ -774,11 +774,11 @@ class MQTTBridge
         node.property("fan-intermittent-off",
                       "Fan Intermittent Mode Off Duration",
                       :enum,
-                      zone.fan_intermittent_on,
+                      zone.fan_intermittent_off,
                       unit: "M",
                       format: %w[0 5 10 15 20 25 30 35 40],
                       hass: { select: { entity_category: :config } }) do |value|
-          @mutex.synchronize { zone.fan_intermittent_on = value.to_i }
+          @mutex.synchronize { zone.fan_intermittent_off = value.to_i }
         end
         node.property("current-fan-mode",
                       "Current Fan Status",
