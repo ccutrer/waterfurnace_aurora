@@ -16,7 +16,13 @@ module Aurora
   class ABCClient
     class << self
       def open_modbus_slave(uri, ignore_missing_registers: false)
-        uri = URI.parse(uri)
+        begin
+          uri = URI.parse(uri)
+        rescue URI::InvalidURIError
+          raise unless File.exist?(uri)
+
+          uri = URI::Generic.build(path: URI::RFC2396_PARSER.escape(uri))
+        end
 
         io = case uri.scheme
              when "tcp"
@@ -32,13 +38,14 @@ module Aurora
                require "aurora/mqtt_modbus"
                return Aurora::MQTTModBus.new(uri)
              else
-               if File.file?(uri.path)
-                 return Aurora::MockABC.new(YAML.load_file(uri.path),
-                                            ignore_missing_registers:)
+               path = URI::RFC2396_PARSER.unescape(uri.path)
+               if File.file?(path)
+                 return Aurora::MockABC.new(YAML.load_file(path),
+                                            ignore_missing_registers: ignore_missing_registers)
                end
 
                require "ccutrer-serialport"
-               CCutrer::SerialPort.new(uri.path, baud: 19_200, parity: :even)
+               CCutrer::SerialPort.new(path, baud: 19_200, parity: :even)
              end
 
         client = ::ModBus::RTUClient.new(io)
