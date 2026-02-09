@@ -719,9 +719,10 @@ class MQTTBridge
                     :enum,
                     retained: false,
                     format: "clear",
-                    hass: :scene) do |_|
+                    hass: :button) do |_|
         @mutex.synchronize { @abc.clear_fault_history }
       end
+      @homie.mqtt.unpublish_hass_scene("faults_clear-history", node_id: @homie.id)
       @abc.faults.each_with_index do |count, i|
         next if count == 0xffff
 
