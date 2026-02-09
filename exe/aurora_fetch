@@ -51,13 +51,13 @@ unless ARGV.length == 2
   exit 1
 end
 
-modbus_slave = Aurora::ABCClient.open_modbus_slave(ARGV[0], ignore_missing_registers: ignore_missing_registers)
+modbus_slave = Aurora::ABCClient.open_modbus_slave(ARGV[0], ignore_missing_registers:)
 modbus_slave.read_retry_timeout = 15
 modbus_slave.read_retries = 2
 Aurora.logger = modbus_slave.logger = Logger.new($stderr)
 modbus_slave.logger.level = debug_modbus ? :debug : :info
 
-registers = Aurora::ABCClient.query_registers(modbus_slave, ARGV[1], try_individual: try_individual)
+registers = Aurora::ABCClient.query_registers(modbus_slave, ARGV[1], try_individual:)
 
 if yaml
   puts YAML.dump(registers)

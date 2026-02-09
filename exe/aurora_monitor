@@ -116,7 +116,7 @@ server.request_callback = lambda do |uid, func, req|
     puts "#{Time.now} ===== no idea to #{uid}: #{req.inspect}" unless diff_only
   elsif func == 67
     puts "#{Time.now} ===== write discontiguous registers to #{uid}:"
-    registers = req.map { |p| [p[:addr], p[:val]] }.to_h
+    registers = req.to_h { |p| [p[:addr], p[:val]] }
     puts Aurora.print_registers(registers)
   elsif func == 16
     registers = Range.new(req[:addr], req[:addr] + req[:quant] - 1).zip(req[:val]).to_h

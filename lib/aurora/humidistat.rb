@@ -56,7 +56,7 @@ module Aurora
 
       base = abc.iz2? ? 31_109 : 12_309
       humidifier_settings_register = abc.iz2? ? 21_114 : 12_309
-      @humidifier_settings = registers[humidifier_settings_register]&.last&.[](2..-1)&.to_i(16)
+      @humidifier_settings = registers[humidifier_settings_register]&.last&.[](2..)&.to_i(16)
       @humidifier_mode = registers[humidifier_settings_register]&.include?(:auto_humidification) ? :auto : :manual
       @dehumidifier_mode = registers[humidifier_settings_register]&.include?(:auto_dehumidification) ? :auto : :manual
 

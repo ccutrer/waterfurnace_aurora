@@ -41,13 +41,9 @@ amount of data may be inaccessible.
 
 ## Getting Started on a Raspberry Pi
 
-Don't care for the nitty gritty details? Here's the easy path! You'll need a
-Raspberry Pi (tested on a Pi Zero W and a Pi 4), a
-[USB RS-485 adapter](https://www.amazon.com/dp/B07B416CPK)
-([alternative](https://www.amazon.com/dp/B081MB6PN2)),
-and a network cable. Any adapter based on the MAX485 chip is _not_ supported.
-Additional details can be found in subsequent sections if
-you want to deviate slightly from the simple path.
+Don't care for the nitty gritty details? Here's the easy path! You'll need a Raspberry Pi (while older models theoretically work, you may have issues with them), a [USB RS-485 adapter](https://www.amazon.com/dp/B07B416CPK) ([alternative](https://www.amazon.com/dp/B081MB6PN2)), and a network cable.
+Any adapter based on the MAX485 chip is _not_ supported.
+Additional details can be found in subsequent sections if you want to deviate slightly from the simple path.
 
 ### Create your cable
 
@@ -187,11 +183,12 @@ cards:
 
 ## Installation
 
-Install ruby 2.5, 2.6, or 2.7. Ruby 3.0 has not been tested. If talking
-directly to the serial port, Linux is required. Mac may or may not work.
-Windows probably won't work. If you want to run on Windows, you'll need to run
-a network serial port (like with `ser2net`), and connect remotely from the
-Windows machine. Then:
+Install ruby >= 3.2.
+If talking directly to the serial port, Linux is required.
+Mac may or may not work.
+Windows probably won't work.
+If you want to run on Windows, you'll need to run a network serial port (like with `ser2net`), and connect remotely from the Windows machine.
+Then:
 
 ```sh
 gem install waterfurnace_aurora 

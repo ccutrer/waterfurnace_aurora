@@ -6,7 +6,7 @@ plugins:
   - rubocop-rake
 
 AllCops:
-  TargetRubyVersion: 2.5
+  TargetRubyVersion: 3.2
 
 # ModBus's master/slave terminology isn't changing
 Naming/InclusiveLanguage:

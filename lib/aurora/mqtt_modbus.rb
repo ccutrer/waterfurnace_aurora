@@ -11,7 +11,7 @@ module Aurora
       @mqtt = MQTT::Client.new(uri)
       @mqtt.connect
 
-      @base_topic = uri.path[1..-1]
+      @base_topic = uri.path[1..]
       @mqtt.subscribe("#{@base_topic}/getregs/response")
     end
 

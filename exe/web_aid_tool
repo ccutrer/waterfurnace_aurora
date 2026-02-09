@@ -36,7 +36,7 @@ unless ARGV.length == 1
   exit 1
 end
 
-slave = Aurora::ABCClient.open_modbus_slave(ARGV[0], ignore_missing_registers: ignore_missing_registers)
+slave = Aurora::ABCClient.open_modbus_slave(ARGV[0], ignore_missing_registers:)
 slave.logger = Logger.new($stdout)
 slave.logger.level = debug_modbus ? :debug : :warn
 

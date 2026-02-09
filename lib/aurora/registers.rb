@@ -447,7 +447,7 @@ module Aurora
             :auto
           end
     result = {
-      fan: fan,
+      fan:,
       on_time: ((value >> 9) & 0x7) * 5,
       off_time: (((value >> 12) & 0x7) + 1) * 5,
       cooling_target_temperature: ((value & 0x7e) >> 1) + 36,
@@ -593,11 +593,11 @@ module Aurora
   end
 
   def faults(range)
-    range.map do |i|
+    range.to_h do |i|
       name = FAULTS[i % 100]
       name = " (#{name})" if name
       [i, "E#{i % 100}#{name}"]
-    end.to_h
+    end
   end
 
   def zone_registers

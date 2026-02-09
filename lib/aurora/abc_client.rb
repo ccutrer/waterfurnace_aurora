@@ -34,7 +34,7 @@ module Aurora
              else
                if File.file?(uri.path)
                  return Aurora::MockABC.new(YAML.load_file(uri.path),
-                                            ignore_missing_registers: ignore_missing_registers)
+                                            ignore_missing_registers:)
                end
 
                require "ccutrer-serialport"

@@ -35,7 +35,7 @@ slave255 = server2.with_slave(255)
 r = slave1.holding_registers = slave2.holding_registers = slave255.holding_registers = Array.new(31_473, 0)
 
 # prepopulate some data
-registers = YAML.safe_load(File.read(ARGV[2]))
+registers = YAML.safe_load_file(ARGV[2])
 registers.each { |(k, v)| r[k] = v }
 
 server1.request_callback = lambda do |uid, func, req|
@@ -43,7 +43,7 @@ server1.request_callback = lambda do |uid, func, req|
     puts "===== no idea to #{uid}: #{req.inspect}"
   elsif func == 67
     puts "===== write discontiguous registers to #{uid}:"
-    registers = req.map { |p| [p[:addr], p[:val]] }.to_h
+    registers = req.to_h { |p| [p[:addr], p[:val]] }
     puts Aurora.print_registers(registers)
   elsif func == 16
     puts "===== write multiple registers to #{uid}:"

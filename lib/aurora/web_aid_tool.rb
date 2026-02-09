@@ -24,7 +24,7 @@ module Aurora
     end
 
     get "/getunits.cgi" do
-      encode_result(units: units)
+      encode_result(units:)
     end
 
     get "/setunits.cgi" do
@@ -71,9 +71,9 @@ module Aurora
         end
         result["values"] = registers.values.join(",")
       when "putregs"
-        writes = params["regs"].split(";").map do |write|
+        writes = params["regs"].split(";").filter_map do |write|
           write.split(",").map(&:to_i)
-        end.compact.to_h
+        end.to_h
         if monitor
           puts "WRITING"
           puts Aurora.print_registers(writes)
@@ -94,7 +94,7 @@ module Aurora
     private
 
     def parse_query_string(query_string)
-      query_string.split("&").map { |p| p.split("=") }.to_h
+      query_string.split("&").to_h { |p| p.split("=") }
     end
 
     # _don't_ do URI escaping
