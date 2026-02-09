@@ -217,7 +217,7 @@ class MQTTBridge
                     @abc.high_pressure_switch,
                     format: %w[open closed])
 
-      if @abc.awl_communicating?
+      if @abc.awl_axb?
         node.property("leaving-air-temperature",
                       "Leaving Air Temperature",
                       :float,
