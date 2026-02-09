@@ -139,6 +139,8 @@ class MQTTBridge
     @homie.home_assistant_device = {
       manufacturer: "WaterFurnace",
       sw_version: Aurora::VERSION,
+      hw_version: @abc.abc_version&.to_s,
+      serial_number: @abc.serial_number,
       model: @abc.model
     }
 
