@@ -41,7 +41,7 @@ module Aurora
                path = URI::RFC2396_PARSER.unescape(uri.path)
                if File.file?(path)
                  return Aurora::MockABC.new(YAML.load_file(path),
-                                            ignore_missing_registers: ignore_missing_registers)
+                                            ignore_missing_registers:)
                end
 
                require "ccutrer-serialport"
