@@ -94,7 +94,7 @@ class MQTTBridge
         end
       end
     rescue => e
-      warn "failed processing message: #{e}\n#{e.backtrace}"
+      Aurora.logger.warn("failed processing message: #{e}\n#{e.backtrace.join("\n")}")
     end
 
     @abc.refresh
@@ -106,7 +106,14 @@ class MQTTBridge
       begin
         @mutex.synchronize do
           @homie.mqtt.batch_publish do
-            @abc.refresh
+            begin
+              @abc.refresh
+              @homie.state = :ready unless @homie.state == :ready
+            rescue ModBus::Errors::ModBusTimeout
+              @homie.state = :lost
+              Aurora.logger.warn("Timeout refreshing ABC; retrying...")
+              next
+            end
 
             components = { @homie_abc => @abc,
                            @aux_heat => @abc.aux_heat,
@@ -130,12 +137,19 @@ class MQTTBridge
             @abc.faults.each_with_index do |fault_count, i|
               next if fault_count == 0xffff
 
+              unless @faults["e#{i + 1}"]
+                # weird; could be garbage
+                unless fault_count == 0
+                  Aurora.logger.warn("Got #{fault_count} faults at index #{i}; no property for it")
+                end
+                next
+              end
               @faults["e#{i + 1}"].value = fault_count
             end
           end
         end
       rescue => e
-        warn "got garbage: #{e}; #{e.backtrace}"
+        Aurora.logger.error "got garbage: #{e}; #{e.backtrace.join("\n")}"
         exit 1
       end
       sleep(5)
