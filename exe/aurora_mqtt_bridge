@@ -139,7 +139,7 @@ class MQTTBridge
 
               unless @faults["e#{i + 1}"]
                 # weird; could be garbage
-                unless fault_count == 0
+                unless fault_count.zero?
                   Aurora.logger.warn("Got #{fault_count} faults at index #{i}; no property for it")
                 end
                 next
