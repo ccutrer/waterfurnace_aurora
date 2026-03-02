@@ -1,10 +1,10 @@
 PATH
   remote: .
   specs:
-    waterfurnace_aurora (1.6.1)
+    waterfurnace_aurora (1.6.2)
       ccutrer-serialport (~> 1.0)
       homie-mqtt (~> 1.8, >= 1.8.1)
-      mqtt-homie-homeassistant (~> 1.2)
+      mqtt-homie-homeassistant (~> 1.2, >= 1.2.2)
       net-telnet-rfc2217 (~> 1.0, >= 1.0.1)
       puma (~> 7.2)
       rackup (>= 1.0.0, < 3.0.a)
@@ -44,7 +44,7 @@ GEM
     mqtt-homeassistant (1.2.0)
       json (~> 2.0)
       mqtt-ccutrer (~> 1.0, >= 1.0.3)
-    mqtt-homie-homeassistant (1.2.1)
+    mqtt-homie-homeassistant (1.2.2)
       homie-mqtt (~> 1.7)
       mqtt-homeassistant (~> 1.2)
     mustermann (3.0.4)

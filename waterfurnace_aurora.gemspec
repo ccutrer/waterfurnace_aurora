@@ -23,7 +23,7 @@ Gem::Specification.new do |s|
 
   s.add_dependency "ccutrer-serialport", "~> 1.0"
   s.add_dependency "homie-mqtt", "~> 1.8", ">= 1.8.1"
-  s.add_dependency "mqtt-homie-homeassistant", "~> 1.2"
+  s.add_dependency "mqtt-homie-homeassistant", "~> 1.2", ">= 1.2.2"
   s.add_dependency "net-telnet-rfc2217", "~> 1.0", ">= 1.0.1"
   s.add_dependency "puma", "~> 7.2"
   s.add_dependency "rackup", ">= 1.0.0", "< 3.0.a"
