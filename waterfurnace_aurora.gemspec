@@ -29,4 +29,5 @@ Gem::Specification.new do |s|
   s.add_dependency "rackup", ">= 1.0.0", "< 3.0.a"
   s.add_dependency "rmodbus", "~> 2.1"
   s.add_dependency "sinatra", ">= 2.2.4", "< 5.0.a"
+  s.add_dependency "uri", ">= 0.13.1", "< 2.0.a"
 end

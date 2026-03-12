@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    waterfurnace_aurora (1.6.3)
+    waterfurnace_aurora (1.6.4)
       ccutrer-serialport (~> 1.0)
       homie-mqtt (~> 1.8, >= 1.8.2)
       mqtt-homie-homeassistant (~> 1.2, >= 1.2.2)
@@ -10,6 +10,7 @@ PATH
       rackup (>= 1.0.0, < 3.0.a)
       rmodbus (~> 2.1)
       sinatra (>= 2.2.4, < 5.0.a)
+      uri (>= 0.13.1, < 2.0.a)
 
 GEM
   remote: https://rubygems.org/
@@ -128,6 +129,7 @@ GEM
     unicode-display_width (3.2.0)
       unicode-emoji (~> 4.1)
     unicode-emoji (4.2.0)
+    uri (1.1.1)
 
 PLATFORMS
   x86_64-linux
