@@ -37,6 +37,15 @@ module Aurora
              when "mqtt", "mqtts"
                require "aurora/mqtt_modbus"
                return Aurora::MQTTModBus.new(uri)
+             when "esphome"
+               begin
+                 gem "esphome", "~> 1.1"
+                 require "esphome/serial_proxy"
+               rescue LoadError
+                 warn "Please `gem install esphome ~> 1.1` before using an ESPHome serial proxy"
+                 exit 1
+               end
+               ESPHome::SerialProxy.open(uri, baud: 19_200, parity: :even)
              else
                path = URI::RFC2396_PARSER.unescape(uri.path)
                if File.file?(path)

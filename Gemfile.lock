@@ -17,19 +17,37 @@ GEM
   specs:
     ast (2.4.3)
     base64 (0.3.0)
+    bigdecimal (4.1.2)
     ccutrer-serialport (1.1.0)
       ffi (~> 1.9, >= 1.9.3)
+    curses (1.6.0)
     date (3.5.1)
     debug (1.11.1)
       irb (~> 1.10)
       reline (>= 0.3.8)
     digest-crc (0.7.0)
       rake (>= 12.0.0, < 14.0.0)
+    ecdsa (1.2.0)
+    ed448 (0.1.2)
+      ffi
     erb (6.0.1)
+    esphome (1.1.0)
+      curses (~> 1.5)
+      google-protobuf (~> 4.31)
+      httpx (~> 1.5)
+      logger (~> 1.7)
+      noise-ruby (~> 0.10)
+      websocket-driver (~> 0.8)
     ffi (1.17.3-x86_64-linux-gnu)
+    google-protobuf (4.35.1-x86_64-linux-gnu)
+      bigdecimal
+      rake (~> 13.3)
     homie-mqtt (1.8.2)
       mqtt-ccutrer (~> 1.0, >= 1.0.3)
       ruby2_keywords (~> 0.0.5)
+    http-2 (1.2.1)
+    httpx (1.8.1)
+      http-2 (>= 1.2.0)
     io-console (0.8.2)
     irb (1.17.0)
       pp (>= 0.6.0)
@@ -40,7 +58,7 @@ GEM
     language_server-protocol (3.17.0.5)
     lint_roller (1.1.0)
     logger (1.7.0)
-    mqtt-ccutrer (1.1.0)
+    mqtt-ccutrer (1.1.1)
       logger (~> 1.7)
     mqtt-homeassistant (1.2.0)
       json (~> 2.0)
@@ -54,6 +72,11 @@ GEM
     net-telnet-rfc2217 (1.0.2)
       net-telnet (~> 0.2.0)
     nio4r (2.7.5)
+    noise-ruby (0.10.1)
+      ecdsa
+      ed448
+      rbnacl
+      ruby-hmac
     parallel (1.27.0)
     parser (3.3.10.1)
       ast (~> 2.4.1)
@@ -81,6 +104,8 @@ GEM
       rack (>= 3)
     rainbow (3.1.1)
     rake (13.3.1)
+    rbnacl (7.1.2)
+      ffi (~> 1)
     rdoc (7.2.0)
       erb
       psych (>= 4.0.0)
@@ -114,6 +139,7 @@ GEM
     rubocop-rake (0.7.1)
       lint_roller (~> 1.1)
       rubocop (>= 1.72.1)
+    ruby-hmac (0.4.0)
     ruby-progressbar (1.13.0)
     ruby2_keywords (0.0.5)
     sinatra (4.2.1)
@@ -130,12 +156,17 @@ GEM
       unicode-emoji (~> 4.1)
     unicode-emoji (4.2.0)
     uri (1.1.1)
+    websocket-driver (0.8.2)
+      base64
+      websocket-extensions (>= 0.1.0)
+    websocket-extensions (0.1.5)
 
 PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
   debug (~> 1.9)
+  esphome (~> 1.1)
   pycall (~> 1.5)
   rake (~> 13.3)
   rubocop-inst (~> 1.0)

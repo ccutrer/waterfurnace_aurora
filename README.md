@@ -320,6 +320,59 @@ server (like ser2net) to use 19200 baud, EVEN. You can also use RFC2217 serial
 ports (allowing the serial connection parameters to be set automatically) with
 a URI like telnet://192.168.1.10:2217/.
 
+### ESPHome Serial Proxy
+
+[ESPHome](https://esphome.io/) [serial proxies](https://esphome.io/components/serial_proxy/) are also supported.
+First, you can build an adapter with an ESP32 device and a MAX485 module:
+
+![Lolin ESP32-C3-Mini RS485 Adapter](doc/esp_adapter.jpg)
+
+DI on the MAX485 connects to your TX pin, DO to the RX pin, and DE to the flow control pin.
+RE should be connected to DE. VCC connects to +5V (VCC or VBUS on the ESP32), and GND to GND.
+Then flash an ESPHome device with a config similar to this:
+
+```yaml
+esphome:
+  name: waterfurnace
+  friendly_name: Water Furnace
+
+esp32:
+  board: esp32-c3-devkitm-1
+  
+api:
+  encryption:
+    key: "a random key"
+
+ota:
+  - platform: esphome
+    password: "a random password"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    password: "a random password"
+
+captive_portal:
+
+uart:
+  - id: rs485
+    tx_pin: GPIO21
+    rx_pin: GPIO20
+    flow_control_pin: GPIO10
+    baud_rate: 4800
+    parity: ODD
+
+serial_proxy:
+  uart_id: rs485
+  name: SDN
+  port_type: RS485
+```
+
+You will also need to `gem install esphome` on the computer running the MQTT bridge.
+Then any place you would reference a serial port in the command line, you can use
+"esphome://:encryption_key@hostname".
+
 ### Simulated ABC
 
 If you have a dump of registers from an ABC in YAML format (such as generated

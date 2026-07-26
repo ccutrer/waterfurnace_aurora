@@ -17,6 +17,16 @@ io = case uri.scheme
                                 port: uri.port || 23,
                                 baud: 19_200,
                                 parity: :even)
+     when "esphome"
+       begin
+         gem "esphome", "~> 1.1"
+         require "esphome/serial_proxy"
+       rescue LoadError
+         warn "Please `gem install esphome ~> 1.1` before using an ESPHome serial proxy"
+         exit 1
+       end
+       ESPHome::SerialProxy.open(uri, baud: 19_200, parity: :even)
+
      else
        require "ccutrer-serialport"
        CCutrer::SerialPort.new(uri.path, baud: 19_200, parity: :even)
