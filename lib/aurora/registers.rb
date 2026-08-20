@@ -44,16 +44,16 @@ module Aurora
     totals
   end
 
-  NEGATABLE = ->(v) { (v & 0x8000 == 0x8000) ? v - 0x10000 : v }
+  NEGATABLE = ->(v) { v.allbits?(0x8000) ? v - 0x10000 : v }
   TO_HUNDREDTHS = ->(v) { v.to_f / 100 }
   TO_TENTHS = ->(v) { v.to_f / 10 }
   TO_SIGNED_TENTHS = ->(v) { NEGATABLE.call(v).to_f / 10 }
-  TO_LAST_LOCKOUT = ->(v) { (v & 0x8000 == 0x8000) ? v & 0x7fff : nil }
+  TO_LAST_LOCKOUT = ->(v) { v.allbits?(0x8000) ? v & 0x7fff : nil }
 
   def from_bitmask(value, flags)
     result = []
     flags.each do |(bit, flag)|
-      result << flag if value & bit == bit
+      result << flag if value.allbits?(bit)
       value &= ~bit
     end
     result << format("0x%04x", value) unless value.zero?
@@ -67,7 +67,7 @@ module Aurora
 
   def to_int32(registers, idx)
     v = to_uint32(registers, idx)
-    (v & 0x80000000 == 0x80000000) ? v - 0x100000000 : v
+    v.allbits?(0x80000000) ? v - 0x100000000 : v
   end
 
   def to_string(registers, idx, length)
@@ -212,13 +212,13 @@ module Aurora
     return :manual if value == 0x7fff
 
     {
-      fp1: (value & 0x01 == 0x01) ? 30 : 15,
-      fp2: (value & 0x02 == 0x02) ? 30 : :off,
-      reversing_valve: (value & 0x04 == 0x04) ? :o : :b, # cycle to cool on O, or !B
+      fp1: value.allbits?(0x01) ? 30 : 15,
+      fp2: value.allbits?(0x02) ? 30 : :off,
+      reversing_valve: value.allbits?(0x04) ? :o : :b, # cycle to cool on O, or !B
       accessory_relay: ACCESSORY_RELAY_SETTINGS[(value >> 3) & 0x3],
-      compressor: (value & 0x20 == 0x20) ? 1 : 2, # single or dual stage compressor
-      lockout: (value & 0x40 == 0x40) ? :continuous : :pulse,
-      dehumidifier_reheat: (value & 0x80 == 0x80) ? :dehumidifier : :reheat
+      compressor: value.allbits?(0x20) ? 1 : 2, # single or dual stage compressor
+      lockout: value.allbits?(0x40) ? :continuous : :pulse,
+      dehumidifier_reheat: value.allbits?(0x80) ? :dehumidifier : :reheat
     }
   end
 
@@ -256,11 +256,11 @@ module Aurora
 
   def status(value)
     result = {
-      lps: (value & 0x80 == 0x80) ? :closed : :open,
-      hps: (value & 0x100 == 0x100) ? :closed : :open
+      lps: value.allbits?(0x80) ? :closed : :open,
+      hps: value.allbits?(0x100) ? :closed : :open
     }
     SYSTEM_INPUTS.each do |(i, name)|
-      result[name] = true if value & i == i
+      result[name] = true if value.allbits?(i)
     end
     leftover = value & ~0x03ff
     result[:unknown] = format("0x%04x", leftover) unless leftover.zero?
@@ -311,19 +311,19 @@ module Aurora
 
   def axb_inputs(value)
     result = {}
-    result[:smart_grid] = value & 0x001 == 0x001
-    result[:ha1] = value & 0x002 == 0x002
-    result[:ha2] = value & 0x004 == 0x004
-    result[:pump_slave] = value & 0x008 == 0x008
+    result[:smart_grid] = value.allbits?(0x001)
+    result[:ha1] = value.allbits?(0x002)
+    result[:ha2] = value.allbits?(0x004)
+    result[:pump_slave] = value.allbits?(0x008)
 
-    result[:mb_address] = (value & 0x010 == 0x010) ? 3 : 4
-    result[:sw1_2] = value & 0x020 == 0x020 # future use # rubocop:disable Naming/VariableNumber
-    result[:sw1_3] = value & 0x040 == 0x040 # future use # rubocop:disable Naming/VariableNumber
-    result[:accessory_relay2] = if value & 0x080 == 0x080 && value & 0x100 == 0x100
+    result[:mb_address] = value.allbits?(0x010) ? 3 : 4
+    result[:sw1_2] = value.allbits?(0x020) # future use # rubocop:disable Naming/VariableNumber
+    result[:sw1_3] = value.allbits?(0x040) # future use # rubocop:disable Naming/VariableNumber
+    result[:accessory_relay2] = if value.allbits?(0x180)
                                   :blower
-                                elsif value & 0x100 == 0x100
+                                elsif value.allbits?(0x100)
                                   :low_capacity_compressor
-                                elsif value & 0x080 == 0x080
+                                elsif value.allbits?(0x080)
                                   :high_capacity_compressor
                                 else
                                   :dehumidifier
@@ -387,12 +387,12 @@ module Aurora
     return :off if value == 0x7fff
 
     result = {
-      mode: (value & 0x100 == 0x100) ? :cooling : :heating
+      mode: value.allbits?(0x100) ? :cooling : :heating
     }
-    result[:aux_heat] = true if value & 0x200 == 0x200
+    result[:aux_heat] = true if value.allbits?(0x200)
     result[:compressor_speed] = value & 0xf
     result[:blower_speed] = value & 0xf0
-    result[:blower_speed] = :with_compressor if value & 0xf0 == 0xf0
+    result[:blower_speed] = :with_compressor if value.allbits?(0xf0)
     leftover = value & ~0x03ff
     result[:unknown] = format("0x%04x", leftover) unless leftover.zero?
     result
@@ -439,9 +439,9 @@ module Aurora
   end
 
   def zone_configuration1(value)
-    fan = if value & 0x80 == 0x80
+    fan = if value.allbits?(0x80)
             :continuous
-          elsif value & 0x100 == 0x100
+          elsif value.allbits?(0x100)
             :intermittent
           else
             :auto
@@ -464,7 +464,7 @@ module Aurora
     result = {
       call: CALLS[(v >> 1) & 0x7],
       mode: HEATING_MODE[(v >> 8) & 0x03],
-      damper: (v & 0x10 == 0x10) ? :open : :closed
+      damper: v.allbits?(0x10) ? :open : :closed
     }
     if prior_v
       carry = prior_v.is_a?(Hash) ? prior_v[:heating_target_temperature_carry] : v & 0x01
@@ -708,7 +708,7 @@ module Aurora
   ].freeze
 
   REGISTER_NAMES = {
-    0 => "Test Mode Flag", # 0x100 for enabled; this might have other flags
+    0 => "Test Mode Flag", # 0x200 for enabled; this might have other flags
     1 => "Random Start Delay",
     2 => "ABC Program Version",
     3 => "??? Version?",
