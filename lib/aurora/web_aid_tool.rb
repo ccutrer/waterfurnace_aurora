@@ -68,6 +68,7 @@ module Aurora
         if monitor
           puts "READING"
           puts Aurora.print_registers(registers)
+          puts
         end
         result["values"] = registers.values.join(",")
       when "putregs"
@@ -77,6 +78,7 @@ module Aurora
         if monitor
           puts "WRITING"
           puts Aurora.print_registers(writes)
+          puts
         end
 
         mutex.synchronize do

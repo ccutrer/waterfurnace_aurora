@@ -53,7 +53,13 @@ module Aurora
     end
 
     def write_holding_register(addr, value)
-      @registers[addr] = value
+      case addr
+      when 45 # test mode enable
+        @registers[0] &= ~0x200
+        @registers[0] |= 0x200 if value != 0
+      else
+        @registers[addr] = value
+      end
     end
     alias_method :[]=, :write_holding_register
 
