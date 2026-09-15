@@ -1,4 +1,4 @@
-name: Rubocop
+name: RSpec
 
 on:
   push:
@@ -8,9 +8,7 @@ on:
 
 jobs:
   test:
-
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v6
       - name: Set up Ruby
@@ -18,7 +16,5 @@ jobs:
         with:
           ruby-version: 3.3
           bundler-cache: true
-      - name: Install dependencies
-        run: bundle install
-      - name: Run rubocop
-        run: bundle exec rubocop
+      - name: Run specs
+        run: bundle exec rake spec

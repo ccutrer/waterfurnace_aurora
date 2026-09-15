@@ -1,6 +1,7 @@
 inherit_gem:
   rubocop-inst:
   - rubocop.yml
+  - rubocop-rspec.yml
 
 plugins:
   - rubocop-rake

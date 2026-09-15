@@ -463,14 +463,14 @@ module Aurora
     v = registers[key]
     result = {
       call: CALLS[(v >> 1) & 0x7],
-      mode: HEATING_MODE[(v >> 8) & 0x03],
+      mode: HEATING_MODE[(v >> 8) & 0x07],
       damper: v.allbits?(0x10) ? :open : :closed
     }
     if prior_v
       carry = prior_v.is_a?(Hash) ? prior_v[:heating_target_temperature_carry] : v & 0x01
       result[:heating_target_temperature] = ((carry << 5) | ((v & 0xf800) >> 11)) + 36
     end
-    leftover = v & ~0xfb1e
+    leftover = v & ~0xff1e
     result[:unknown] = format("0x%04x", leftover) unless leftover.zero?
     result
   end

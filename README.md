@@ -514,3 +514,15 @@ Also remember you can proxy modbus through the MQTT bridge if it's running:
 ```
 $ web_aid_tool mqtt://localhost/homie/aurora-xxx/$modbus
 ```
+
+## Development
+
+Install dependencies and run the specs:
+
+```sh
+bundle install
+bin/rspec
+```
+
+Register fixtures live in `spec/fixtures` as YAML files, so regression tests
+can use captured data without connecting to a heat pump or MQTT broker.
