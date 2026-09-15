@@ -801,7 +801,7 @@ module Aurora
     483 => "Number of IZ2 Zones",
     501 => "Set Point", # only read by AID tool? this is _not_ heating/cooling set point
     502 => "Ambient Temperature",
-    564 => "IZ2 Compressor Speed Desired",
+    564 => "Compressor Speed Desired",
     565 => "IZ2 Blower % Desired",
     567 => "Entering Air",
     710 => "Fault Description",
