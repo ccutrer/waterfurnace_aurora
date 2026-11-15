@@ -33,7 +33,7 @@ module Aurora
       @fan_intermittent_off = config1[:off_time]
       @cooling_target_temperature = config1[:cooling_target_temperature]
       @heating_target_temperature = config2[:heating_target_temperature]
-      @target_mode = config2[:mode]
+      @target_mode = (config2[:mode] == :outdoor_reset) ? nil : config2[:mode] # Hydrostat-only mode
       @current_mode = config2[:call]
       @current_fan_mode = config2[:damper] == :open
 
@@ -43,6 +43,7 @@ module Aurora
     end
 
     def target_mode=(value)
+      return if value == :outdoor_reset
       return unless (raw_value = Aurora::HEATING_MODE.invert[value])
 
       holding_registers[21_202 + ((zone_number - 1) * 9)] = raw_value
@@ -66,15 +67,24 @@ module Aurora
       holding_registers[21_207 + ((zone_number - 1) * 9)] = value
     end
 
+    # IntelliZone setpoints are always room temperatures
+    def heating_target_temperature_range
+      40..90
+    end
+
+    def cooling_target_temperature_range
+      54..99
+    end
+
     def heating_target_temperature=(value)
-      return unless value.between?(40, 90)
+      return unless heating_target_temperature_range.cover?(value)
 
       raw_value = (value * 10).to_i
       holding_registers[21_203 + ((zone_number - 1) * 9)] = raw_value
     end
 
     def cooling_target_temperature=(value)
-      return unless value.between?(54, 99)
+      return unless cooling_target_temperature_range.cover?(value)
 
       raw_value = (value * 10).to_i
       holding_registers[21_204 + ((zone_number - 1) * 9)] = raw_value
