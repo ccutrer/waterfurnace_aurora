@@ -346,7 +346,8 @@ module Aurora
     1 => :auto,
     2 => :cool,
     3 => :heat,
-    4 => :eheat
+    4 => :eheat,
+    5 => :outdoor_reset # Hydrostat: heat, with the setpoint adjusted by outdoor temperature
   }.freeze
 
   FAN_MODE = {
@@ -505,7 +506,7 @@ module Aurora
                   21_230, 22_131,
                   21_239, 21_240,
                   21_248, 21_249],
-    TO_SIGNED_TENTHS => [19, 20, 501, 502, 567, 740, 742, 747, 900, 903,
+    TO_SIGNED_TENTHS => [19, 20, 501, 502, 513, 567, 740, 742, 747, 900, 903,
                          1109, 1110, 1111, 1112, 1113, 1114, 1124, 1125, 1134, 1135, 1136,
                          3325, 3326, 3327, 3330, 3522, 3903, 3905, 3906,
                          31_003, 31_007, 31_010, 31_013, 31_016, 31_019, 31_022],
@@ -564,7 +565,7 @@ module Aurora
     "%ds" => [1, 6, 9, 15, 84, 85, 110],
     "%dV" => [16, 112, 3331, 3424, 3523],
     # rubocop:disable-next Layout/MultilineArrayLineBreaks
-    "%0.1f°F" => [19, 20, 401, 501, 502, 567, 740, 742, 745, 746, 747, 900, 903,
+    "%0.1f°F" => [19, 20, 401, 501, 502, 513, 567, 740, 742, 745, 746, 747, 900, 903,
                   1109, 1110, 1111, 1112, 1113, 1114, 1124, 1125, 1134, 1135, 1136,
                   3325, 3326, 3327, 3330, 3522, 3903, 3905, 3906,
                   12_619, 12_620,
@@ -800,16 +801,17 @@ module Aurora
     483 => "Number of IZ2 Zones",
     501 => "Set Point", # only read by AID tool? this is _not_ heating/cooling set point
     502 => "Ambient Temperature",
+    513 => "Entering Load Water (water-to-water)",
     564 => "Compressor Speed Desired",
     565 => "IZ2 Blower % Desired",
     567 => "Entering Air",
     710 => "Fault Description",
-    740 => "Entering Air",
+    740 => "Entering Air / Buffer Tank Temperature (water-to-water)",
     741 => "Relative Humidity",
     742 => "Outdoor Temperature",
     745 => "Heating Set Point",
     746 => "Cooling Set Point",
-    747 => "Ambient Temperature", # from communicating thermostat? but set to 0 when mode is off?
+    747 => "Ambient Temperature", # effective setpoint on water-to-water units; 0 when mode is off
     800 => "Thermostat Installed",
     801 => "Thermostat Version",
     802 => "Thermostat Revision",
@@ -851,7 +853,7 @@ module Aurora
     1109 => "Heating Liquid Line Temperature",
     1110 => "Leaving Water",
     1111 => "Entering Water",
-    1112 => "Leaving Air Temperature",
+    1112 => "Leaving Air Temperature / Leaving Load Water (water-to-water)",
     1113 => "Suction Temperature",
     1114 => "DHW Temperature",
     1115 => "Discharge Pressure",

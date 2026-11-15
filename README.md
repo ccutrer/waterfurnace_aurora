@@ -32,6 +32,7 @@ I would be glad to have your help extending support!
    (pre-AWL firmware)
  * WaterFurnace 5 Series, ECM blower
  * WaterFurnace 5 Series split, ECM blower, DHW
+ * WaterFurnace 5 Series water-to-water (NEW), Hydrostat
  * WaterFurnace Versatec Base
  * GeoSmart PremiumV, DHW, ECM blower, VS Drive, VS Pump
 

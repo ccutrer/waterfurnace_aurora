@@ -154,6 +154,9 @@ module Aurora
                 :leaving_air_temperature,
                 :leaving_water_temperature,
                 :entering_water_temperature,
+                :entering_load_water_temperature,
+                :leaving_load_water_temperature,
+                :buffer_tank_water_temperature,
                 :outdoor_temperature,
                 :air_coil_temperature,
                 :line_voltage,
@@ -165,6 +168,9 @@ module Aurora
     alias_method :locked_out?, :locked_out
     alias_method :derated?, :derated
     alias_method :safe_mode?, :safe_mode
+    # on water-to-water units, the "water" sensors are on the source (loop) side
+    alias_method :entering_source_water_temperature, :entering_water_temperature
+    alias_method :leaving_source_water_temperature, :leaving_water_temperature
 
     def initialize(uri)
       @modbus_slave = self.class.open_modbus_slave(uri)
@@ -211,13 +217,22 @@ module Aurora
                                    @abc_dipswitches[:accessory_relay] == :humidifier,
                                    axb? && @axb_dipswitches[:accessory_relay2] == :dehumidifier)
       @humidistat = nil unless @humidistat.humidifier? || @humidistat.dehumidifier? || awl_communicating?
+      # water-to-water units don't handle air, so there's nothing to humidify or dehumidify
+      @humidistat = nil if water_to_water?
       @faults = []
 
-      @entering_air_register = awl_axb? ? 740 : 567
-      @registers_to_read = [6, 19..20, 25, 30..31, 112, 344, @entering_air_register]
+      @registers_to_read = [6, 19..20, 25, 30..31, 112, 344]
+      if water_to_water?
+        # load water and buffer tank sensors; only known to exist with an AWL AXB
+        @registers_to_read.push(513, 740) if awl_axb?
+      else
+        @entering_air_register = awl_axb? ? 740 : 567
+        @registers_to_read << @entering_air_register
+      end
       @registers_to_read << 1104 if axb?
-      @registers_to_read.push(741..742) if awl_communicating?
-      @registers_to_read << (1110..1111) if performance_monitoring?
+      # on the Hydrostat, 742 mirrors water temperatures, and the outdoor sensor isn't exposed
+      @registers_to_read.push(741..742) if awl_communicating? && !water_to_water?
+      @registers_to_read << (water_to_water? ? 1110..1112 : 1110..1111) if performance_monitoring?
       @registers_to_read.push(16, 1150..1153) if energy_monitoring?
       @registers_to_read << 900 if awl_axb?
       zones.each do |z|
@@ -244,13 +259,21 @@ module Aurora
 
       outputs = registers[30]
 
-      @entering_air_temperature   = registers[@entering_air_register]
+      if water_to_water?
+        if awl_axb?
+          @entering_load_water_temperature = registers[513]
+          @buffer_tank_water_temperature   = registers[740]
+        end
+      else
+        @entering_air_temperature = registers[@entering_air_register]
+      end
       @leaving_air_temperature    = registers[900] if awl_axb?
       if performance_monitoring?
         @leaving_water_temperature  = registers[1110]
         @entering_water_temperature = registers[1111]
+        @leaving_load_water_temperature = registers[1112] if water_to_water?
       end
-      @outdoor_temperature        = registers[742]
+      @outdoor_temperature        = registers[742] unless water_to_water?
       @air_coil_temperature       = registers[20]
       @locked_out                 = registers[25].anybits?(0x8000)
       @current_fault              = registers[25] & 0x7fff
@@ -279,7 +302,7 @@ module Aurora
                       elsif outputs.include?(:eh2) || outputs.include?(:eh1)
                         :emergency_heat
                       elsif outputs.include?(:blower)
-                        :blower
+                        water_to_water? ? :load_pump : :blower # the blower output drives the load pump
                       elsif !registers[6].zero?
                         :waiting
                       else
@@ -387,9 +410,21 @@ module Aurora
       awl_thermostat? || awl_iz2?
     end
 
+    # Is this a water-to-water (hydronic) unit? WaterFurnace water-to-water
+    # model numbers have a "W" as the third character (NSW, NDW, NXW, NKW, NEW).
+    def water_to_water?
+      return @water_to_water if instance_variable_defined?(:@water_to_water)
+
+      @water_to_water = @model.to_s.match?(/\AN.W/)
+    end
+
     # is the thermostat AWL compliant?
     def awl_thermostat?
-      thermostat? && thermostat_version >= 3.0
+      return false unless thermostat?
+
+      # the Hydrostat on water-to-water units reports 2.x firmware,
+      # but supports the same registers as an AWL thermostat
+      thermostat_version >= (water_to_water? ? 2.04 : 3.0)
     end
 
     # is the IZ2 AWL compliant?

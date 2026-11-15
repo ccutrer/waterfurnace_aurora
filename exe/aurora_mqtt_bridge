@@ -166,6 +166,7 @@ class MQTTBridge
 
     @homie_abc = @homie.node("abc", "Heat Pump", "ABC") do |node|
       allowed_modes = %w[lockout standby blower heating heating_with_aux emergency_heat cooling waiting]
+      allowed_modes[allowed_modes.index("blower")] = "load_pump" if @abc.water_to_water?
       allowed_modes << "dehumidify" if @abc.compressor.is_a?(Aurora::Compressor::VSDrive)
       node.property("current-mode",
                     "Current Heating/Cooling Mode",
@@ -198,7 +199,28 @@ class MQTTBridge
                     :boolean,
                     @abc.safe_mode?,
                     hass: :binary_sensor)
-      unless @abc.entering_air_temperature.zero?
+      if @abc.water_to_water?
+        water_temperatures = {}
+        if @abc.awl_axb?
+          water_temperatures.merge!("buffer-tank-water-temperature" => "Buffer Tank Water Temperature",
+                                    "entering-load-water-temperature" => "Entering Load Water Temperature")
+        end
+        if @abc.performance_monitoring?
+          water_temperatures.merge!("entering-source-water-temperature" => "Entering Source Water Temperature",
+                                    "leaving-source-water-temperature" => "Leaving Source Water Temperature",
+                                    "leaving-load-water-temperature" => "Leaving Load Water Temperature")
+        end
+        water_temperatures.each do |id, name|
+          node.property(id,
+                        name,
+                        :float,
+                        @abc.public_send(id.tr("-", "_")),
+                        unit: "°F",
+                        hass: { sensor: { device_class: :temperature,
+                                          state_class: :measurement,
+                                          entity_category: :diagnostic } })
+        end
+      elsif !@abc.entering_air_temperature.zero?
         node.property("entering-air-temperature",
                       "Entering Air Temperature",
                       :float,
@@ -208,7 +230,7 @@ class MQTTBridge
                                         state_class: :measurement,
                                         entity_category: :diagnostic } })
       end
-      if @abc.performance_monitoring?
+      if @abc.performance_monitoring? && !@abc.water_to_water?
         node.property("entering-water-temperature",
                       "Entering Water Temperature",
                       :float,
@@ -237,7 +259,8 @@ class MQTTBridge
                     @abc.high_pressure_switch,
                     format: %w[open closed])
 
-      if @abc.awl_axb?
+      # on water-to-water units this duplicates leaving load water
+      if @abc.awl_axb? && !@abc.water_to_water?
         node.property("leaving-air-temperature",
                       "Leaving Air Temperature",
                       :float,
@@ -248,7 +271,7 @@ class MQTTBridge
                                         entity_category: :diagnostic } })
       end
       # TODO: figure out the config if this actually exists
-      if @abc.awl_communicating? && !@abc.outdoor_temperature.zero?
+      if @abc.awl_communicating? && !@abc.water_to_water? && !@abc.outdoor_temperature.zero?
         node.property("outdoor-temperature",
                       "Outdoor Temperature",
                       :float,
@@ -484,7 +507,9 @@ class MQTTBridge
       end
     end
 
-    @blower = @homie.node("blower", "Blower", @abc.blower.type) do |node|
+    # on water-to-water units, the blower output and power monitor drive the load pump
+    blower_name = @abc.water_to_water? ? "Load Pump" : "Blower"
+    @blower = @homie.node("blower", blower_name, @abc.blower.type) do |node|
       node.property("running",
                     "Running",
                     :boolean,
@@ -760,7 +785,9 @@ class MQTTBridge
 
     @abc.zones.each_with_index do |zone, i|
       type = zone.is_a?(Aurora::IZ2Zone) ? "IntelliZone 2 Zone" : "Thermostat"
-      @homie.node("zone#{i + 1}", "Zone #{i + 1}", type) do |node|
+      # a Hydrostat system only ever has the one zone, so name it after the controller
+      name = (@abc.water_to_water? && !zone.is_a?(Aurora::IZ2Zone)) ? "Hydrostat" : "Zone #{i + 1}"
+      @homie.node("zone#{i + 1}", name, type) do |node|
         node.property("current-mode",
                       "Current Heating/Cooling Mode Requested",
                       :enum,
@@ -769,7 +796,9 @@ class MQTTBridge
 
         next unless @abc.awl_communicating?
 
-        allowed_modes = %w[off auto cool heat]
+        # water-to-water units have no auto changeover and no blower
+        hydronic = @abc.water_to_water?
+        allowed_modes = hydronic ? %w[off cool heat] : %w[off auto cool heat]
         allowed_modes << "eheat" if i.zero?
         node.property("target-mode",
                       "Target Heating/Cooling Mode",
@@ -778,36 +807,26 @@ class MQTTBridge
                       format: allowed_modes) do |value|
           @mutex.synchronize { zone.target_mode = value.to_sym }
         end
-        node.property("target-fan-mode",
-                      "Target Fan Mode",
-                      :enum,
-                      zone.target_fan_mode,
-                      format: %w[auto continuous intermittent]) do |value|
-          @mutex.synchronize { zone.target_fan_mode = value.to_sym }
+        hydrostat = hydronic && !zone.is_a?(Aurora::IZ2Zone)
+        if hydrostat
+          # shown as a preset on the climate entity; Home Assistant sends "none" to clear it
+          node.property("preset-mode",
+                        "Preset",
+                        :enum,
+                        zone.preset_mode,
+                        format: %w[outdoor_reset],
+                        non_standard_value_check: ->(value) { value if value == "none" }) do |value|
+            @mutex.synchronize { zone.preset_mode = value.to_sym }
+          end
+          node.property("effective-target-temperature",
+                        "Effective Target Temperature",
+                        :float,
+                        zone.effective_target_temperature,
+                        unit: "°F",
+                        hass: { sensor: { device_class: :temperature,
+                                          state_class: :measurement } })
         end
-        node.property("fan-intermittent-on",
-                      "Fan Intermittent Mode On Duration",
-                      :enum,
-                      zone.fan_intermittent_on,
-                      unit: "M",
-                      format: %w[0 5 10 15 20],
-                      hass: { select: { entity_category: :config } }) do |value|
-          @mutex.synchronize { zone.fan_intermittent_on = value.to_i }
-        end
-        node.property("fan-intermittent-off",
-                      "Fan Intermittent Mode Off Duration",
-                      :enum,
-                      zone.fan_intermittent_off,
-                      unit: "M",
-                      format: %w[0 5 10 15 20 25 30 35 40],
-                      hass: { select: { entity_category: :config } }) do |value|
-          @mutex.synchronize { zone.fan_intermittent_off = value.to_i }
-        end
-        node.property("current-fan-mode",
-                      "Current Fan Status",
-                      :boolean,
-                      zone.current_fan_mode,
-                      hass: { binary_sensor: { device_class: :running } })
+        add_fan_properties(node, zone) unless hydronic
         if zone.is_a?(Aurora::IZ2Zone)
           node.property("priority",
                         "Zone Priority",
@@ -830,19 +849,20 @@ class MQTTBridge
                         hass: { sensor: { state_class: :measurement,
                                           entity_category: :diagnostic } })
         end
+        # on the Hydrostat this is a water temperature; it's only used for the climate entity
+        ambient_hass = { sensor: { device_class: :temperature, state_class: :measurement } } unless hydronic
         node.property("ambient-temperature",
                       "Ambient Temperature",
                       :float,
                       zone.ambient_temperature,
                       unit: "°F",
-                      hass: { sensor: { device_class: :temperature,
-                                        state_class: :measurement } })
+                      hass: ambient_hass)
         node.property("heating-target-temperature",
                       "Heating Target Temperature",
                       :integer,
                       zone.heating_target_temperature,
                       unit: "°F",
-                      format: 40..90) do |value|
+                      format: zone.heating_target_temperature_range) do |value|
           @mutex.synchronize { zone.heating_target_temperature = value }
         end
         node.property("cooling-target-temperature",
@@ -850,15 +870,17 @@ class MQTTBridge
                       :integer,
                       zone.cooling_target_temperature,
                       unit: "°F",
-                      format: 54..99) do |value|
+                      format: zone.cooling_target_temperature_range) do |value|
           @mutex.synchronize { zone.cooling_target_temperature = value }
         end
+        climate_options = hydrostat ? { preset_mode_property: "preset-mode" } : {}
         node.hass_climate(action_property: "current-mode",
                           current_temperature_property: "ambient-temperature",
-                          fan_mode_property: "target-fan-mode",
+                          fan_mode_property: hydronic ? nil : "target-fan-mode",
                           mode_property: "target-mode",
                           temperature_high_property: "cooling-target-temperature",
                           temperature_low_property: "heating-target-temperature",
+                          **climate_options,
                           action_template: <<~JINJA
                             {% if value.startswith('h') %}
                               heating
@@ -877,6 +899,41 @@ class MQTTBridge
     @homie.mqtt.subscribe("#{@homie.topic}/$modbus/getregs")
     @homie.mqtt.subscribe("#{@homie.topic}/$modbus/+/set")
     @homie.publish
+  end
+
+  private
+
+  def add_fan_properties(node, zone)
+    node.property("target-fan-mode",
+                  "Target Fan Mode",
+                  :enum,
+                  zone.target_fan_mode,
+                  format: %w[auto continuous intermittent]) do |value|
+      @mutex.synchronize { zone.target_fan_mode = value.to_sym }
+    end
+    node.property("fan-intermittent-on",
+                  "Fan Intermittent Mode On Duration",
+                  :enum,
+                  zone.fan_intermittent_on,
+                  unit: "M",
+                  format: %w[0 5 10 15 20],
+                  hass: { select: { entity_category: :config } }) do |value|
+      @mutex.synchronize { zone.fan_intermittent_on = value.to_i }
+    end
+    node.property("fan-intermittent-off",
+                  "Fan Intermittent Mode Off Duration",
+                  :enum,
+                  zone.fan_intermittent_off,
+                  unit: "M",
+                  format: %w[0 5 10 15 20 25 30 35 40],
+                  hass: { select: { entity_category: :config } }) do |value|
+      @mutex.synchronize { zone.fan_intermittent_off = value.to_i }
+    end
+    node.property("current-fan-mode",
+                  "Current Fan Status",
+                  :boolean,
+                  zone.current_fan_mode,
+                  hass: { binary_sensor: { device_class: :running } })
   end
 end
 
