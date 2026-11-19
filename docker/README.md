@@ -1,15 +1,15 @@
 # Docker
-This is a very basic image. Make sure to adjust the ```device``` ```TTY``` and ```MQTT``` settings to fit your configuration.
+This is a very basic image. It is built from the repository source, so the build context must be the root of the repository (not the `docker` folder). Make sure to adjust the ```device``` ```TTY``` and ```MQTT``` settings to fit your configuration.
 
 # To build and run
 ```
-docker build -t ccutrer/waterfurnace_aurora https://github.com/ccutrer/waterfurnace_aurora.git\#main:docker
+docker build -t ccutrer/waterfurnace_aurora -f docker/Dockerfile https://github.com/ccutrer/waterfurnace_aurora.git\#main
 docker run -d --device=/dev/ttyUSB0 --env TTY=/dev/ttyUSB0 --env MQTT=mqtt://localhost ccutrer/waterfurnace_aurora
 ```
 # To upgrade the build
 ```
 # When running only with docker
-docker build -t ccutrer/waterfurnace_aurora https://github.com/ccutrer/waterfurnace_aurora.git\#main:docker --no-cache
+docker build -t ccutrer/waterfurnace_aurora -f docker/Dockerfile https://github.com/ccutrer/waterfurnace_aurora.git\#main --no-cache
 # When using docker-compose
 docker-compose build --no-cache
 ```
