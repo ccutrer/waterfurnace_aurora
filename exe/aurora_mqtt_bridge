@@ -81,10 +81,10 @@ class MQTTBridge
         when %r{\$modbus/(\d+)/set$}
           register = $1.to_i
           value = case value
-                  when /\d+/
-                    value.to_i
-                  when /0x(\d+)/
+                  when /\A0x(\h+)\z/i
                     $1.to_i(16)
+                  when /\A\d+\z/
+                    value.to_i
                   end
           @abc.modbus_slave.holding_registers[register] = value if value
           registers = { register => @abc.modbus_slave.holding_registers[register] }
@@ -726,6 +726,17 @@ class MQTTBridge
                       format: 0..100,
                       hass: { sensor: { device_class: :humidity,
                                         state_class: :measurement } })
+        next unless @abc.iz2?
+
+        node.property("humidity-offset",
+                      "Humidity Sensor Offset",
+                      :integer,
+                      @abc.humidistat.humidity_offset,
+                      unit: "%",
+                      format: -10..10,
+                      hass: { number: { entity_category: :config } }) do |value|
+          @mutex.synchronize { @abc.humidistat.humidity_offset = value }
+        end
       end
     end
 
